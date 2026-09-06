@@ -1,0 +1,83 @@
+object dlgSettings: TdlgSettings
+  Left = 396
+  Height = 179
+  Top = 250
+  Width = 322
+  BorderIcons = [biSystemMenu]
+  BorderStyle = bsDialog
+  Caption = 'Settings'
+  ClientHeight = 179
+  ClientWidth = 322
+  FormStyle = fsStayOnTop
+  Position = poMainFormCenter
+  LCLVersion = '4.99.0.0'
+  OnCreate = FormCreate
+  object btnOK: TButton
+    Left = 147
+    Height = 25
+    Top = 136
+    Width = 75
+    Anchors = [akRight, akBottom]
+    Caption = 'OK'
+    Default = True
+    ModalResult = 1
+    TabOrder = 0
+  end
+  object btnCancel: TButton
+    Left = 235
+    Height = 25
+    Top = 136
+    Width = 75
+    Anchors = [akRight, akBottom]
+    Caption = 'Cancel'
+    ModalResult = 2
+    TabOrder = 1
+  end
+  object Label1: TLabel
+    Left = 10
+    Height = 15
+    Top = 8
+    Width = 73
+    Caption = 'Image Folder'
+    Font.Style = [fsBold]
+    ParentFont = False
+  end
+  object edtImageFolder: TDirectoryEdit
+    Left = 10
+    Height = 23
+    Top = 25
+    Width = 300
+    Directory = 'edtImageFolder'
+    ShowHidden = False
+    ButtonWidth = 23
+    NumGlyphs = 1
+    Anchors = [akTop, akLeft, akRight]
+    MaxLength = 0
+    TabOrder = 2
+    Text = 'edtImageFolder'
+  end
+  object Label2: TLabel
+    Left = 10
+    Height = 15
+    Top = 64
+    Width = 163
+    Caption = 'Master Anomaly Spreadsheet'
+    Font.Style = [fsBold]
+    ParentFont = False
+  end
+  object edtMasterFilename: TFileNameEdit
+    Left = 10
+    Height = 23
+    Top = 82
+    Width = 300
+    FileName = 'edtMasterFilename'
+    FilterIndex = 0
+    HideDirectories = False
+    ButtonWidth = 23
+    NumGlyphs = 1
+    Anchors = [akTop, akLeft, akRight]
+    MaxLength = 0
+    TabOrder = 3
+    Text = 'edtMasterFilename'
+  end
+end

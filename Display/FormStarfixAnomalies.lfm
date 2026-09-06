@@ -1,0 +1,93 @@
+inherited frmStarfixAnomalies: TfrmStarfixAnomalies
+  Left = 396
+  Height = 769
+  Top = 250
+  Width = 1231
+  Caption = 'Inspector Mike Starfix Anomaly Management'
+  ClientHeight = 769
+  ClientWidth = 1231
+  Position = poScreenCenter
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  OnShow = FormShow
+  inherited pbMain: TProgressBar
+    Top = 723
+    Width = 1231
+    TabOrder = 1
+  end
+  inherited sbMain: TStatusBar
+    Top = 746
+    Width = 1231
+  end
+  object ToolBar1: TToolBar[2]
+    Left = 0
+    Height = 26
+    Top = 0
+    Width = 1231
+    Caption = 'ToolBar1'
+    TabOrder = 0
+  end
+  object Panel1: TPanel[3]
+    Left = 0
+    Height = 697
+    Top = 26
+    Width = 243
+    Align = alLeft
+    Caption = 'Panel1'
+    TabOrder = 3
+  end
+  object Splitter1: TSplitter[4]
+    Left = 243
+    Height = 697
+    Top = 26
+    Width = 5
+  end
+  object PageControl1: TPageControl[5]
+    Left = 248
+    Height = 697
+    Top = 26
+    Width = 983
+    ActivePage = tsImages
+    Align = alClient
+    TabIndex = 0
+    TabOrder = 5
+    object tsImages: TTabSheet
+      Caption = 'Images'
+    end
+    object tsVideo: TTabSheet
+      Caption = 'Video'
+    end
+  end
+  inherited ilImages: TImageList[6]
+  end
+  inherited mnuMain: TMainMenu[7]
+    object mnuDatabase: TMenuItem[0]
+      Caption = '&Database'
+      object mnuDatabaseOpen: TMenuItem
+        Caption = '&Open'
+        OnClick = mnuDatabaseOpenClick
+      end
+      object Separator2: TMenuItem
+        Caption = '-'
+      end
+      object mnuExit: TMenuItem
+        Caption = 'E&xit'
+        OnClick = mnuExitClick
+      end
+    end
+    inherited mnuOptions: TMenuItem[1]
+      inherited mnuMultilineGrids: TMenuItem
+        Caption = '&Multiline Grids'
+      end
+      object Separator1: TMenuItem[1]
+        Caption = '-'
+      end
+      object mnuSettings: TMenuItem[2]
+        Caption = '&Settings'
+        OnClick = mnuSettingsClick
+      end
+    end
+    inherited mnuHelp: TMenuItem[2]
+    end
+  end
+end
