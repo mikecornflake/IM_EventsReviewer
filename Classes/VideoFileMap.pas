@@ -2,6 +2,7 @@ Unit VideoFileMap;
 
 {$mode ObjFPC}{$H+}
 {$WARN 6058 off : Call to subroutine "$1" marked as inline is not inlined}
+
 Interface
 
 Uses
@@ -9,9 +10,9 @@ Uses
 
 Type
 
-  { TVideoMap }
+  { TVideoFileFolderMap }
 
-  TVideoMap = Class(Specialize TFPGMap<String, String>)
+  TVideoFileFolderMap = Class(Specialize TFPGMap<String, String>)
   Private
     Procedure InternalScanFolder(Const AFolder: String);
   Public
@@ -21,12 +22,16 @@ Type
 
 Implementation
 
-{ TVideoMap }
+Uses
+  FileSupport;
 
-Procedure TVideoMap.InternalScanFolder(Const AFolder: String);
+  { TVideoFileFolderMap }
+
+Procedure TVideoFileFolderMap.InternalScanFolder(Const AFolder: String);
 Var
   srFile: TSearchRec;
   sPath: String;
+  sExt: Rawbytestring;
 Begin
   sPath := IncludeTrailingPathDelimiter(AFolder);
 
@@ -42,9 +47,14 @@ Begin
       Begin
         If IndexOf(srFile.Name) >= 0 Then
           // TODO, Improve.report duplicate filename
-          Raise Exception.CreateFmt('TVideoMap: Duplicate file found %s', [sPath + srFile.Name])
+          Raise Exception.CreateFmt('TVideoFileFolderMap: Duplicate file found %s',
+            [sPath + srFile.Name])
         Else
-          Add(srFile.Name, sPath);
+        Begin
+          sExt := ExtractFileExt(srFile.Name);
+          If IsVideo(sExt) Then
+            Add(srFile.Name, sPath);
+        End;
       End;
     Until FindNext(srFile) <> 0;
   Finally
@@ -52,7 +62,7 @@ Begin
   End;
 End;
 
-Procedure TVideoMap.ScanFolder(Const AFolder: String);
+Procedure TVideoFileFolderMap.ScanFolder(Const AFolder: String);
 Begin
   Clear;
 
@@ -61,7 +71,7 @@ Begin
   Sorted := True;
 End;
 
-Function TVideoMap.LookupFolder(Const AFilename: String): String;
+Function TVideoFileFolderMap.LookupFolder(Const AFilename: String): String;
 Var
   iIndex: Integer;
 Begin

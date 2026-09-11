@@ -1,21 +1,24 @@
 object dlgSettings: TdlgSettings
   Left = 396
-  Height = 231
+  Height = 351
   Top = 250
-  Width = 322
+  Width = 296
+  Anchors = [akTop, akLeft, akRight]
   BorderIcons = [biSystemMenu]
   BorderStyle = bsDialog
   Caption = 'Settings'
-  ClientHeight = 231
-  ClientWidth = 322
+  ClientHeight = 351
+  ClientWidth = 300
+  Constraints.MinHeight = 350
+  Constraints.MinWidth = 300
   FormStyle = fsStayOnTop
   Position = poMainFormCenter
   LCLVersion = '4.99.0.0'
   OnCreate = FormCreate
   object btnOK: TButton
-    Left = 147
+    Left = 125
     Height = 25
-    Top = 188
+    Top = 308
     Width = 75
     Anchors = [akRight, akBottom]
     Caption = 'OK'
@@ -24,9 +27,9 @@ object dlgSettings: TdlgSettings
     TabOrder = 0
   end
   object btnCancel: TButton
-    Left = 235
+    Left = 213
     Height = 25
-    Top = 188
+    Top = 308
     Width = 75
     Anchors = [akRight, akBottom]
     Caption = 'Cancel'
@@ -36,7 +39,7 @@ object dlgSettings: TdlgSettings
   object Label1: TLabel
     Left = 8
     Height = 15
-    Top = 112
+    Top = 57
     Width = 73
     Caption = 'Image Folder'
     Font.Style = [fsBold]
@@ -45,8 +48,8 @@ object dlgSettings: TdlgSettings
   object edtImageFolder: TDirectoryEdit
     Left = 8
     Height = 23
-    Top = 129
-    Width = 300
+    Top = 74
+    Width = 278
     Directory = 'edtImageFolder'
     ShowHidden = False
     ButtonWidth = 23
@@ -59,7 +62,7 @@ object dlgSettings: TdlgSettings
   object Label2: TLabel
     Left = 8
     Height = 15
-    Top = 16
+    Top = 128
     Width = 163
     Caption = 'Master Anomaly Spreadsheet'
     Font.Style = [fsBold]
@@ -68,8 +71,8 @@ object dlgSettings: TdlgSettings
   object edtAnomalySpreadsheet: TFileNameEdit
     Left = 8
     Height = 23
-    Top = 34
-    Width = 300
+    Top = 146
+    Width = 278
     FileName = 'edtAnomalySpreadsheet'
     FilterIndex = 0
     HideDirectories = False
@@ -83,7 +86,7 @@ object dlgSettings: TdlgSettings
   object Label3: TLabel
     Left = 8
     Height = 15
-    Top = 64
+    Top = 9
     Width = 99
     Caption = 'Video Base Folder'
     Font.Style = [fsBold]
@@ -92,8 +95,8 @@ object dlgSettings: TdlgSettings
   object edtVideoFolder: TDirectoryEdit
     Left = 8
     Height = 23
-    Top = 81
-    Width = 300
+    Top = 26
+    Width = 278
     Directory = 'edtVideoFolder'
     ShowHidden = False
     ButtonWidth = 23
@@ -102,5 +105,43 @@ object dlgSettings: TdlgSettings
     MaxLength = 0
     TabOrder = 4
     Text = 'edtVideoFolder'
+  end
+  object Bevel1: TBevel
+    Left = 8
+    Height = 2
+    Top = 112
+    Width = 278
+    Anchors = [akTop, akLeft, akRight]
+  end
+  object Bevel2: TBevel
+    Left = 8
+    Height = 2
+    Top = 184
+    Width = 278
+    Anchors = [akTop, akLeft, akRight]
+  end
+  object Label4: TLabel
+    Left = 8
+    Height = 15
+    Top = 198
+    Width = 181
+    Caption = 'Video Order (Across, then down)'
+    Font.Style = [fsBold]
+    ParentFont = False
+  end
+  object memChannelOrder: TMemo
+    Left = 8
+    Height = 68
+    Top = 220
+    Width = 278
+    Anchors = [akTop, akLeft, akRight, akBottom]
+    Lines.Strings = (
+      'Centre'
+      'Aux'
+      'Port'
+      'Stbd'
+    )
+    ScrollBars = ssAutoBoth
+    TabOrder = 5
   end
 end

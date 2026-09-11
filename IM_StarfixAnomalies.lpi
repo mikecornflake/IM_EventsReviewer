@@ -19,7 +19,7 @@
       <UseVersionInfo Value="True"/>
       <AutoIncrementBuild Value="True"/>
       <MinorVersionNr Value="1"/>
-      <BuildNr Value="8"/>
+      <BuildNr Value="13"/>
       <Attributes pvaPreRelease="True"/>
       <StringTable Comments="Starfix Anomaly Manager" CompanyName="Inspector Mike 2.0 Pty Ltd" LegalCopyright="(c) 2026"/>
     </VersionInfo>
@@ -34,7 +34,7 @@
           </Target>
           <SearchPaths>
             <IncludeFiles Value="$(ProjOutDir)"/>
-            <OtherUnitFiles Value="Display;Modules;Classes"/>
+            <OtherUnitFiles Value="Display;Classes;Providers"/>
             <UnitOutputDirectory Value="$(TestDir)\lib\$(TargetCPU)-$(TargetOS)\$NameOnly($(ProjFile))"/>
           </SearchPaths>
           <Parsing>
@@ -79,7 +79,7 @@
           </Target>
           <SearchPaths>
             <IncludeFiles Value="$(ProjOutDir)"/>
-            <OtherUnitFiles Value="Display;Modules;Classes"/>
+            <OtherUnitFiles Value="Display;Classes;Providers"/>
             <UnitOutputDirectory Value="$(TestDir)\lib\$(TargetCPU)-$(TargetOS)\$NameOnly($(ProjFile))"/>
           </SearchPaths>
           <CodeGeneration>
@@ -158,14 +158,27 @@
         <ResourceBaseClass Value="Frame"/>
       </Unit>
       <Unit>
-        <Filename Value="Modules\ModuleStarfix.pas"/>
+        <Filename Value="Classes\VideoFileMap.pas"/>
         <IsPartOfProject Value="True"/>
-        <ComponentName Value="dmStarfix"/>
-        <HasResources Value="True"/>
-        <ResourceBaseClass Value="DataModule"/>
       </Unit>
       <Unit>
-        <Filename Value="Classes\VideoFileMap.pas"/>
+        <Filename Value="Classes\ApplicationSettings.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Providers\MediaProvider.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Providers\DataProvider.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Classes\MediaTypes.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Providers\DatabaseProvider.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit>
     </Units>
@@ -178,7 +191,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="Display;Modules;Classes"/>
+      <OtherUnitFiles Value="Display;Classes;Providers"/>
       <UnitOutputDirectory Value="$(TestDir)\lib\$(TargetCPU)-$(TargetOS)\$NameOnly($(ProjFile))"/>
     </SearchPaths>
     <Linking>
@@ -191,6 +204,11 @@
         </Win32>
       </Options>
     </Linking>
+    <Other>
+      <CompilerMessages>
+        <IgnoredMessages idx5024="True"/>
+      </CompilerMessages>
+    </Other>
   </CompilerOptions>
   <Debugging>
     <Exceptions>

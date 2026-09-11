@@ -54,7 +54,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
         Top = 25
         Width = 80
         DataField = 'Length_(m)'
-        DataSource = dsAnomaly
+        DataSource = dsAnomalyDetails
         ReadOnly = True
         Alignment = taCenter
         MaxLength = 0
@@ -68,7 +68,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
         Top = 25
         Width = 80
         DataField = 'Width_(m)'
-        DataSource = dsAnomaly
+        DataSource = dsAnomalyDetails
         ReadOnly = True
         Alignment = taCenter
         BorderSpacing.Left = 5
@@ -83,7 +83,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
         Top = 25
         Width = 80
         DataField = 'Height_(m)'
-        DataSource = dsAnomaly
+        DataSource = dsAnomalyDetails
         ReadOnly = True
         Alignment = taCenter
         BorderSpacing.Left = 5
@@ -98,7 +98,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
         Top = 25
         Width = 80
         DataField = 'Offset_(m)'
-        DataSource = dsAnomaly
+        DataSource = dsAnomalyDetails
         ReadOnly = True
         Alignment = taCenter
         BorderSpacing.Left = 5
@@ -113,7 +113,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
         Top = 25
         Width = 80
         DataField = 'Clock'
-        DataSource = dsAnomaly
+        DataSource = dsAnomalyDetails
         ReadOnly = True
         Alignment = taCenter
         BorderSpacing.Left = 5
@@ -145,7 +145,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
         Anchors = [akTop, akLeft, akRight]
         BorderSpacing.Right = 9
         DataField = 'Description'
-        DataSource = dsAnomaly
+        DataSource = dsAnomalyDetails
         ReadOnly = True
         TabOrder = 5
       end
@@ -295,8 +295,8 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
     inherited mnuHelp: TMenuItem[2]
     end
   end
-  object dsAnomaly: TDataSource[9]
-    Left = 464
-    Top = 592
+  object dsAnomalyDetails: TDataSource[9]
+    Left = 240
+    Top = 368
   end
 end

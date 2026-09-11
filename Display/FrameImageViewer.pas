@@ -5,7 +5,7 @@ Unit FrameImageViewer;
 Interface
 
 Uses
-  Classes, SysUtils, Forms, Controls, Grids, ComCtrls, fgl, BGRABitmap, Types;
+  Classes, SysUtils, Forms, Controls, Grids, ComCtrls, fgl, BGRABitmap, Types, Inifiles;
 
 Type
 
@@ -59,6 +59,9 @@ Type
 
     Procedure AddImage(Const AFilename, ACaption: String);
     Procedure ClearImages;
+
+    Procedure LoadSettings(AInifile: TIniFile);
+    Procedure SaveSettings(AInifile: TInifile);
 
     Property ThumbnailWidth: Integer Read FThumbnailWidth;
     Property ThumbnailHeight: Integer Read FThumbnailHeight;
@@ -240,5 +243,15 @@ Begin
 
   UpdateGridLayout;
 End;
+
+Procedure TFrameImageViewer.LoadSettings(AInifile: TIniFile);
+begin
+  //
+end;
+
+Procedure TFrameImageViewer.SaveSettings(AInifile: TInifile);
+begin
+  //
+end;
 
 End.

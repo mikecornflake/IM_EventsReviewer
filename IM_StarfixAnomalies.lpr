@@ -10,7 +10,7 @@ uses
   athreads,
   {$ENDIF}
   Interfaces, // this includes the LCL widgetset
-  Forms, FormStarfixAnomalies, VideoFileMap
+  Forms, FormStarfixAnomalies
   { you can add units after this };
 
 {$R *.res}

@@ -6,39 +6,42 @@ Interface
 
 Uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ComCtrls, Menus, ExtCtrls, StdCtrls,
-  DBCtrls, IniFiles, FormMain, FrameImageViewer, FrameGrids, FrameVideoPlayer, FrameSyncedVideo,
-  ModuleStarfix, DB;
+  DBCtrls, IniFiles, DB,
+  // Library
+  FormMain, FrameImageViewer, FrameGrids, FrameVideoPlayer, FrameSyncedVideo,
+  // Application
+  ApplicationSettings, DatabaseProvider, MediaProvider;
 
 Type
 
   { TfrmStarfixAnomalies }
 
   TfrmStarfixAnomalies = Class(TFormMain)
-    dsAnomaly: TDataSource;
-    edtLength: TDBEdit;
-    edtWidth: TDBEdit;
-    edtHeight: TDBEdit;
-    edtOffset: TDBEdit;
+    dsAnomalyDetails: TDataSource;
     edtClock: TDBEdit;
     edtDescription: TDBMemo;
+    edtHeight: TDBEdit;
+    edtLength: TDBEdit;
+    edtOffset: TDBEdit;
+    edtWidth: TDBEdit;
     grpDetails: TGroupBox;
-    lblLength: TLabel;
-    lblWidth: TLabel;
-    lblHeight: TLabel;
-    lblOffset: TLabel;
     Label5: TLabel;
     lblClock: TLabel;
     lblDescription: TLabel;
+    lblHeight: TLabel;
+    lblLength: TLabel;
+    lblOffset: TLabel;
+    lblWidth: TLabel;
+    mnuDatabase: TMenuItem;
+    mnuDatabaseOpen: TMenuItem;
     mnuExit: TMenuItem;
-    pnlVideo: TPanel;
+    mnuSettings: TMenuItem;
+    pnlAnomalies: TPanel;
     pnlImages: TPanel;
     pnlRight: TPanel;
-    pnlAnomalies: TPanel;
-    Separator2: TMenuItem;
-    mnuDatabaseOpen: TMenuItem;
-    mnuDatabase: TMenuItem;
+    pnlVideo: TPanel;
     Separator1: TMenuItem;
-    mnuSettings: TMenuItem;
+    Separator2: TMenuItem;
     Splitter1: TSplitter;
     Splitter2: TSplitter;
     ToolBar1: TToolBar;
@@ -49,20 +52,18 @@ Type
     Procedure mnuExitClick(Sender: TObject);
     Procedure mnuSettingsClick(Sender: TObject);
   Private
-    // Starfix Data Module
-    FStarfix: TdmStarfix;
-
     // Settings
-    FVideoFolder: String;
-    FImageFolder: String;
-    FAnomalySpreadsheet: String;
+    FSettings: TApplicationSettings;
+
+    // Providers
+    FDataProvider: TDatabaseProvider;
+    FMediaProvider: TMediaProvider;
 
     //UI
     FActivated: Boolean;
 
     fmeImageViewer: TFrameImageViewer;
     fmeAnomalies: TFrameGrid;
-
     fmeVideoPlayer: TFrameVideoPlayer;
     fmeSyncedVideo: TFrameSyncedVideo;
   Protected
@@ -71,6 +72,10 @@ Type
     // Stored in ini file with exe - what folders to load etc
     Procedure LoadGlobalSettings(oInifile: TIniFile); Override;
     Procedure SaveGlobalSettings(oInifile: TIniFile); Override;
+
+    // Callback events
+    Procedure DoProviderReady(Sender: TObject);
+    Procedure DoAnomalyChanged(Sender: TObject; Const ANewAnomalyNo: String; Const ADateTime: TDateTime);
   Public
 
   End;
@@ -81,7 +86,7 @@ Var
 Implementation
 
 Uses
-  DialogSettings, ThirdPartySupport, FrameVideoLibmpv;
+  ThirdPartySupport, FrameVideoLibmpv, StringSupport, FileUtil, DialogMSSQLConnection, MediaTypes;
 
   {$R *.lfm}
 
@@ -92,13 +97,18 @@ Begin
   // This isn't going to be app that only an Admin can change settings...
   FAlwaysSaveSettings := True;
 
+  // Settings Manager
+  FSettings := TApplicationSettings.Create;
+
   // UI
   fmeImageViewer := TFrameImageViewer.Create(Self);
   fmeImageViewer.Parent := pnlImages;
+  fmeImageViewer.Name := 'fmeImageViewer';
   fmeImageViewer.Align := alClient;
 
   fmeAnomalies := TFrameGrid.Create(Self);
   fmeAnomalies.Parent := pnlAnomalies;
+  fmeAnomalies.Name := 'fmeAnomalies';
   fmeAnomalies.Align := alClient;
 
   fmeVideoPlayer := TFrameVideoPlayer.Create(Self);
@@ -108,45 +118,54 @@ Begin
   fmeVideoPlayer.Autoplay := True;
   fmeVideoPlayer.ShowLabel := True;
 
-  // Change this line to switch playback engines
+  // Ensure the Video Player support multi channel playback
   fmeVideoPlayer.VideoEngineClass := TFrameSyncedVideo;
 
+  // Currently multi channel functionality is only exposed through the Video Engine,
+  // not the Video Player UI frame, so grab a reference of the instance
   fmeSyncedVideo := TFrameSyncedVideo(fmeVideoPlayer.PlaybackFrame);
+
+  // Change this line to switch playback engines (mpv, vlc, mlplayer
+  { TODO: Make fmeSyncedVideo.VideoEngineClass a per-user choice based on available options }
+  { TODO: fmeVideoPlayer/fmeSyncedVideo Code here was copied from IM_Video, I've simplified code
+          here and it's all still working - backport changes to IM_Video }
   fmeSyncedVideo.VideoEngineClass := TFrameVideoLibmpv;
 
-  If Not Assigned(fmeSyncedVideo) Then
-    Raise Exception.Create('Playback Frame not registered');
+  // Now the UI is created, let's create the providers and bind/register
 
-  // Database
-  FStarfix := TdmStarfix.Create(Self);
-  FStarfix.RegisterAnomalyControls(fmeAnomalies, fmeImageViewer, dsAnomaly);
-  FStarfix.RegisterVideoControls(fmeVideoPlayer, fmeSyncedVideo);
+  // Data Provider
+  FDataProvider := TDatabaseProvider.Create;
+  FDataProvider.OnProviderReady := @DoProviderReady;
+  FDataProvider.OnAnomalyChanged := @DoAnomalyChanged;
+
+  dsAnomalyDetails.Dataset := FDataProvider.AnomalyDataSet;
+  fmeAnomalies.Dataset := FDataProvider.AnomalyDataSet;
+
+  // Media Provider
+  FMediaProvider := TMediaProvider.Create;
 
   FActivated := False;
 End;
 
 Procedure TfrmStarfixAnomalies.FormDestroy(Sender: TObject);
 Begin
+  // Fully aware these woudl be cleared up by their owner anyway
+  // My philosophy is: I create, I clean up...
   FreeAndNil(fmeImageViewer);
   FreeAndNil(fmeAnomalies);
+  FreeAndNil(fmeVideoPlayer);
 
-  FreeAndNil(FStarfix);
+  // And these definitely need freeing :-)
+  FreeAndNil(FSettings);
+  FreeAndNil(FDataProvider);
+  FreeAndNil(FMediaProvider);
 End;
 
 Procedure TfrmStarfixAnomalies.FormShow(Sender: TObject);
 Begin
   If Not FActivated Then
   Begin
-    // Test
-    fmeImageViewer.AddImage(
-      'B:\Code\Compile\Test Data\MEDIA\IMAGES\HD Images\507464_SAIPEM_15_0525_20260728202906_Centre.jpg',
-      'First Image');
-    fmeImageViewer.AddImage(
-      'B:\Code\Compile\Test Data\MEDIA\IMAGES\HD Images\507464_SAIPEM_15_0525_20260728202944_Centre.jpg',
-      'Second Image');
-    fmeImageViewer.AddImage(
-      'B:\Code\Compile\Test Data\MEDIA\IMAGES\HD Images\507464_SAIPEM_15_0534_20260728193144_Centre.jpg',
-      'Third and absolutely final Image');
+    // If needed (was for testing)
 
     FActivated := True;
   End;
@@ -154,78 +173,191 @@ End;
 
 Procedure TfrmStarfixAnomalies.LoadGlobalSettings(oInifile: TIniFile);
 Begin
+  // FormPosition, global grid settings etc
   Inherited LoadGlobalSettings(oInifile);
 
-  FStarfix.LoadSettings(oInifile);
+  // Application Settings
+  FSettings.LoadSettings(oInifile);
 
-  // Settings
-  FAnomalySpreadsheet := oInifile.ReadString('Settings', 'AnomalySpreadsheet', '');
-  FImageFolder := oInifile.ReadString('Settings', 'ImageFolder', '');
-  FVideoFolder := oInifile.ReadString('Settings', 'VideoFolder', '');
+  // Data Persistence Settings
+  FDataProvider.LoadSettings(oInifile);
 
-  // Propogate Changes
-  FStarfix.ImageFolder := FImageFolder;
-  FStarfix.VideoFolder := FVideoFolder;
+  // Allow the controls to persist their own settings (data filters, volume etc)
+  fmeImageViewer.LoadSettings(oInifile);
+  fmeAnomalies.LoadSettings(oInifile);
+  fmeVideoPlayer.LoadSettings(oInifile);
 End;
 
 Procedure TfrmStarfixAnomalies.SaveGlobalSettings(oInifile: TIniFile);
 Begin
-  FStarfix.SaveSettings(oInifile);
+  // Application Settings
+  FSettings.SaveSettings(oInifile);
 
-  // Settings
-  oInifile.WriteString('Settings', 'AnomalySpreadsheet', FAnomalySpreadsheet);
-  oInifile.WriteString('Settings', 'ImageFolder', FImageFolder);
-  oInifile.WriteString('Settings', 'VideoFolder', FVideoFolder);
+  // Database Settings
+  FDataProvider.SaveSettings(oInifile);
 
+  // Allow the controls to persist their settings
+  fmeImageViewer.SaveSettings(oInifile);
+  fmeAnomalies.SaveSettings(oInifile);
+  fmeVideoPlayer.SaveSettings(oInifile);
+
+  // FormPosition, global grid settings etc
   Inherited SaveGlobalSettings(oInifile);
 End;
 
 Procedure TfrmStarfixAnomalies.mnuSettingsClick(Sender: TObject);
-Var
-  oDlg: TdlgSettings;
 Begin
-  oDlg := TdlgSettings.Create(Self);
-  Try
-
-    // Define settings
-    oDlg.AnomalySpreadsheet := FAnomalySpreadsheet;
-    oDlg.ImageFolder := FImageFolder;
-    oDlg.VideoFolder := FVideoFolder;
-
-    If oDlg.ShowModal = mrOk Then
-    Begin
-      // Update settings
-      FAnomalySpreadsheet := oDlg.AnomalySpreadsheet;
-      FImageFolder := oDlg.ImageFolder;
-      FVideoFolder := oDlg.VideoFolder;
-
-      // Propogate changes
-      FStarfix.ImageFolder := FImageFolder;
-      FStarfix.VideoFolder := FVideoFolder;
-    End;
-  Finally
-    oDlg.Free;
-  End;
+  FSettings.OpenSettings;
 End;
 
 Procedure TfrmStarfixAnomalies.RefreshUI;
 Begin
   Inherited RefreshUI;
 
-  mnuDatabaseOpen.Enabled := FStarfix.DriverAvailable;
+  mnuDatabaseOpen.Enabled := MSSQL.Available;
 End;
 
 Procedure TfrmStarfixAnomalies.mnuDatabaseOpenClick(Sender: TObject);
 Begin
-  If FStarfix.OpenDatabase Then
-  Begin
-    RefreshUI;
-  End;
+  // TODO: Move Settings into a Frame, then
+  //       add a plugin capability to OpenDaabase dialog
+  If FSettings.OpenSettings Then
+    If FDataProvider.Open Then
+      RefreshUI;
 End;
 
 Procedure TfrmStarfixAnomalies.mnuExitClick(Sender: TObject);
 Begin
   Close;
+End;
+
+Procedure TfrmStarfixAnomalies.DoProviderReady(Sender: TObject);
+Begin
+  // We're now either connected to database, or have the offline data available
+  If FDataProvider.Ready Then
+  Begin
+    FMediaProvider.ScanVideoFiles(FSettings.VideoFolder);
+
+    // Resize columns etc
+    fmeAnomalies.InitialiseDBGrid(True);
+  End;
+End;
+
+// Data has just loaded or User has scrolled to the next anomaly in the list
+Procedure TfrmStarfixAnomalies.DoAnomalyChanged(Sender: TObject; Const ANewAnomalyNo: String; Const ADateTime: TDateTime);
+Var
+  slImages: TStringList;
+  sImageFile, sFolder: String;
+  sWantedChannel: String;
+  oVideoFiles: TVideoFiles;
+  oVideoFile: TVideoFile;
+
+  Function Caption(ABaseFolder: String; AFilename: String): String;
+  Begin
+    Result := TextBetween(AFilename, IncludeTrailingBackslash(ABaseFolder), '');
+  End;
+
+Begin
+  fmeImageViewer.ClearImages;
+
+  If DirectoryExists(FSettings.ImageFolder) Then
+  Begin
+    // Load Anomaly Images
+    fmeImageViewer.ClearImages;
+
+    If Trim(ANewAnomalyNo) = '' Then
+      Exit;
+
+    slImages := TStringList.Create;
+    Try
+      FindAllFiles(slImages, FSettings.ImageFolder, ANewAnomalyNo + '*.*', True);
+
+      For sImageFile In slImages Do
+        fmeImageViewer.AddImage(sImageFile, Caption(FSettings.ImageFolder, sImageFile));
+    Finally
+      slImages.Free;
+    End;
+
+    // Do I need to load new Video?
+    If (fmeSyncedVideo.StartDateTime <= ADateTime) And
+      (ADateTime <= fmeSyncedVideo.EndDateTime) Then
+    Begin
+      fmeSyncedVideo.PositionAsTime := ADateTime;
+
+      // TODO: Stop Seeking from restarting the video :-(
+      fmeSyncedVideo.Pause;
+    End
+    Else
+    Begin
+      oVideoFiles := FDataProvider.GetVideoFilesForTime(ADateTime);
+      Try
+        If oVideoFiles.Count = 0 Then
+        Begin
+          fmeVideoPlayer.Clear;
+
+          // TODO: Implement fmeSyncedVideo.clear
+          //       Not done now as this will require testing all Video modules
+          fmeSyncedVideo.ClearVideoCount;
+          fmeSyncedVideo.ClearUnloadedVideoFrames;
+        End
+        Else
+        Begin
+          MainForm.Busy := True;
+          MainForm.DisableAutoSizing;
+          Try
+            fmeSyncedVideo.BeginLoadVideos;
+            Try
+              If FSettings.ChannelOrder.Count = 0 Then
+                FSettings.ChannelOrder.Add('*');
+
+              For oVideoFile In oVideoFiles Do
+              Begin
+                For sWantedChannel In FSettings.ChannelOrder Do
+                Begin
+                  If (oVideoFile.Channel = '*') Or SameText(oVideoFile.Channel,
+                    sWantedChannel) Then
+                  Begin
+                    sFolder := IncludeTrailingBackslash(
+                      FMediaProvider.LookupFolder(oVideoFile.Filename));
+
+                    If FileExists(sFolder + oVideoFile.Filename) Then
+                      fmeSyncedVideo.Load(sFolder + oVideoFile.Filename,
+                        oVideoFile.Channel, oVideoFile.StartDateTime);
+
+                    Break;
+                  End;
+                End;
+              End;
+            Finally
+              fmeSyncedVideo.EndLoadVideos;
+            End;
+
+            If fmeSyncedVideo.VideoFileCount > 0 Then
+            Begin
+              // Rearrange video layout
+              If fmeSyncedVideo.VideoFileCount > 2 Then
+                fmeSyncedVideo.Layout(2, 2)
+              Else
+                fmeSyncedVideo.Layout(1, fmeSyncedVideo.VideoFileCount);
+
+              // Pause the video (this is anomaly review, user will want to study the start)
+              fmeSyncedVideo.Pause;
+
+              // Seek
+              fmeSyncedVideo.PositionAsTime := ADateTime;
+
+              fmeVideoPlayer.RefreshUI;
+            End;
+          Finally
+            MainForm.EnableAutoSizing;
+            MainForm.Busy := False;
+          End;
+        End;
+      Finally
+        oVideoFiles.Free;
+      End;
+    End;
+  End;
 End;
 
 End.
