@@ -146,7 +146,10 @@ Begin
     iCols := 1;
 
   If FImages.Count = 0 Then
-    iRows := 1
+  Begin
+    iRows := 1;
+    iCols := 1;
+  end
   Else
     iRows := (FImages.Count + iCols - 1) Div iCols;
 

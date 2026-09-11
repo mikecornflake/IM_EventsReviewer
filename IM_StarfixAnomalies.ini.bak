@@ -1,0 +1,11 @@
+[Database]
+DatabaseName=
+Server=
+Username=
+Password=
+Port=1433
+
+[Settings]
+AnomalySpreadsheet=
+ImageFolder=
+VideoFolder=

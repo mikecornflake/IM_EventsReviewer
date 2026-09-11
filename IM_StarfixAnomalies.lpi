@@ -19,7 +19,7 @@
       <UseVersionInfo Value="True"/>
       <AutoIncrementBuild Value="True"/>
       <MinorVersionNr Value="1"/>
-      <BuildNr Value="2"/>
+      <BuildNr Value="8"/>
       <Attributes pvaPreRelease="True"/>
       <StringTable Comments="Starfix Anomaly Manager" CompanyName="Inspector Mike 2.0 Pty Ltd" LegalCopyright="(c) 2026"/>
     </VersionInfo>
@@ -34,7 +34,7 @@
           </Target>
           <SearchPaths>
             <IncludeFiles Value="$(ProjOutDir)"/>
-            <OtherUnitFiles Value="Display"/>
+            <OtherUnitFiles Value="Display;Modules;Classes"/>
             <UnitOutputDirectory Value="$(TestDir)\lib\$(TargetCPU)-$(TargetOS)\$NameOnly($(ProjFile))"/>
           </SearchPaths>
           <Parsing>
@@ -63,6 +63,11 @@
               </Win32>
             </Options>
           </Linking>
+          <Other>
+            <CompilerMessages>
+              <IgnoredMessages idx6058="True" idx5024="True" idx3124="True" idx3123="True"/>
+            </CompilerMessages>
+          </Other>
         </CompilerOptions>
       </Item>
       <Item Name="Release">
@@ -70,12 +75,12 @@
           <Version Value="11"/>
           <PathDelim Value="\"/>
           <Target>
-            <Filename Value="IM_StarfixAnomalies"/>
+            <Filename Value="$(TestDir)\$NameOnly($(ProjFile))\$NameOnly($(ProjFile))"/>
           </Target>
           <SearchPaths>
             <IncludeFiles Value="$(ProjOutDir)"/>
-            <OtherUnitFiles Value="Display"/>
-            <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
+            <OtherUnitFiles Value="Display;Modules;Classes"/>
+            <UnitOutputDirectory Value="$(TestDir)\lib\$(TargetCPU)-$(TargetOS)\$NameOnly($(ProjFile))"/>
           </SearchPaths>
           <CodeGeneration>
             <SmartLinkUnit Value="True"/>
@@ -107,6 +112,12 @@
       <FormatVersion Value="2"/>
     </RunParams>
     <RequiredPackages>
+      <Item>
+        <PackageName Value="FCL"/>
+      </Item>
+      <Item>
+        <PackageName Value="SQLDBLaz"/>
+      </Item>
       <Item>
         <PackageName Value="UWMPVPlayer"/>
       </Item>
@@ -146,18 +157,29 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Frame"/>
       </Unit>
+      <Unit>
+        <Filename Value="Modules\ModuleStarfix.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="dmStarfix"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="DataModule"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Classes\VideoFileMap.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="11"/>
     <PathDelim Value="\"/>
     <Target>
-      <Filename Value="IM_StarfixAnomalies"/>
+      <Filename Value="$(TestDir)\$NameOnly($(ProjFile))\$NameOnly($(ProjFile))"/>
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="Display"/>
-      <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
+      <OtherUnitFiles Value="Display;Modules;Classes"/>
+      <UnitOutputDirectory Value="$(TestDir)\lib\$(TargetCPU)-$(TargetOS)\$NameOnly($(ProjFile))"/>
     </SearchPaths>
     <Linking>
       <Debugging>

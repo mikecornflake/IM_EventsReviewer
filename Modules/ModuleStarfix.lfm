@@ -1,0 +1,84 @@
+object dmStarfix: TdmStarfix
+  OnCreate = DataModuleCreate
+  OnDestroy = DataModuleDestroy
+  OldCreateOrder = False
+  Height = 290
+  HorizontalOffset = 396
+  VerticalOffset = 250
+  Width = 371
+  object qryAnomalies: TSQLQuery
+    PacketRecords = -1
+    FieldDefs = <>
+    AfterOpen = qryAnomaliesAfterOpen
+    AfterScroll = qryAnomaliesAfterScroll
+    Database = connStarfix
+    Transaction = transStarfix
+    SQL.Strings = (
+      'SELECT E.[UNIQUE_ID],'
+      '       E.TIMEDATE As [TIMEDATE_ID],  -- For the video playback'
+      '       DATEADD(S, E.TIMEDATE, ''1970-01-01'') As [DATETIME],'
+      '       E.[KP],'
+      '       E.[Type],'
+      '       E.[Anomaly_No],'
+      '       E.Length As [Length_(m)],'
+      '       E.Width As [Width_(m)],'
+      '       E.Height As [Height_(m)],'
+      '       E.Observed_Offset As [Offset_(m)],'
+      '       E.[Clock],'
+      '       E.Comment As [Description]'
+      'FROM dbo.Event_3 E'
+      'WHERE E.ANOMALY=''1'''
+      'ORDER BY [KP] Asc'
+      ''
+    )
+    Left = 56
+    Top = 96
+  end
+  object connStarfix: TMSSQLConnection
+    Connected = False
+    LoginPrompt = False
+    KeepConnection = False
+    Transaction = transStarfix
+    Left = 56
+    Top = 24
+  end
+  object transStarfix: TSQLTransaction
+    Active = False
+    Database = connStarfix
+    Left = 152
+    Top = 24
+  end
+  object qryVideosforTime: TSQLQuery
+    PacketRecords = -1
+    FieldDefs = <>
+    Database = connStarfix
+    Transaction = transStarfix
+    SQL.Strings = (
+      'Select'
+      '    V.Filename As [Filename],'
+      '    V.ChannelLocation As [Channel],'
+      '    FORMAT(DATEADD(S, V.StartTime, ''1970-01-01''), ''dd/MM/yyyy HH:mm:ss'') AS [Start],'
+      '    FORMAT(DATEADD(S, V.EndTime, ''1970-01-01''), ''dd/MM/yyyy HH:mm:ss'') AS [End]'
+      'From dbo.dvfilename_5 V'
+      'WHERE'
+      '    V.StartTime <= :TIMEDATE_ID'
+      '    AND V.EndTime >= :TIMEDATE_ID'
+      ''
+    )
+    Params = <    
+      item
+        DataType = ftFloat
+        Name = 'TIMEDATE_ID'
+        ParamType = ptInput
+      end>
+    Left = 56
+    Top = 160
+  end
+  object tmrLoadAnomalyMedia: TTimer
+    Enabled = False
+    Interval = 300
+    OnTimer = tmrLoadAnomalyMediaTimer
+    Left = 120
+    Top = 96
+  end
+end

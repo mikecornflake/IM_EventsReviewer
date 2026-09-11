@@ -1,30 +1,46 @@
 Unit FormStarfixAnomalies;
 
 {$mode objfpc}{$H+}
-
+{$WARN 5024 off : Parameter "$1" not used}
 Interface
 
 Uses
-  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ComCtrls, Menus, ExtCtrls, IniFiles,
-  FormMain, FrameImageViewer,
-  mssqlconn, sqldb, dblib, DB;
+  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ComCtrls, Menus, ExtCtrls, StdCtrls,
+  DBCtrls, IniFiles, FormMain, FrameImageViewer, FrameGrids, FrameVideoPlayer, FrameSyncedVideo,
+  ModuleStarfix, DB;
 
 Type
 
   { TfrmStarfixAnomalies }
 
   TfrmStarfixAnomalies = Class(TFormMain)
+    dsAnomaly: TDataSource;
+    edtLength: TDBEdit;
+    edtWidth: TDBEdit;
+    edtHeight: TDBEdit;
+    edtOffset: TDBEdit;
+    edtClock: TDBEdit;
+    edtDescription: TDBMemo;
+    grpDetails: TGroupBox;
+    lblLength: TLabel;
+    lblWidth: TLabel;
+    lblHeight: TLabel;
+    lblOffset: TLabel;
+    Label5: TLabel;
+    lblClock: TLabel;
+    lblDescription: TLabel;
     mnuExit: TMenuItem;
-    PageControl1: TPageControl;
-    Panel1: TPanel;
+    pnlVideo: TPanel;
+    pnlImages: TPanel;
+    pnlRight: TPanel;
+    pnlAnomalies: TPanel;
     Separator2: TMenuItem;
     mnuDatabaseOpen: TMenuItem;
     mnuDatabase: TMenuItem;
     Separator1: TMenuItem;
     mnuSettings: TMenuItem;
     Splitter1: TSplitter;
-    tsImages: TTabSheet;
-    tsVideo: TTabSheet;
+    Splitter2: TSplitter;
     ToolBar1: TToolBar;
     Procedure FormCreate(Sender: TObject);
     Procedure FormDestroy(Sender: TObject);
@@ -33,23 +49,22 @@ Type
     Procedure mnuExitClick(Sender: TObject);
     Procedure mnuSettingsClick(Sender: TObject);
   Private
-    // Connection Details
-    FDatabaseName, FServer: String;
-    FUsername, FPassword: String;
-    FPort: Integer;
+    // Starfix Data Module
+    FStarfix: TdmStarfix;
 
     // Settings
+    FVideoFolder: String;
     FImageFolder: String;
-    FMasterFilename: String;
-
-    // Database
-    FConnection: TMSSQLConnection;
-    FTransaction: TSQLTransaction;
-    FDriverFilename: String;
+    FAnomalySpreadsheet: String;
 
     //UI
     FActivated: Boolean;
-    FImageViewer: TFrameImageViewer;
+
+    fmeImageViewer: TFrameImageViewer;
+    fmeAnomalies: TFrameGrid;
+
+    fmeVideoPlayer: TFrameVideoPlayer;
+    fmeSyncedVideo: TFrameSyncedVideo;
   Protected
     Procedure RefreshUI; Override;
 
@@ -66,7 +81,7 @@ Var
 Implementation
 
 Uses
-  DialogSettings, DialogMSSQLConnection, ThirdPartySupport;
+  DialogSettings, ThirdPartySupport, FrameVideoLibmpv;
 
   {$R *.lfm}
 
@@ -77,39 +92,45 @@ Begin
   // This isn't going to be app that only an Admin can change settings...
   FAlwaysSaveSettings := True;
 
-  // Register the database driver
-  FDriverFilename := '';
-
-  // This is in DialogMSSQLConnection
-  If MSSQL.Available And RegisterMSSQLDriver Then
-    FDriverFilename := IncludeTrailingBackslash(MSSQL.Folder) + 'dblib.dll';
-
-  // Create the Database Connectin
-  FConnection := TMSSQLConnection.Create(Self);
-  FTransaction := TSQLTransaction.Create(Self);
-
-  FConnection.Transaction := FTransaction;
-
-  // Third party acknowledgements
-  ThirdParties.Include([THIRDPARTY_MSSQL]);
-
   // UI
-  FImageViewer := TFrameImageViewer.Create(tsImages);
-  FImageViewer.Parent := tsImages;
-  FImageViewer.Align := alClient;
+  fmeImageViewer := TFrameImageViewer.Create(Self);
+  fmeImageViewer.Parent := pnlImages;
+  fmeImageViewer.Align := alClient;
+
+  fmeAnomalies := TFrameGrid.Create(Self);
+  fmeAnomalies.Parent := pnlAnomalies;
+  fmeAnomalies.Align := alClient;
+
+  fmeVideoPlayer := TFrameVideoPlayer.Create(Self);
+  fmeVideoPlayer.Parent := pnlVideo;
+  fmeVideoPlayer.Name := 'fmeVideoPlayer';
+  fmeVideoPlayer.Align := alClient;
+  fmeVideoPlayer.Autoplay := True;
+  fmeVideoPlayer.ShowLabel := True;
+
+  // Change this line to switch playback engines
+  fmeVideoPlayer.VideoEngineClass := TFrameSyncedVideo;
+
+  fmeSyncedVideo := TFrameSyncedVideo(fmeVideoPlayer.PlaybackFrame);
+  fmeSyncedVideo.VideoEngineClass := TFrameVideoLibmpv;
+
+  If Not Assigned(fmeSyncedVideo) Then
+    Raise Exception.Create('Playback Frame not registered');
+
+  // Database
+  FStarfix := TdmStarfix.Create(Self);
+  FStarfix.RegisterAnomalyControls(fmeAnomalies, fmeImageViewer, dsAnomaly);
+  FStarfix.RegisterVideoControls(fmeVideoPlayer, fmeSyncedVideo);
 
   FActivated := False;
 End;
 
 Procedure TfrmStarfixAnomalies.FormDestroy(Sender: TObject);
 Begin
-  FreeAndNil(FImageViewer);
+  FreeAndNil(fmeImageViewer);
+  FreeAndNil(fmeAnomalies);
 
-  If FConnection.Connected Then
-    FConnection.Connected := False;
-
-  FreeAndNil(FTransaction);
-  FreeAndNil(FConnection);
+  FreeAndNil(FStarfix);
 End;
 
 Procedure TfrmStarfixAnomalies.FormShow(Sender: TObject);
@@ -117,13 +138,13 @@ Begin
   If Not FActivated Then
   Begin
     // Test
-    FImageViewer.AddImage(
+    fmeImageViewer.AddImage(
       'B:\Code\Compile\Test Data\MEDIA\IMAGES\HD Images\507464_SAIPEM_15_0525_20260728202906_Centre.jpg',
       'First Image');
-    FImageViewer.AddImage(
+    fmeImageViewer.AddImage(
       'B:\Code\Compile\Test Data\MEDIA\IMAGES\HD Images\507464_SAIPEM_15_0525_20260728202944_Centre.jpg',
       'Second Image');
-    FImageViewer.AddImage(
+    fmeImageViewer.AddImage(
       'B:\Code\Compile\Test Data\MEDIA\IMAGES\HD Images\507464_SAIPEM_15_0534_20260728193144_Centre.jpg',
       'Third and absolutely final Image');
 
@@ -135,30 +156,26 @@ Procedure TfrmStarfixAnomalies.LoadGlobalSettings(oInifile: TIniFile);
 Begin
   Inherited LoadGlobalSettings(oInifile);
 
-  // Connection
-  FDatabaseName := oInifile.ReadString('Database', 'DatabaseName', '');
-  FServer := oInifile.ReadString('Database', 'Server', '');
-  FUsername := oInifile.ReadString('Database', 'Username', '');
-  FPassword := oInifile.ReadString('Database', 'Password', '');
-  FPort := oInifile.ReadInteger('Database', 'Port', 1433);
+  FStarfix.LoadSettings(oInifile);
 
   // Settings
-  FMasterFilename := oInifile.ReadString('Settings', 'MasterFilename', '');
+  FAnomalySpreadsheet := oInifile.ReadString('Settings', 'AnomalySpreadsheet', '');
   FImageFolder := oInifile.ReadString('Settings', 'ImageFolder', '');
+  FVideoFolder := oInifile.ReadString('Settings', 'VideoFolder', '');
+
+  // Propogate Changes
+  FStarfix.ImageFolder := FImageFolder;
+  FStarfix.VideoFolder := FVideoFolder;
 End;
 
 Procedure TfrmStarfixAnomalies.SaveGlobalSettings(oInifile: TIniFile);
 Begin
-  // Connection
-  oInifile.WriteString('Database', 'DatabaseName', FDatabaseName);
-  oInifile.WriteString('Database', 'Server', FServer);
-  oInifile.WriteString('Database', 'Username', FUsername);
-  oInifile.WriteString('Database', 'Password', FPassword);
-  oInifile.WriteInteger('Database', 'Port', FPort);
+  FStarfix.SaveSettings(oInifile);
 
   // Settings
-  oInifile.WriteString('Settings', 'MasterFilename', FMasterFilename);
+  oInifile.WriteString('Settings', 'AnomalySpreadsheet', FAnomalySpreadsheet);
   oInifile.WriteString('Settings', 'ImageFolder', FImageFolder);
+  oInifile.WriteString('Settings', 'VideoFolder', FVideoFolder);
 
   Inherited SaveGlobalSettings(oInifile);
 End;
@@ -171,14 +188,20 @@ Begin
   Try
 
     // Define settings
-    oDlg.MasterFilename := FMasterFilename;
+    oDlg.AnomalySpreadsheet := FAnomalySpreadsheet;
     oDlg.ImageFolder := FImageFolder;
+    oDlg.VideoFolder := FVideoFolder;
 
     If oDlg.ShowModal = mrOk Then
     Begin
       // Update settings
-      FMasterFilename := oDlg.MasterFilename;
+      FAnomalySpreadsheet := oDlg.AnomalySpreadsheet;
       FImageFolder := oDlg.ImageFolder;
+      FVideoFolder := oDlg.VideoFolder;
+
+      // Propogate changes
+      FStarfix.ImageFolder := FImageFolder;
+      FStarfix.VideoFolder := FVideoFolder;
     End;
   Finally
     oDlg.Free;
@@ -189,73 +212,14 @@ Procedure TfrmStarfixAnomalies.RefreshUI;
 Begin
   Inherited RefreshUI;
 
-  mnuDatabaseOpen.Enabled := MSSQL.Available;
+  mnuDatabaseOpen.Enabled := FStarfix.DriverAvailable;
 End;
 
 Procedure TfrmStarfixAnomalies.mnuDatabaseOpenClick(Sender: TObject);
-Var
-  oDlg: TdlgMSSQLConnection;
 Begin
-  If MSSQL.Available Then
+  If FStarfix.OpenDatabase Then
   Begin
-    oDlg := TdlgMSSQLConnection.Create(Self);
-    Try
-      // Define Connection
-      oDlg.Database := FDatabaseName;
-      oDlg.Server := FServer;
-      oDlg.Port := FPort;
-      oDlg.Username := FUsername;
-      oDlg.Password := FPassword;
-
-      If oDlg.ShowModal = mrOk Then
-      Begin
-        // Update Connection
-        FDatabaseName := oDlg.Database;
-        FServer := oDlg.Server;
-        FPort := oDlg.Port;
-        FUsername := oDlg.Username;
-        FPassword := oDlg.Password;
-
-        // Try to connect to database
-        If FConnection.Connected Then
-          FConnection.Connected := False;
-
-        If (Pos('\', FServer) > 0) Or (Pos(':', FServer) > 0) Then
-          FConnection.Hostname := FServer
-        Else
-          FConnection.Hostname := Format('%s:%d', [FServer, FPort]);
-        FConnection.DatabaseName := FDatabaseName;
-        FConnection.Username := FUsername;
-        FConnection.Password := FPassword;
-
-        // Here to allow debugging in MS SQL
-        FConnection.Params.Clear;
-        FConnection.Params.Add('APPLICATIONNAME=' + Copy(Application.Title, 1, 25));
-
-        MainForm.Status := 'Connecting to MS SQL';
-        MainForm.Busy := True;
-        Try
-          Try
-            FConnection.Connected := True;
-
-            FTransaction.StartTransaction;
-            FConnection.ExecuteDirect('SET CONCAT_NULL_YIELDS_NULL ON');
-            FConnection.ExecuteDirect('SET QUOTED_IDENTIFIER ON');
-            FConnection.ExecuteDirect('SET ANSI_WARNINGS ON');
-            FConnection.ExecuteDirect('SET ANSI_PADDING ON');
-            FConnection.ExecuteDirect('SET ANSI_NULLS ON');
-            FTransaction.Commit;
-          Except
-            On E: Exception Do
-              ShowMessage(E.Message);
-          End;
-        Finally
-          MainForm.Busy := False;
-        End;
-      End;
-    Finally
-      oDlg.Free;
-    End;
+    RefreshUI;
   End;
 End;
 

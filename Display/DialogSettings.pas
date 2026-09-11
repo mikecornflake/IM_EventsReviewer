@@ -15,19 +15,24 @@ Type
     btnCancel: TButton;
     btnOK: TButton;
     edtImageFolder: TDirectoryEdit;
-    edtMasterFilename: TFileNameEdit;
+    edtAnomalySpreadsheet: TFileNameEdit;
+    edtVideoFolder: TDirectoryEdit;
     Label1: TLabel;
     Label2: TLabel;
-    procedure FormCreate(Sender: TObject);
+    Label3: TLabel;
+    Procedure FormCreate(Sender: TObject);
   Private
     Function GetImageFolder: String;
-    Function GetMasterFilename: String;
+    Function GetAnomalySpreadsheet: String;
+    Function GetVideoFolder: String;
     Procedure SetImageFolder(Const AValue: String);
-    Procedure SetMasterFilename(Const AValue: String);
+    Procedure SetAnomalySpreadsheet(Const AValue: String);
+    Procedure SetVideoFolder(Const AValue: String);
 
   Public
     Property ImageFolder: String Read GetImageFolder Write SetImageFolder;
-    Property MasterFilename: String Read GetMasterFilename Write SetMasterFilename;
+    Property VideoFolder: String Read GetVideoFolder Write SetVideoFolder;
+    Property AnomalySpreadsheet: String Read GetAnomalySpreadsheet Write SetAnomalySpreadsheet;
   End;
 
 Implementation
@@ -36,20 +41,26 @@ Implementation
 
 { TdlgSettings }
 
-procedure TdlgSettings.FormCreate(Sender: TObject);
-begin
+Procedure TdlgSettings.FormCreate(Sender: TObject);
+Begin
   edtImageFolder.Text := '';
-  edtMasterFilename.Text := '';
-end;
+  edtVideoFolder.Text := '';
+  edtAnomalySpreadsheet.Text := '';
+End;
 
 Function TdlgSettings.GetImageFolder: String;
 Begin
   Result := edtImageFolder.Text;
 End;
 
-Function TdlgSettings.GetMasterFilename: String;
+Function TdlgSettings.GetAnomalySpreadsheet: String;
 Begin
-  Result := edtMasterFilename.Text;
+  Result := edtAnomalySpreadsheet.Text;
+End;
+
+Function TdlgSettings.GetVideoFolder: String;
+Begin
+  Result := edtVideoFolder.Text;
 End;
 
 Procedure TdlgSettings.SetImageFolder(Const AValue: String);
@@ -57,9 +68,14 @@ Begin
   edtImageFolder.Text := AValue;
 End;
 
-Procedure TdlgSettings.SetMasterFilename(Const AValue: String);
+Procedure TdlgSettings.SetAnomalySpreadsheet(Const AValue: String);
 Begin
-  edtMasterFilename.Text := AValue;
+  edtAnomalySpreadsheet.Text := AValue;
+End;
+
+Procedure TdlgSettings.SetVideoFolder(Const AValue: String);
+Begin
+  edtVideoFolder.Text := AValue;
 End;
 
 End.
