@@ -66,7 +66,6 @@ Begin
   qryAnomalies.AfterScroll := @qryAnomaliesAfterScroll;
   qryAnomalies.AfterOpen := @qryAnomaliesAfterOpen;
   qryAnomalies.SQL.Add('SELECT E.[UNIQUE_ID],  ');
-  qryAnomalies.SQL.Add('       E.TIMEDATE As [TIMEDATE_ID],  ');
   qryAnomalies.SQL.Add('       DATEADD(S, E.TIMEDATE, ''1970-01-01'') As [DATETIME], ');
   qryAnomalies.SQL.Add('       E.[KP],                       ');
   qryAnomalies.SQL.Add('       E.[Type],                     ');
@@ -89,8 +88,8 @@ Begin
   qryVideosforTime.SQL.Add('    DATEADD(S, V.StartTime, ''1970-01-01'') AS [Start], ');
   qryVideosforTime.SQL.Add('    DATEADD(S, V.EndTime, ''1970-01-01'') AS [End]      ');
   qryVideosforTime.SQL.Add('FROM dbo.dvfilename_5 V            ');
-  qryVideosforTime.SQL.Add('WHERE V.StartTime <= :TIMEDATE_ID   ');
-  qryVideosforTime.SQL.Add('  AND V.EndTime >= :TIMEDATE_ID     ');
+  qryVideosforTime.SQL.Add('WHERE DATEADD(S, V.StartTime, ''1970-01-01'') <= :TIMEDATE_ID');
+  qryVideosforTime.SQL.Add('  AND DATEADD(S, V.EndTime,   ''1970-01-01'') >= :TIMEDATE_ID');
 
   tmrLoadAnomalyMedia := TTimer.Create(nil);
   tmrLoadAnomalyMedia.Enabled := False;
@@ -237,7 +236,7 @@ Begin
   If Ready And Assigned(FOnAnomalyChanged) Then
   Begin
     sAnomalyNo := qryAnomalies.FieldByName('Anomaly_No').AsString;
-    dtDateTime := qryAnomalies.FieldByName('TIMEDATE_ID').AsFloat;
+    dtDateTime := qryAnomalies.FieldByName('DATETIME').AsFloat;
     FOnAnomalyChanged(Self, sAnomalyNo, dtDateTime);
   End;
 End;
@@ -269,7 +268,7 @@ Begin
     qryVideosforTime.Close;
 
   // Split for testing purposes
-  qryVideosforTime.ParamByName('TIMEDATE_ID').AsFloat := ADateTime;
+  qryVideosforTime.ParamByName('TIMEDATE_ID').AsDateTime := ADateTime;
   qryVideosforTime.Open;
 
   qryVideosforTime.First;
