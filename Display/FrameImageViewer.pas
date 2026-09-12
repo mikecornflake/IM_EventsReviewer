@@ -38,9 +38,9 @@ Type
 
   TFrameImageViewer = Class(TFrame)
     grdImages: TDrawGrid;
-    ToolBar1: TToolBar;
 
     Procedure FrameResize(Sender: TObject);
+    Procedure grdImagesDblClick(Sender: TObject);
     Procedure grdImagesDrawCell(Sender: TObject; aCol, aRow: Integer;
       aRect: TRect; aState: TGridDrawState);
   Private
@@ -61,7 +61,7 @@ Type
     Procedure ClearImages;
 
     Procedure LoadSettings(AInifile: TIniFile);
-    Procedure SaveSettings(AInifile: TInifile);
+    Procedure SaveSettings(AInifile: TIniFile);
 
     Property ThumbnailWidth: Integer Read FThumbnailWidth;
     Property ThumbnailHeight: Integer Read FThumbnailHeight;
@@ -71,7 +71,7 @@ Type
 Implementation
 
 Uses
-  BGRAThumbnail, BGRABitmapTypes;
+  BGRAThumbnail, BGRABitmapTypes, OSSupport;
 
   {$R *.lfm}
 
@@ -152,7 +152,7 @@ Begin
   Begin
     iRows := 1;
     iCols := 1;
-  end
+  End
   Else
     iRows := (FImages.Count + iCols - 1) Div iCols;
 
@@ -202,6 +202,22 @@ Begin
   UpdateGridLayout;
 End;
 
+Procedure TFrameImageViewer.grdImagesDblClick(Sender: TObject);
+Var
+  iIndex: Integer;
+  oImage: TViewerImage;
+Begin
+  iIndex := (grdImages.Row * grdImages.ColCount) + grdImages.Col;
+
+  If iIndex >= FImages.Count Then
+    Exit;
+
+  oImage := FImages[iIndex];
+
+  If Assigned(oImage) Then
+    LaunchDocument(oImage.FFileName);
+End;
+
 Procedure TFrameImageViewer.SetThumbnailBorder(Const AValue: Integer);
 Begin
   If FThumbnailBorder = AValue Then Exit;
@@ -245,13 +261,13 @@ Begin
 End;
 
 Procedure TFrameImageViewer.LoadSettings(AInifile: TIniFile);
-begin
-  //
-end;
+Begin
 
-Procedure TFrameImageViewer.SaveSettings(AInifile: TInifile);
-begin
-  //
-end;
+End;
+
+Procedure TFrameImageViewer.SaveSettings(AInifile: TIniFile);
+Begin
+
+End;
 
 End.

@@ -12,8 +12,8 @@ object FrameImageViewer: TFrameImageViewer
   DesignTop = 10
   object grdImages: TDrawGrid
     Left = 0
-    Height = 368
-    Top = 26
+    Height = 394
+    Top = 0
     Width = 454
     Align = alClient
     AutoEdit = False
@@ -23,14 +23,7 @@ object FrameImageViewer: TFrameImageViewer
     Options = [goVertLine, goHorzLine, goSmoothScroll, goSelectionActive]
     RowCount = 0
     TabOrder = 0
+    OnDblClick = grdImagesDblClick
     OnDrawCell = grdImagesDrawCell
-  end
-  object ToolBar1: TToolBar
-    Left = 0
-    Height = 26
-    Top = 0
-    Width = 454
-    Caption = 'ToolBar1'
-    TabOrder = 1
   end
 end
