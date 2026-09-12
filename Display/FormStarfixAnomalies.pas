@@ -310,9 +310,9 @@ Begin
               If FSettings.ChannelOrder.Count = 0 Then
                 FSettings.ChannelOrder.Add('*');
 
-              For oVideoFile In oVideoFiles Do
+              For sWantedChannel In FSettings.ChannelOrder Do
               Begin
-                For sWantedChannel In FSettings.ChannelOrder Do
+                For oVideoFile In oVideoFiles Do
                 Begin
                   If (oVideoFile.Channel = '*') Or SameText(oVideoFile.Channel,
                     sWantedChannel) Then
