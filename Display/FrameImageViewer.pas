@@ -5,7 +5,8 @@ Unit FrameImageViewer;
 Interface
 
 Uses
-  Classes, SysUtils, Forms, Controls, Grids, ComCtrls, fgl, BGRABitmap, Types, Inifiles;
+  Classes, SysUtils, Forms, Controls, Grids, ComCtrls, Menus, ActnList, fgl, BGRABitmap, Types,
+  Inifiles;
 
 Type
 
@@ -37,12 +38,23 @@ Type
   { TFrameImageViewer }
 
   TFrameImageViewer = Class(TFrame)
+    actImages: TActionList;
+    actOpenFolder: TAction;
+    actViewImage: TAction;
     grdImages: TDrawGrid;
+    mnuOpenFolder: TMenuItem;
+    mnuViewImage: TMenuItem;
+    pmImages: TPopupMenu;
 
+    Procedure actOpenFolderExecute(Sender: TObject);
     Procedure FrameResize(Sender: TObject);
-    Procedure grdImagesDblClick(Sender: TObject);
+    Procedure actViewImageClick(Sender: TObject);
     Procedure grdImagesDrawCell(Sender: TObject; aCol, aRow: Integer;
       aRect: TRect; aState: TGridDrawState);
+
+    Procedure grdImagesMouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    Procedure pmImagesPopup(Sender: TObject);
   Private
     FImages: TViewerImageList;
     FThumbnailBorder: Integer;
@@ -197,12 +209,40 @@ Begin
     oImage.Caption);
 End;
 
+Procedure TFrameImageViewer.grdImagesMouseDown(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+Var
+  aCol, aRow: Integer;
+Begin
+  If Button <> mbRight Then
+    Exit;
+
+  grdImages.MouseToCell(X, Y, aCol, aRow);
+
+  If (aCol >= grdImages.FixedCols) And (aRow >= grdImages.FixedRows) Then
+  Begin
+    grdImages.Col := aCol;
+    grdImages.Row := aRow;
+  End;
+End;
+
+Procedure TFrameImageViewer.pmImagesPopup(Sender: TObject);
+Var
+  iIndex: Integer;
+  oImage: TViewerImage;
+Begin
+  iIndex := (grdImages.Row * grdImages.ColCount) + grdImages.Col;
+
+  actViewImage.Enabled := (iIndex < FImages.Count);
+  actOpenFolder.Enabled := (iIndex < FImages.Count);
+End;
+
 Procedure TFrameImageViewer.FrameResize(Sender: TObject);
 Begin
   UpdateGridLayout;
 End;
 
-Procedure TFrameImageViewer.grdImagesDblClick(Sender: TObject);
+Procedure TFrameImageViewer.actOpenFolderExecute(Sender: TObject);
 Var
   iIndex: Integer;
   oImage: TViewerImage;
@@ -215,7 +255,23 @@ Begin
   oImage := FImages[iIndex];
 
   If Assigned(oImage) Then
-    LaunchDocument(oImage.FFileName);
+    LaunchFile('explorer.exe', Format('/e,/select,"%s"', [oImage.FileName]));
+End;
+
+Procedure TFrameImageViewer.actViewImageClick(Sender: TObject);
+Var
+  iIndex: Integer;
+  oImage: TViewerImage;
+Begin
+  iIndex := (grdImages.Row * grdImages.ColCount) + grdImages.Col;
+
+  If iIndex >= FImages.Count Then
+    Exit;
+
+  oImage := FImages[iIndex];
+
+  If Assigned(oImage) Then
+    LaunchDocument(oImage.FileName);
 End;
 
 Procedure TFrameImageViewer.SetThumbnailBorder(Const AValue: Integer);
