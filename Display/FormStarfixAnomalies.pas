@@ -10,7 +10,7 @@ Uses
   // Library
   FormMain, FrameImageViewer, FrameGrids, FrameVideoPlayer, FrameSyncedVideo,
   // Application
-  ApplicationSettings, DatabaseProvider, MediaProvider, BGRAShape, FrameVerticalDBGrid;
+  ApplicationSettings, StarfixDatabaseProvider, MediaProvider, BGRAShape, FrameVerticalDBGrid;
 
 Type
 
@@ -57,9 +57,9 @@ Type
     pnlVideo: TPanel;
     Separator1: TMenuItem;
     Separator2: TMenuItem;
-    Splitter1: TSplitter;
-    Splitter2: TSplitter;
-    Splitter3: TSplitter;
+    splAnomalies: TSplitter;
+    splImages: TSplitter;
+    splDetailsGrid: TSplitter;
     tmrHideSummary: TTimer;
     tbMain: TToolBar;
     btnOpenDatabase: TToolButton;
@@ -79,7 +79,7 @@ Type
     FSettings: TApplicationSettings;
 
     // Providers
-    FDataProvider: TDatabaseProvider;
+    FDataProvider: TStarfixDatabaseProvider;
     FMediaProvider: TMediaProvider;
 
     //UI
@@ -90,12 +90,21 @@ Type
     fmeVideoPlayer: TFrameVideoPlayer;
     fmeSyncedVideo: TFrameSyncedVideo;
     fmeDetailGrid: TFrameVerticalDBGrid;
+
+    // Tracking video playback status
+    FPendingVideoTime: TDateTime;
+    FSeekPending: Boolean;
+    Procedure DoVideoLoaded(Sender: TObject);
   Protected
     Procedure RefreshUI; Override;
 
     // Stored in ini file with exe - what folders to load etc
     Procedure LoadGlobalSettings(oInifile: TIniFile); Override;
     Procedure SaveGlobalSettings(oInifile: TIniFile); Override;
+
+    // Stored in %localappdata% - Recommended for persisting user UI preferences
+    Procedure LoadLocalSettings(oInifile: TIniFile); Override;
+    Procedure SaveLocalSettings(oInifile: TIniFile); Override;
 
     // Callback events
     Procedure DoProviderReady(Sender: TObject);
@@ -161,19 +170,13 @@ Begin
   { TODO: fmeVideoPlayer/fmeSyncedVideo Code here was copied from IM_Video, I've simplified code
           here and it's all still working - backport changes to IM_Video }
   fmeSyncedVideo.VideoEngineClass := TFrameVideoLibmpv;
-
-  // Not sure which of these are sufficient.  When I get time, experiment
-  // The goal is obviously: Video to not start in playing mode
-  fmeVideoPlayer.Autoplay := False;  // This should be the sufficient call
-  fmeVideoPlayer.Pause;              // Shouldn't do anything because no video loaded
-  fmeSyncedVideo.Autoplay := False;  { This should have been progagated from
-                                          the fmeVideoPlayer.Autoplay call. }
-  fmeSyncedVideo.Pause;              // Shouldn't do anything because no video loaded
+  fmeVideoPlayer.Autoplay := False;
+  fmeSyncedVideo.OnVideoLoaded := @DoVideoLoaded;
 
   // Now the UI is created, let's create the providers and bind/register
 
   // Data Provider
-  FDataProvider := TDatabaseProvider.Create;
+  FDataProvider := TStarfixDatabaseProvider.Create;
   FDataProvider.OnProviderReady := @DoProviderReady;
   FDataProvider.OnAnomalyChanged := @DoAnomalyChanged;
 
@@ -208,8 +211,8 @@ Procedure TfrmStarfixAnomalies.FormShow(Sender: TObject);
   Var
     Rgn: HRGN;
   Begin
-    Rgn := CreateRoundRectRgn(0, 0, AControl.Width + 1, AControl.Height +
-      1, ARadius, ARadius);
+    Rgn := CreateRoundRectRgn(0, 0, AControl.Width + 1, AControl.Height + 1,
+      ARadius, ARadius);
 
     SetWindowRgn(AControl.Handle, Rgn, True);
   End;
@@ -227,7 +230,6 @@ End;
 
 Procedure TfrmStarfixAnomalies.LoadGlobalSettings(oInifile: TIniFile);
 Begin
-  // FormPosition, global grid settings etc
   Inherited LoadGlobalSettings(oInifile);
 
   // Application Settings
@@ -235,11 +237,6 @@ Begin
 
   // Data Persistence Settings
   FDataProvider.LoadSettings(oInifile);
-
-  // Allow the controls to persist their own settings (data filters, volume etc)
-  fmeImageViewer.LoadSettings(oInifile);
-  fmeAnomalies.LoadSettings(oInifile);
-  fmeVideoPlayer.LoadSettings(oInifile);
 End;
 
 Procedure TfrmStarfixAnomalies.SaveGlobalSettings(oInifile: TIniFile);
@@ -250,14 +247,44 @@ Begin
   // Database Settings
   FDataProvider.SaveSettings(oInifile);
 
+  Inherited SaveGlobalSettings(oInifile);
+End;
+
+Procedure TfrmStarfixAnomalies.LoadLocalSettings(oInifile: TIniFile);
+begin
+  inherited LoadLocalSettings(oInifile);
+
+  // Allow the controls to persist their own settings (data filters, volume etc)
+  fmeImageViewer.LoadSettings(oInifile);
+  fmeAnomalies.LoadSettings(oInifile);
+  fmeVideoPlayer.LoadSettings(oInifile);
+
+  // persist TfrmStarfixAnomalies settings
+  pnlDetailsGrid.Height := oInifile.ReadInteger('Form', 'pnlDetailsGrid.Height',
+    pnlDetailsGrid.Height);
+  pnlImages.Height := oInifile.ReadInteger('Form', 'pnlImages.Height', pnlImages.Height);
+  pnlAnomalies.Width := oInifile.ReadInteger('Form', 'pnlAnomalies.Width', pnlAnomalies.Width);
+
+  splDetailsGrid.Top := pnlDetailsGrid.Top - splDetailsGrid.Height;
+  splImages.Top := pnlImages.Top - splImages.Height;
+  splAnomalies.Left := pnlAnomalies.Left + splAnomalies.Width;
+end;
+
+Procedure TfrmStarfixAnomalies.SaveLocalSettings(oInifile: TIniFile);
+begin
   // Allow the controls to persist their settings
   fmeImageViewer.SaveSettings(oInifile);
   fmeAnomalies.SaveSettings(oInifile);
   fmeVideoPlayer.SaveSettings(oInifile);
 
-  // FormPosition, global grid settings etc
-  Inherited SaveGlobalSettings(oInifile);
-End;
+  // persist TfrmStarfixAnomalies settings
+  oInifile.WriteInteger('Form', 'pnlDetailsGrid.Height', pnlDetailsGrid.Height);
+  oInifile.WriteInteger('Form', 'pnlImages.Height', pnlImages.Height);
+  oInifile.WriteInteger('Form', 'pnlAnomalies.Width', pnlAnomalies.Width);
+
+  // Form Position
+  inherited SaveLocalSettings(oInifile);
+end;
 
 Procedure TfrmStarfixAnomalies.RefreshUI;
 Begin
@@ -310,11 +337,6 @@ Begin
 
     // Resize columns etc
     fmeAnomalies.InitialiseDBGrid(True);
-
-    // KP width hack
-    //oColumn := fmeAnomalies.grdSQL.Columns.ColumnByTitle('KP');
-    //If assigned(oColumn) Then
-    //  oColumn.Width := 35;
   End;
 
   RefreshUI;
@@ -411,6 +433,7 @@ Begin
               End;
             Finally
               fmeSyncedVideo.EndLoadVideos;
+              FSeekPending := True;
             End;
 
             If fmeSyncedVideo.VideoFileCount > 0 Then
@@ -422,11 +445,11 @@ Begin
                 fmeSyncedVideo.Layout(1, fmeSyncedVideo.VideoFileCount);
 
               // Pause the video (this is anomaly review, user will want to study the start)
-              fmeSyncedVideo.Autoplay := False;
               fmeSyncedVideo.Pause;
 
               // Seek
               fmeSyncedVideo.PositionAsTime := ADateTime;
+              FPendingVideoTime := ADateTime;
 
               fmeVideoPlayer.RefreshUI;
             End;
@@ -442,6 +465,15 @@ Begin
   End;
 
   RefreshUI;
+End;
+
+Procedure TfrmStarfixAnomalies.DoVideoLoaded(Sender: TObject);
+Begin
+  If FSeekPending Then
+  Begin
+    FSeekPending := False;
+    fmeSyncedVideo.PositionAsTime := FPendingVideoTime;
+  End;
 End;
 
 End.

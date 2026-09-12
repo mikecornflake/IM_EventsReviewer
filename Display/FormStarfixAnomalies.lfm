@@ -44,7 +44,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
     end
     object ToolButton3: TToolButton
       Left = 199
-      Height = 22
+      Height = 8
       Top = 2
       AutoSize = True
       Style = tbsSeparator
@@ -75,7 +75,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
       BevelOuter = bvNone
       TabOrder = 0
     end
-    object Splitter3: TSplitter
+    object splDetailsGrid: TSplitter
       Cursor = crVSplit
       Left = 0
       Height = 5
@@ -85,7 +85,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
       ResizeAnchor = akBottom
     end
   end
-  object Splitter1: TSplitter[4]
+  object splAnomalies: TSplitter[4]
     Left = 555
     Height = 699
     Top = 24
@@ -119,6 +119,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
       Align = alBottom
       ClientHeight = 240
       ClientWidth = 671
+      Constraints.MinHeight = 240
       TabOrder = 1
       object grpDetails: TGroupBox
         Left = 220
@@ -322,7 +323,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
         end
       end
     end
-    object Splitter2: TSplitter
+    object splImages: TSplitter
       Cursor = crVSplit
       Left = 0
       Height = 5
