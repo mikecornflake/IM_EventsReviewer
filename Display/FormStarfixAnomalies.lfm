@@ -34,179 +34,8 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
     Width = 555
     Align = alLeft
     BevelOuter = bvNone
-    ClientHeight = 697
-    ClientWidth = 555
     Constraints.MinWidth = 300
     TabOrder = 3
-    object grpDetails: TGroupBox
-      Left = 0
-      Height = 161
-      Top = 536
-      Width = 555
-      Align = alBottom
-      Caption = 'Details'
-      ClientHeight = 141
-      ClientWidth = 551
-      TabOrder = 0
-      object edtLength: TDBEdit
-        Left = 13
-        Height = 23
-        Top = 25
-        Width = 80
-        DataField = 'Length_(m)'
-        DataSource = dsAnomalyDetails
-        ReadOnly = True
-        Alignment = taCenter
-        MaxLength = 0
-        TabOrder = 0
-      end
-      object edtWidth: TDBEdit
-        AnchorSideLeft.Control = edtLength
-        AnchorSideLeft.Side = asrBottom
-        Left = 98
-        Height = 23
-        Top = 25
-        Width = 80
-        DataField = 'Width_(m)'
-        DataSource = dsAnomalyDetails
-        ReadOnly = True
-        Alignment = taCenter
-        BorderSpacing.Left = 5
-        MaxLength = 0
-        TabOrder = 1
-      end
-      object edtHeight: TDBEdit
-        AnchorSideLeft.Control = edtWidth
-        AnchorSideLeft.Side = asrBottom
-        Left = 183
-        Height = 23
-        Top = 25
-        Width = 80
-        DataField = 'Height_(m)'
-        DataSource = dsAnomalyDetails
-        ReadOnly = True
-        Alignment = taCenter
-        BorderSpacing.Left = 5
-        MaxLength = 0
-        TabOrder = 2
-      end
-      object edtOffset: TDBEdit
-        AnchorSideLeft.Control = edtHeight
-        AnchorSideLeft.Side = asrBottom
-        Left = 268
-        Height = 23
-        Top = 25
-        Width = 80
-        DataField = 'Offset_(m)'
-        DataSource = dsAnomalyDetails
-        ReadOnly = True
-        Alignment = taCenter
-        BorderSpacing.Left = 5
-        MaxLength = 0
-        TabOrder = 3
-      end
-      object edtClock: TDBEdit
-        AnchorSideLeft.Control = edtOffset
-        AnchorSideLeft.Side = asrBottom
-        Left = 353
-        Height = 23
-        Top = 25
-        Width = 80
-        DataField = 'Clock'
-        DataSource = dsAnomalyDetails
-        ReadOnly = True
-        Alignment = taCenter
-        BorderSpacing.Left = 5
-        MaxLength = 0
-        TabOrder = 4
-      end
-      object lblLength: TLabel
-        AnchorSideLeft.Control = edtLength
-        AnchorSideTop.Side = asrCenter
-        AnchorSideBottom.Control = edtLength
-        Left = 13
-        Height = 15
-        Top = 8
-        Width = 61
-        Anchors = [akLeft, akBottom]
-        BorderSpacing.Top = 1
-        BorderSpacing.Bottom = 2
-        Caption = 'Length (m)'
-        Font.Style = [fsBold]
-        ParentFont = False
-      end
-      object edtDescription: TDBMemo
-        AnchorSideRight.Control = grpDetails
-        AnchorSideRight.Side = asrBottom
-        Left = 13
-        Height = 48
-        Top = 72
-        Width = 529
-        Anchors = [akTop, akLeft, akRight]
-        BorderSpacing.Right = 9
-        DataField = 'Description'
-        DataSource = dsAnomalyDetails
-        ReadOnly = True
-        TabOrder = 5
-      end
-      object lblWidth: TLabel
-        AnchorSideLeft.Control = edtWidth
-        AnchorSideTop.Control = lblLength
-        Left = 98
-        Height = 15
-        Top = 8
-        Width = 56
-        Caption = 'Width (m)'
-        Font.Style = [fsBold]
-        ParentFont = False
-      end
-      object lblHeight: TLabel
-        AnchorSideLeft.Control = edtHeight
-        AnchorSideTop.Control = lblLength
-        Left = 183
-        Height = 15
-        Top = 8
-        Width = 60
-        Caption = 'Height (m)'
-        Font.Style = [fsBold]
-        ParentFont = False
-      end
-      object lblOffset: TLabel
-        AnchorSideLeft.Control = edtOffset
-        AnchorSideTop.Control = lblLength
-        Left = 268
-        Height = 15
-        Top = 8
-        Width = 58
-        Caption = 'Offset (m)'
-        Font.Style = [fsBold]
-        ParentFont = False
-      end
-      object lblClock: TLabel
-        AnchorSideLeft.Control = edtClock
-        AnchorSideTop.Control = lblLength
-        Left = 353
-        Height = 15
-        Top = 8
-        Width = 77
-        Caption = 'Clock Position'
-        Font.Style = [fsBold]
-        ParentFont = False
-      end
-      object lblDescription: TLabel
-        AnchorSideLeft.Control = edtDescription
-        AnchorSideBottom.Control = edtDescription
-        Left = 13
-        Height = 15
-        Top = 55
-        Width = 64
-        Anchors = [akLeft, akBottom]
-        BorderSpacing.Bottom = 2
-        Caption = 'Description'
-        Font.Style = [fsBold]
-        ParentFont = False
-      end
-    end
   end
   object Splitter1: TSplitter[4]
     Left = 555
@@ -227,7 +56,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
     TabOrder = 5
     object pnlVideo: TPanel
       Left = 0
-      Height = 424
+      Height = 452
       Top = 0
       Width = 671
       Align = alClient
@@ -236,21 +65,221 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
     end
     object pnlImages: TPanel
       Left = 0
-      Height = 268
-      Top = 429
+      Height = 240
+      Top = 457
       Width = 671
       Align = alBottom
-      BevelOuter = bvNone
+      ClientHeight = 240
+      ClientWidth = 671
       TabOrder = 1
+      object grpDetails: TGroupBox
+        Left = 225
+        Height = 238
+        Top = 1
+        Width = 445
+        Align = alRight
+        Caption = 'Details'
+        ClientHeight = 218
+        ClientWidth = 441
+        TabOrder = 0
+        object edtLength: TDBEdit
+          Left = 13
+          Height = 23
+          Top = 76
+          Width = 80
+          DataField = 'Length_(m)'
+          DataSource = dsAnomalyDetails
+          ReadOnly = True
+          Alignment = taCenter
+          MaxLength = 0
+          TabOrder = 0
+        end
+        object edtWidth: TDBEdit
+          AnchorSideLeft.Control = edtLength
+          AnchorSideLeft.Side = asrBottom
+          AnchorSideTop.Control = edtLength
+          Left = 98
+          Height = 23
+          Top = 76
+          Width = 80
+          DataField = 'Width_(m)'
+          DataSource = dsAnomalyDetails
+          ReadOnly = True
+          Alignment = taCenter
+          BorderSpacing.Left = 5
+          MaxLength = 0
+          TabOrder = 1
+        end
+        object edtHeight: TDBEdit
+          AnchorSideLeft.Control = edtWidth
+          AnchorSideLeft.Side = asrBottom
+          AnchorSideTop.Control = edtLength
+          Left = 183
+          Height = 23
+          Top = 76
+          Width = 80
+          DataField = 'Height_(m)'
+          DataSource = dsAnomalyDetails
+          ReadOnly = True
+          Alignment = taCenter
+          BorderSpacing.Left = 5
+          MaxLength = 0
+          TabOrder = 2
+        end
+        object edtOffset: TDBEdit
+          AnchorSideLeft.Control = edtHeight
+          AnchorSideLeft.Side = asrBottom
+          AnchorSideTop.Control = edtLength
+          Left = 268
+          Height = 23
+          Top = 76
+          Width = 80
+          DataField = 'Offset_(m)'
+          DataSource = dsAnomalyDetails
+          ReadOnly = True
+          Alignment = taCenter
+          BorderSpacing.Left = 5
+          MaxLength = 0
+          TabOrder = 3
+        end
+        object edtClock: TDBEdit
+          AnchorSideLeft.Control = edtOffset
+          AnchorSideLeft.Side = asrBottom
+          AnchorSideTop.Control = edtLength
+          Left = 353
+          Height = 23
+          Top = 76
+          Width = 80
+          DataField = 'Clock'
+          DataSource = dsAnomalyDetails
+          ReadOnly = True
+          Alignment = taCenter
+          BorderSpacing.Left = 5
+          MaxLength = 0
+          TabOrder = 4
+        end
+        object lblLength: TLabel
+          AnchorSideLeft.Control = edtLength
+          AnchorSideTop.Side = asrCenter
+          AnchorSideBottom.Control = edtLength
+          Left = 13
+          Height = 15
+          Top = 59
+          Width = 61
+          Anchors = [akLeft, akBottom]
+          BorderSpacing.Top = 1
+          BorderSpacing.Bottom = 2
+          Caption = 'Length (m)'
+          Font.Style = [fsBold]
+          ParentFont = False
+        end
+        object edtDescription: TDBMemo
+          AnchorSideTop.Control = lblLength
+          AnchorSideRight.Control = grpDetails
+          AnchorSideRight.Side = asrBottom
+          Left = 13
+          Height = 48
+          Top = 125
+          Width = 419
+          Anchors = [akTop, akLeft, akRight]
+          BorderSpacing.Top = 66
+          BorderSpacing.Right = 9
+          DataField = 'Description'
+          DataSource = dsAnomalyDetails
+          ReadOnly = True
+          TabOrder = 5
+        end
+        object lblWidth: TLabel
+          AnchorSideLeft.Control = edtWidth
+          AnchorSideTop.Control = lblLength
+          Left = 98
+          Height = 15
+          Top = 59
+          Width = 56
+          Caption = 'Width (m)'
+          Font.Style = [fsBold]
+          ParentFont = False
+        end
+        object lblHeight: TLabel
+          AnchorSideLeft.Control = edtHeight
+          AnchorSideTop.Control = lblLength
+          Left = 183
+          Height = 15
+          Top = 59
+          Width = 60
+          Caption = 'Height (m)'
+          Font.Style = [fsBold]
+          ParentFont = False
+        end
+        object lblOffset: TLabel
+          AnchorSideLeft.Control = edtOffset
+          AnchorSideTop.Control = lblLength
+          Left = 268
+          Height = 15
+          Top = 59
+          Width = 58
+          Caption = 'Offset (m)'
+          Font.Style = [fsBold]
+          ParentFont = False
+        end
+        object lblClock: TLabel
+          AnchorSideLeft.Control = edtClock
+          AnchorSideTop.Control = lblLength
+          Left = 353
+          Height = 15
+          Top = 59
+          Width = 77
+          Caption = 'Clock Position'
+          Font.Style = [fsBold]
+          ParentFont = False
+        end
+        object lblDescription: TLabel
+          AnchorSideLeft.Control = edtDescription
+          AnchorSideTop.Control = grpDetails
+          AnchorSideBottom.Control = edtDescription
+          Left = 13
+          Height = 15
+          Top = 109
+          Width = 64
+          BorderSpacing.Top = 109
+          BorderSpacing.Bottom = 2
+          Caption = 'Description'
+          Font.Style = [fsBold]
+          ParentFont = False
+        end
+        object lblDescription1: TLabel
+          AnchorSideLeft.Control = edtDescription
+          AnchorSideBottom.Control = edtDescription
+          Left = 13
+          Height = 15
+          Top = 12
+          Width = 26
+          Anchors = [akLeft]
+          BorderSpacing.Bottom = 2
+          Caption = 'Type'
+          Font.Style = [fsBold]
+          ParentFont = False
+        end
+        object DBEdit1: TDBEdit
+          Left = 13
+          Height = 23
+          Top = 29
+          Width = 419
+          DataField = 'Type'
+          DataSource = dsAnomalyDetails
+          Anchors = [akTop, akLeft, akRight]
+          MaxLength = 0
+          TabOrder = 6
+        end
+      end
     end
     object Splitter2: TSplitter
       Cursor = crVSplit
       Left = 0
       Height = 5
-      Top = 424
+      Top = 452
       Width = 671
       Align = alBottom
-      Beveled = True
       ResizeAnchor = akBottom
     end
   end
@@ -263,9 +292,125 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
     Font.Style = [fsBold]
     ParentFont = False
   end
-  inherited ilImages: TImageList[7]
+  object pnlHidingSummary: TPanel[7]
+    AnchorSideLeft.Control = pnlRight
+    AnchorSideLeft.Side = asrCenter
+    AnchorSideTop.Control = pnlRight
+    Left = 756
+    Height = 120
+    Top = 276
+    Width = 278
+    BorderSpacing.Top = 250
+    ClientHeight = 120
+    ClientWidth = 278
+    TabOrder = 6
+    Visible = False
+    object lblDescription2: TLabel
+      Left = 13
+      Height = 15
+      Top = 6
+      Width = 26
+      Anchors = [akLeft]
+      BorderSpacing.Bottom = 2
+      Caption = 'Type'
+      Font.Style = [fsBold]
+      ParentFont = False
+    end
+    object DBEdit2: TDBEdit
+      Left = 13
+      Height = 23
+      Top = 32
+      Width = 250
+      DataField = 'Type'
+      DataSource = dsAnomalyDetails
+      MaxLength = 0
+      TabOrder = 0
+    end
+    object lblLength1: TLabel
+      AnchorSideLeft.Control = edtLength1
+      AnchorSideTop.Side = asrCenter
+      AnchorSideBottom.Control = edtLength1
+      Left = 13
+      Height = 15
+      Top = 59
+      Width = 61
+      Anchors = [akLeft, akBottom]
+      BorderSpacing.Top = 1
+      BorderSpacing.Bottom = 2
+      Caption = 'Length (m)'
+      Font.Style = [fsBold]
+      ParentFont = False
+    end
+    object edtLength1: TDBEdit
+      Left = 13
+      Height = 23
+      Top = 76
+      Width = 80
+      DataField = 'Length_(m)'
+      DataSource = dsAnomalyDetails
+      ReadOnly = True
+      Alignment = taCenter
+      MaxLength = 0
+      TabOrder = 1
+    end
+    object lblWidth1: TLabel
+      AnchorSideLeft.Control = edtWidth1
+      AnchorSideTop.Control = lblLength1
+      Left = 98
+      Height = 15
+      Top = 59
+      Width = 56
+      Caption = 'Width (m)'
+      Font.Style = [fsBold]
+      ParentFont = False
+    end
+    object edtWidth1: TDBEdit
+      AnchorSideLeft.Control = edtLength1
+      AnchorSideLeft.Side = asrBottom
+      AnchorSideTop.Control = edtLength1
+      Left = 98
+      Height = 23
+      Top = 76
+      Width = 80
+      DataField = 'Width_(m)'
+      DataSource = dsAnomalyDetails
+      ReadOnly = True
+      Alignment = taCenter
+      BorderSpacing.Left = 5
+      MaxLength = 0
+      TabOrder = 2
+    end
+    object lblHeight1: TLabel
+      AnchorSideLeft.Control = edtHeight1
+      AnchorSideTop.Control = lblLength1
+      Left = 183
+      Height = 15
+      Top = 59
+      Width = 60
+      Caption = 'Height (m)'
+      Font.Style = [fsBold]
+      ParentFont = False
+    end
+    object edtHeight1: TDBEdit
+      AnchorSideLeft.Control = edtWidth1
+      AnchorSideLeft.Side = asrBottom
+      AnchorSideTop.Control = edtLength1
+      Left = 183
+      Height = 23
+      Top = 76
+      Width = 80
+      DataField = 'Height_(m)'
+      DataSource = dsAnomalyDetails
+      ReadOnly = True
+      Alignment = taCenter
+      BorderSpacing.Left = 5
+      MaxLength = 0
+      TabOrder = 3
+    end
   end
-  inherited mnuMain: TMainMenu[8]
+  inherited ilImages: TImageList[8]
+  end
+  inherited mnuMain: TMainMenu[9]
     object mnuDatabase: TMenuItem[0]
       Caption = '&Database'
       object mnuDatabaseOpen: TMenuItem
@@ -295,8 +440,15 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
     inherited mnuHelp: TMenuItem[2]
     end
   end
-  object dsAnomalyDetails: TDataSource[9]
+  object dsAnomalyDetails: TDataSource[10]
     Left = 240
     Top = 368
+  end
+  object tmrHideSummary: TTimer[11]
+    Enabled = False
+    Interval = 6000
+    OnTimer = tmrHideSummaryTimer
+    Left = 764
+    Top = 86
   end
 end

@@ -17,33 +17,45 @@ Type
   { TfrmStarfixAnomalies }
 
   TfrmStarfixAnomalies = Class(TFormMain)
+    DBEdit1: TDBEdit;
+    DBEdit2: TDBEdit;
     dsAnomalyDetails: TDataSource;
     edtClock: TDBEdit;
     edtDescription: TDBMemo;
     edtHeight: TDBEdit;
+    edtHeight1: TDBEdit;
     edtLength: TDBEdit;
+    edtLength1: TDBEdit;
     edtOffset: TDBEdit;
     edtWidth: TDBEdit;
+    edtWidth1: TDBEdit;
     grpDetails: TGroupBox;
     Label5: TLabel;
     lblClock: TLabel;
     lblDescription: TLabel;
+    lblDescription1: TLabel;
+    lblDescription2: TLabel;
     lblHeight: TLabel;
+    lblHeight1: TLabel;
     lblLength: TLabel;
+    lblLength1: TLabel;
     lblOffset: TLabel;
     lblWidth: TLabel;
+    lblWidth1: TLabel;
     mnuDatabase: TMenuItem;
     mnuDatabaseOpen: TMenuItem;
     mnuExit: TMenuItem;
     mnuSettings: TMenuItem;
-    pnlAnomalies: TPanel;
     pnlImages: TPanel;
+    pnlHidingSummary: TPanel;
+    pnlAnomalies: TPanel;
     pnlRight: TPanel;
     pnlVideo: TPanel;
     Separator1: TMenuItem;
     Separator2: TMenuItem;
     Splitter1: TSplitter;
     Splitter2: TSplitter;
+    tmrHideSummary: TTimer;
     ToolBar1: TToolBar;
     Procedure FormCreate(Sender: TObject);
     Procedure FormDestroy(Sender: TObject);
@@ -51,6 +63,7 @@ Type
     Procedure mnuDatabaseOpenClick(Sender: TObject);
     Procedure mnuExitClick(Sender: TObject);
     Procedure mnuSettingsClick(Sender: TObject);
+    Procedure tmrHideSummaryTimer(Sender: TObject);
   Private
     // Settings
     FSettings: TApplicationSettings;
@@ -75,7 +88,8 @@ Type
 
     // Callback events
     Procedure DoProviderReady(Sender: TObject);
-    Procedure DoAnomalyChanged(Sender: TObject; Const ANewAnomalyNo: String; Const ADateTime: TDateTime);
+    Procedure DoAnomalyChanged(Sender: TObject; Const ANewAnomalyNo: String;
+      Const ADateTime: TDateTime);
   Public
 
   End;
@@ -210,6 +224,12 @@ Begin
   FSettings.OpenSettings;
 End;
 
+Procedure TfrmStarfixAnomalies.tmrHideSummaryTimer(Sender: TObject);
+Begin
+  tmrHideSummary.Enabled := False;
+  pnlHidingSummary.Visible := False;
+End;
+
 Procedure TfrmStarfixAnomalies.RefreshUI;
 Begin
   Inherited RefreshUI;
@@ -244,7 +264,8 @@ Begin
 End;
 
 // Data has just loaded or User has scrolled to the next anomaly in the list
-Procedure TfrmStarfixAnomalies.DoAnomalyChanged(Sender: TObject; Const ANewAnomalyNo: String; Const ADateTime: TDateTime);
+Procedure TfrmStarfixAnomalies.DoAnomalyChanged(Sender: TObject;
+  Const ANewAnomalyNo: String; Const ADateTime: TDateTime);
 Var
   slImages: TStringList;
   sImageFile, sFolder: String;
@@ -258,6 +279,9 @@ Var
   End;
 
 Begin
+  tmrHideSummary.Enabled := True;
+  pnlHidingSummary.Visible := True;
+
   fmeImageViewer.ClearImages;
 
   If DirectoryExists(FSettings.ImageFolder) Then
@@ -279,8 +303,8 @@ Begin
     End;
 
     // Do I need to load new Video?
-    If (fmeSyncedVideo.StartDateTime <= ADateTime) And
-      (ADateTime <= fmeSyncedVideo.EndDateTime) Then
+    If (fmeSyncedVideo.StartDateTime <= ADateTime) And (ADateTime <=
+      fmeSyncedVideo.EndDateTime) Then
     Begin
       fmeSyncedVideo.PositionAsTime := ADateTime;
 
@@ -341,6 +365,7 @@ Begin
                 fmeSyncedVideo.Layout(1, fmeSyncedVideo.VideoFileCount);
 
               // Pause the video (this is anomaly review, user will want to study the start)
+              fmeSyncedVideo.Autoplay := False;
               fmeSyncedVideo.Pause;
 
               // Seek
