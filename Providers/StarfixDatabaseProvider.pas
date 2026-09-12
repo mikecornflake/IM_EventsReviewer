@@ -1,4 +1,4 @@
-Unit DatabaseProvider;
+Unit StarfixDatabaseProvider;
 
 {$mode ObjFPC}{$H+}
 {$WARN 6058 off : Call to subroutine "$1" marked as inline is not inlined}
@@ -10,9 +10,9 @@ Uses
 
 Type
 
-  { TDatabaseProvider }
+  { TStarfixDatabaseProvider }
 
-  TDatabaseProvider = Class(TDataProvider)
+  TStarfixDatabaseProvider = Class(TDataProvider)
   Private
     // Connection Details
     FDatabaseName, FServer: String;
@@ -52,9 +52,9 @@ Implementation
 Uses
   FormMain, DialogMSSQLConnection, ThirdPartySupport, Dialogs, Controls, Forms;
 
-  { TDatabaseProvider }
+  { TStarfixDatabaseProvider }
 
-Constructor TDatabaseProvider.Create;
+Constructor TStarfixDatabaseProvider.Create;
 Begin
   FConnection := TMSSQLConnection.Create(nil);
   FTransaction := TSQLTransaction.Create(nil);
@@ -76,7 +76,10 @@ Begin
   qryAnomalies.SQL.Add('       E.Height As [Height_(m)],     ');
   qryAnomalies.SQL.Add('       E.Observed_Offset As [Offset_(m)],  ');
   qryAnomalies.SQL.Add('       E.[Clock],                    ');
-  qryAnomalies.SQL.Add('       E.Comment As [Description]    ');
+  qryAnomalies.SQL.Add('       E.Comment As [Description],   ');
+  qryAnomalies.SQL.Add('       E.East As [Easting],          ');
+  qryAnomalies.SQL.Add('       E.North As [Northing],        ');
+  qryAnomalies.SQL.Add('       E.[Depth]                     ');
   qryAnomalies.SQL.Add('FROM dbo.Event_3 E                   ');
   qryAnomalies.SQL.Add('INNER JOIN dbo.SESSIONS S ON (S.START_TIME <= E.TIMEDATE    ');
   qryAnomalies.SQL.Add('                              AND S.END_TIME >= E.TIMEDATE) ');
@@ -123,7 +126,7 @@ Begin
   FOnAnomalyChanged := nil;
 End;
 
-Destructor TDatabaseProvider.Destroy;
+Destructor TStarfixDatabaseProvider.Destroy;
 Begin
   tmrLoadAnomalyMedia.Enabled := False;
 
@@ -139,17 +142,17 @@ Begin
   Inherited Destroy;
 End;
 
-Function TDatabaseProvider.GetAnomalyDataSet: TDataSet;
+Function TStarfixDatabaseProvider.GetAnomalyDataSet: TDataSet;
 Begin
   Result := qryAnomalies;
 End;
 
-Function TDatabaseProvider.GetReady: Boolean;
+Function TStarfixDatabaseProvider.GetReady: Boolean;
 Begin
   Result := FConnection.Connected;
 End;
 
-Function TDatabaseProvider.Open: Boolean;
+Function TStarfixDatabaseProvider.Open: Boolean;
 Var
   oDlg: TdlgMSSQLConnection;
   bDoConnection: Boolean;
@@ -230,7 +233,7 @@ Begin
   End;
 End;
 
-Procedure TDatabaseProvider.DoAnomalyScrollTimer(Sender: TObject);
+Procedure TStarfixDatabaseProvider.DoAnomalyScrollTimer(Sender: TObject);
 Var
   sAnomalyNo: String;
   dtDateTime: Double;
@@ -245,23 +248,22 @@ Begin
   End;
 End;
 
-Procedure TDatabaseProvider.qryAnomaliesAfterScroll(DataSet: TDataSet);
+Procedure TStarfixDatabaseProvider.qryAnomaliesAfterScroll(DataSet: TDataSet);
 Begin
   // Restart the one-shot debounce timer
   tmrLoadAnomalyMedia.Enabled := False;
   tmrLoadAnomalyMedia.Enabled := True;
 End;
 
-Procedure TDatabaseProvider.qryAnomaliesAfterOpen(DataSet: TDataSet);
+Procedure TStarfixDatabaseProvider.qryAnomaliesAfterOpen(DataSet: TDataSet);
 Begin
-  With TFloatField(qryAnomalies.FieldByName('KP')) Do
-  Begin
-    DisplayFormat := '0.000';
-    DisplayWidth := 7;
-  End;
+  TFloatField(qryAnomalies.FieldByName('KP')).DisplayFormat := '0.000';
+  TFloatField(qryAnomalies.FieldByName('Easting')).DisplayFormat := '0.00';
+  TFloatField(qryAnomalies.FieldByName('Northing')).DisplayFormat := '0.00';
+  TFloatField(qryAnomalies.FieldByName('Depth')).DisplayFormat := '0.00';
 End;
 
-Function TDatabaseProvider.GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles;
+Function TStarfixDatabaseProvider.GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles;
 Var
   oVideoFile: TVideoFile;
 Begin
@@ -273,7 +275,14 @@ Begin
 
   // Split for testing purposes
   qryVideosforTime.ParamByName('TIMEDATE_ID').AsDateTime := ADateTime;
-  qryVideosforTime.Open;
+  Try
+    qryVideosforTime.Open;
+  Except
+    On E: Exception Do
+      Raise Exception.CreateFmt('%s: %s' + LineEnding + 'Connection connected: %s' +
+        LineEnding + 'Transaction active: %s', [E.ClassName, E.Message,
+        BoolToStr(FConnection.Connected, True), BoolToStr(FTransaction.Active, True)]);
+  End;
 
   qryVideosforTime.First;
 
@@ -292,7 +301,7 @@ Begin
   End;
 End;
 
-Function TDatabaseProvider.AnomalyDateTime: TDateTime;
+Function TStarfixDatabaseProvider.AnomalyDateTime: TDateTime;
 Begin
   If (qryAnomalies.Active) And (qryAnomalies.RecordCount > 0) Then
     Result := qryAnomalies.FieldByName('Start').AsDateTime
@@ -300,7 +309,7 @@ Begin
     Result := 0;
 End;
 
-Procedure TDatabaseProvider.LoadSettings(AInifile: TIniFile);
+Procedure TStarfixDatabaseProvider.LoadSettings(AInifile: TIniFile);
 Begin
   // Connection
   FDatabaseName := AInifile.ReadString('Database', 'DatabaseName', '');
@@ -310,7 +319,7 @@ Begin
   FPort := AInifile.ReadInteger('Database', 'Port', 1433);
 End;
 
-Procedure TDatabaseProvider.SaveSettings(AInifile: TIniFile);
+Procedure TStarfixDatabaseProvider.SaveSettings(AInifile: TIniFile);
 Begin
   // Connection
   AInifile.WriteString('Database', 'DatabaseName', FDatabaseName);
