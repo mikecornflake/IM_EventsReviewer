@@ -5,7 +5,7 @@ Unit MediaProvider;
 Interface
 
 Uses
-  Classes, SysUtils, VideoFileMap;
+  Classes, SysUtils, MediaTypes;
 
 Type
 
@@ -14,7 +14,7 @@ Type
   TMediaProvider = Class
   Private
     // Video File list
-    FVideoFileMap: TVideoFileFolderMap;
+    FVideos: TVideoFiles;
 
   Public
     Constructor Create; Virtual;
@@ -23,7 +23,7 @@ Type
     Procedure ScanVideoFiles(AFolder: String);
     Function LookupFolder(AVideoFilename: String): String;
 
-    Property VideoFileMap: TVideoFileFolderMap Read FVideoFileMap;
+    Property Videos: TVideoFiles Read FVideos;
   End;
 
 Implementation
@@ -33,26 +33,33 @@ Implementation
 Constructor TMediaProvider.Create;
 Begin
   // Video Filename/Folder lookup...
-  FVideoFileMap := TVideoFileFolderMap.Create;
+  FVideos := TVideoFiles.Create;
+  FVideos.InferInfoFromFilename := False;
 End;
 
 Destructor TMediaProvider.Destroy;
 Begin
-  FreeAndNil(FVideoFileMap);
+  FreeAndNil(FVideos);
 
   Inherited Destroy;
 End;
 
 Procedure TMediaProvider.ScanVideoFiles(AFolder: String);
-begin
+Begin
   // Populate VideoFilenames
   If DirectoryExists(AFolder) Then
-    FVideoFileMap.ScanFolder(AFolder);
-end;
+    FVideos.ScanFolder(AFolder);
+End;
 
 Function TMediaProvider.LookupFolder(AVideoFilename: String): String;
-begin
-  Result := FVideoFileMap.LookupFolder(AVideoFilename);
-end;
+Var
+  oVideo: TVideoFile;
+Begin
+  oVideo := FVideos.Find(AVideoFilename);
+  If Assigned(oVideo) Then
+    Result := oVideo.Folder
+  Else
+    Result := '';
+End;
 
 End.

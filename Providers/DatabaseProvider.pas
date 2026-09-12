@@ -262,7 +262,7 @@ Function TDatabaseProvider.GetVideoFilesForTime(Const ADateTime: TDateTime): TVi
 Var
   oVideoFile: TVideoFile;
 Begin
-  Result := TVideoFiles.Create(True);
+  Result := TVideoFiles.Create;
 
   // Find the target videos
   If qryVideosforTime.Active Then
