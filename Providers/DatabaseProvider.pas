@@ -41,6 +41,7 @@ Type
 
     Function Open: Boolean; Override;
     Function GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles; Override;
+    Function AnomalyDateTime: TDateTime; Override;
 
     Procedure LoadSettings(AInifile: TIniFile); Override;
     Procedure SaveSettings(AInifile: TIniFile); Override;
@@ -66,7 +67,7 @@ Begin
   qryAnomalies.AfterScroll := @qryAnomaliesAfterScroll;
   qryAnomalies.AfterOpen := @qryAnomaliesAfterOpen;
   qryAnomalies.SQL.Add('SELECT E.[UNIQUE_ID],  ');
-  qryAnomalies.SQL.Add('       DATEADD(S, E.TIMEDATE, ''1970-01-01'') As [DATETIME], ');
+  qryAnomalies.SQL.Add('       DATEADD(S, E.TIMEDATE, ''1970-01-01'') As [Start], ');
   qryAnomalies.SQL.Add('       E.[KP],                       ');
   qryAnomalies.SQL.Add('       E.[Type],                     ');
   qryAnomalies.SQL.Add('       E.[Anomaly_No],               ');
@@ -76,9 +77,12 @@ Begin
   qryAnomalies.SQL.Add('       E.Observed_Offset As [Offset_(m)],  ');
   qryAnomalies.SQL.Add('       E.[Clock],                    ');
   qryAnomalies.SQL.Add('       E.Comment As [Description]    ');
-  qryAnomalies.SQL.Add('FROM dbo.Event_3 E       ');
-  qryAnomalies.SQL.Add('WHERE E.ANOMALY=''1''    ');
-  qryAnomalies.SQL.Add('ORDER BY [KP] Asc        ');
+  qryAnomalies.SQL.Add('FROM dbo.Event_3 E                   ');
+  qryAnomalies.SQL.Add('INNER JOIN dbo.SESSIONS S ON (S.START_TIME <= E.TIMEDATE    ');
+  qryAnomalies.SQL.Add('                              AND S.END_TIME >= E.TIMEDATE) ');
+  qryAnomalies.SQL.Add('WHERE E.ANOMALY=''1''                ');
+  qryAnomalies.SQL.Add(' AND (E.PROC_FLAGS & 512)<>512       ');
+  qryAnomalies.SQL.Add('ORDER BY [KP] Asc                    ');
 
   qryVideosforTime := TSQLQuery.Create(nil);
   qryVideosforTime.Database := FConnection;
@@ -236,7 +240,7 @@ Begin
   If Ready And Assigned(FOnAnomalyChanged) Then
   Begin
     sAnomalyNo := qryAnomalies.FieldByName('Anomaly_No').AsString;
-    dtDateTime := qryAnomalies.FieldByName('DATETIME').AsFloat;
+    dtDateTime := qryAnomalies.FieldByName('Start').AsDateTime;
     FOnAnomalyChanged(Self, sAnomalyNo, dtDateTime);
   End;
 End;
@@ -286,6 +290,14 @@ Begin
 
     qryVideosforTime.Next;
   End;
+End;
+
+Function TDatabaseProvider.AnomalyDateTime: TDateTime;
+Begin
+  If (qryAnomalies.Active) And (qryAnomalies.RecordCount > 0) Then
+    Result := qryAnomalies.FieldByName('Start').AsDateTime
+  Else
+    Result := 0;
 End;
 
 Procedure TDatabaseProvider.LoadSettings(AInifile: TIniFile);

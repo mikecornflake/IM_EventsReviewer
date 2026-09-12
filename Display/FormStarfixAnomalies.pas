@@ -6,17 +6,21 @@ Interface
 
 Uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ComCtrls, Menus, ExtCtrls, StdCtrls,
-  DBCtrls, IniFiles, DB,
+  DBCtrls, ActnList, IniFiles, DB,
   // Library
   FormMain, FrameImageViewer, FrameGrids, FrameVideoPlayer, FrameSyncedVideo,
   // Application
-  ApplicationSettings, DatabaseProvider, MediaProvider;
+  ApplicationSettings, DatabaseProvider, MediaProvider, BGRAShape, FrameVerticalDBGrid;
 
 Type
 
   { TfrmStarfixAnomalies }
 
   TfrmStarfixAnomalies = Class(TFormMain)
+    actSeekVideo: TAction;
+    actSettings: TAction;
+    actOpenDatabase: TAction;
+    actMain: TActionList;
     DBEdit1: TDBEdit;
     DBEdit2: TDBEdit;
     dsAnomalyDetails: TDataSource;
@@ -30,7 +34,6 @@ Type
     edtWidth: TDBEdit;
     edtWidth1: TDBEdit;
     grpDetails: TGroupBox;
-    Label5: TLabel;
     lblClock: TLabel;
     lblDescription: TLabel;
     lblDescription1: TLabel;
@@ -46,6 +49,7 @@ Type
     mnuDatabaseOpen: TMenuItem;
     mnuExit: TMenuItem;
     mnuSettings: TMenuItem;
+    pnlDetailsGrid: TPanel;
     pnlImages: TPanel;
     pnlHidingSummary: TPanel;
     pnlAnomalies: TPanel;
@@ -55,14 +59,20 @@ Type
     Separator2: TMenuItem;
     Splitter1: TSplitter;
     Splitter2: TSplitter;
+    Splitter3: TSplitter;
     tmrHideSummary: TTimer;
-    ToolBar1: TToolBar;
+    tbMain: TToolBar;
+    btnOpenDatabase: TToolButton;
+    btnSettings: TToolButton;
+    btnSyncVideo: TToolButton;
+    ToolButton3: TToolButton;
+    Procedure actSeekVideoExecute(Sender: TObject);
     Procedure FormCreate(Sender: TObject);
     Procedure FormDestroy(Sender: TObject);
     Procedure FormShow(Sender: TObject);
-    Procedure mnuDatabaseOpenClick(Sender: TObject);
+    Procedure actDatabaseOpenClick(Sender: TObject);
     Procedure mnuExitClick(Sender: TObject);
-    Procedure mnuSettingsClick(Sender: TObject);
+    Procedure actSettingsClick(Sender: TObject);
     Procedure tmrHideSummaryTimer(Sender: TObject);
   Private
     // Settings
@@ -79,6 +89,7 @@ Type
     fmeAnomalies: TFrameGrid;
     fmeVideoPlayer: TFrameVideoPlayer;
     fmeSyncedVideo: TFrameSyncedVideo;
+    fmeDetailGrid: TFrameVerticalDBGrid;
   Protected
     Procedure RefreshUI; Override;
 
@@ -100,7 +111,8 @@ Var
 Implementation
 
 Uses
-  ThirdPartySupport, FrameVideoLibmpv, StringSupport, FileUtil, DialogMSSQLConnection, MediaTypes;
+  ThirdPartySupport, FrameVideoLibmpv, StringSupport, FileUtil, DialogMSSQLConnection, MediaTypes,
+  Windows, DBGrids;
 
   {$R *.lfm}
 
@@ -132,6 +144,11 @@ Begin
   fmeVideoPlayer.Autoplay := True;
   fmeVideoPlayer.ShowLabel := True;
 
+  fmeDetailGrid := TFrameVerticalDBGrid.Create(Self);
+  fmeDetailGrid.Parent := pnlDetailsGrid;
+  fmeDetailGrid.Name := 'fmeDetailGrid';
+  fmeDetailGrid.Align := alClient;
+
   // Ensure the Video Player support multi channel playback
   fmeVideoPlayer.VideoEngineClass := TFrameSyncedVideo;
 
@@ -145,6 +162,14 @@ Begin
           here and it's all still working - backport changes to IM_Video }
   fmeSyncedVideo.VideoEngineClass := TFrameVideoLibmpv;
 
+  // Not sure which of these are sufficient.  When I get time, experiment
+  // The goal is obviously: Video to not start in playing mode
+  fmeVideoPlayer.Autoplay := False;  // This should be the sufficient call
+  fmeVideoPlayer.Pause;              // Shouldn't do anything because no video loaded
+  fmeSyncedVideo.Autoplay := False;  { This should have been progagated from
+                                          the fmeVideoPlayer.Autoplay call. }
+  fmeSyncedVideo.Pause;              // Shouldn't do anything because no video loaded
+
   // Now the UI is created, let's create the providers and bind/register
 
   // Data Provider
@@ -154,6 +179,7 @@ Begin
 
   dsAnomalyDetails.Dataset := FDataProvider.AnomalyDataSet;
   fmeAnomalies.Dataset := FDataProvider.AnomalyDataSet;
+  fmeDetailGrid.Dataset := FDataProvider.AnomalyDataSet;
 
   // Media Provider
   FMediaProvider := TMediaProvider.Create;
@@ -168,6 +194,7 @@ Begin
   FreeAndNil(fmeImageViewer);
   FreeAndNil(fmeAnomalies);
   FreeAndNil(fmeVideoPlayer);
+  FreeAndNil(fmeDetailGrid);
 
   // And these definitely need freeing :-)
   FreeAndNil(FSettings);
@@ -176,10 +203,23 @@ Begin
 End;
 
 Procedure TfrmStarfixAnomalies.FormShow(Sender: TObject);
+
+  Procedure RoundControl(AControl: TWinControl; ARadius: Integer);
+  Var
+    Rgn: HRGN;
+  Begin
+    Rgn := CreateRoundRectRgn(0, 0, AControl.Width + 1, AControl.Height +
+      1, ARadius, ARadius);
+
+    SetWindowRgn(AControl.Handle, Rgn, True);
+  End;
+
 Begin
   If Not FActivated Then
   Begin
-    // If needed (was for testing)
+    RoundControl(pnlHidingSummary, 10);
+    // Visible quickly at startup, but prevents a bad drawing issue on first show
+    pnlHidingSummary.Visible := False;
 
     FActivated := True;
   End;
@@ -219,9 +259,13 @@ Begin
   Inherited SaveGlobalSettings(oInifile);
 End;
 
-Procedure TfrmStarfixAnomalies.mnuSettingsClick(Sender: TObject);
+Procedure TfrmStarfixAnomalies.RefreshUI;
 Begin
-  FSettings.OpenSettings;
+  Inherited RefreshUI;
+
+  mnuDatabaseOpen.Enabled := MSSQL.Available;
+  actSeekVideo.Enabled := FDataProvider.Ready And Assigned(dsAnomalyDetails.Dataset) And
+    (dsAnomalyDetails.Dataset.Active);
 End;
 
 Procedure TfrmStarfixAnomalies.tmrHideSummaryTimer(Sender: TObject);
@@ -230,14 +274,18 @@ Begin
   pnlHidingSummary.Visible := False;
 End;
 
-Procedure TfrmStarfixAnomalies.RefreshUI;
+Procedure TfrmStarfixAnomalies.actSeekVideoExecute(Sender: TObject);
 Begin
-  Inherited RefreshUI;
-
-  mnuDatabaseOpen.Enabled := MSSQL.Available;
+  If FDataProvider.Ready Then
+    fmeSyncedVideo.PositionAsTime := FDataProvider.AnomalyDateTime;
 End;
 
-Procedure TfrmStarfixAnomalies.mnuDatabaseOpenClick(Sender: TObject);
+Procedure TfrmStarfixAnomalies.actSettingsClick(Sender: TObject);
+Begin
+  FSettings.OpenSettings;
+End;
+
+Procedure TfrmStarfixAnomalies.actDatabaseOpenClick(Sender: TObject);
 Begin
   // TODO: Move Settings into a Frame, then
   //       add a plugin capability to OpenDaabase dialog
@@ -252,6 +300,8 @@ Begin
 End;
 
 Procedure TfrmStarfixAnomalies.DoProviderReady(Sender: TObject);
+Var
+  oColumn: TColumn;
 Begin
   // We're now either connected to database, or have the offline data available
   If FDataProvider.Ready Then
@@ -260,7 +310,14 @@ Begin
 
     // Resize columns etc
     fmeAnomalies.InitialiseDBGrid(True);
+
+    // KP width hack
+    //oColumn := fmeAnomalies.grdSQL.Columns.ColumnByTitle('KP');
+    //If assigned(oColumn) Then
+    //  oColumn.Width := 35;
   End;
+
+  RefreshUI;
 End;
 
 // Data has just loaded or User has scrolled to the next anomaly in the list
@@ -303,8 +360,8 @@ Begin
     End;
 
     // Do I need to load new Video?
-    If (fmeSyncedVideo.StartDateTime <= ADateTime) And (ADateTime <=
-      fmeSyncedVideo.EndDateTime) Then
+    If (fmeSyncedVideo.StartDateTime <= ADateTime) And
+      (ADateTime <= fmeSyncedVideo.EndDateTime) Then
     Begin
       fmeSyncedVideo.PositionAsTime := ADateTime;
 
@@ -383,6 +440,8 @@ Begin
       End;
     End;
   End;
+
+  RefreshUI;
 End;
 
 End.

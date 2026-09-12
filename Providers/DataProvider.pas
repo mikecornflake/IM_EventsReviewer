@@ -30,7 +30,9 @@ Type
 
     Function GetAnomalyDataSet: TDataSet;
 
+    // TODO Think long and hard - should these be here?
     Function GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles;
+    Function AnomalyDateTime: TDateTime;
 
     Function Open: Boolean;
 
@@ -66,6 +68,7 @@ Type
     Function Open: Boolean; Virtual; Abstract;
 
     Function GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles; Virtual; Abstract;
+    Function AnomalyDateTime: TDateTime; Virtual; Abstract;
 
     Property AnomalyDataSet: TDataSet Read GetAnomalyDataSet;
 
