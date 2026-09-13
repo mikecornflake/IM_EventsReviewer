@@ -104,7 +104,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
     TabOrder = 5
     object pnlVideo: TPanel
       Left = 0
-      Height = 454
+      Height = 438
       Top = 0
       Width = 671
       Align = alClient
@@ -113,29 +113,29 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
     end
     object pnlImages: TPanel
       Left = 0
-      Height = 240
-      Top = 459
+      Height = 256
+      Top = 443
       Width = 671
       Align = alBottom
-      ClientHeight = 240
+      ClientHeight = 256
       ClientWidth = 671
       Constraints.MinHeight = 240
       TabOrder = 1
       object grpDetails: TGroupBox
         Left = 220
-        Height = 228
+        Height = 244
         Top = 6
         Width = 445
         Align = alRight
         BorderSpacing.Around = 5
         Caption = 'Details'
-        ClientHeight = 208
+        ClientHeight = 224
         ClientWidth = 441
         TabOrder = 0
         object edtLength: TDBEdit
           Left = 13
           Height = 23
-          Top = 76
+          Top = 122
           Width = 80
           DataField = 'Length_(m)'
           DataSource = dsAnomalyDetails
@@ -150,7 +150,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
           AnchorSideTop.Control = edtLength
           Left = 98
           Height = 23
-          Top = 76
+          Top = 122
           Width = 80
           DataField = 'Width_(m)'
           DataSource = dsAnomalyDetails
@@ -166,7 +166,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
           AnchorSideTop.Control = edtLength
           Left = 183
           Height = 23
-          Top = 76
+          Top = 122
           Width = 80
           DataField = 'Height_(m)'
           DataSource = dsAnomalyDetails
@@ -182,7 +182,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
           AnchorSideTop.Control = edtLength
           Left = 268
           Height = 23
-          Top = 76
+          Top = 122
           Width = 80
           DataField = 'Offset_(m)'
           DataSource = dsAnomalyDetails
@@ -198,7 +198,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
           AnchorSideTop.Control = edtLength
           Left = 353
           Height = 23
-          Top = 76
+          Top = 122
           Width = 80
           DataField = 'Clock'
           DataSource = dsAnomalyDetails
@@ -214,7 +214,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
           AnchorSideBottom.Control = edtLength
           Left = 13
           Height = 15
-          Top = 59
+          Top = 105
           Width = 61
           Anchors = [akLeft, akBottom]
           BorderSpacing.Top = 1
@@ -228,8 +228,8 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
           AnchorSideRight.Control = grpDetails
           AnchorSideRight.Side = asrBottom
           Left = 13
-          Height = 48
-          Top = 125
+          Height = 43
+          Top = 171
           Width = 419
           Anchors = [akTop, akLeft, akRight]
           BorderSpacing.Top = 66
@@ -244,7 +244,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
           AnchorSideTop.Control = lblLength
           Left = 98
           Height = 15
-          Top = 59
+          Top = 105
           Width = 56
           Caption = 'Width (m)'
           Font.Style = [fsBold]
@@ -255,7 +255,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
           AnchorSideTop.Control = lblLength
           Left = 183
           Height = 15
-          Top = 59
+          Top = 105
           Width = 60
           Caption = 'Height (m)'
           Font.Style = [fsBold]
@@ -266,7 +266,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
           AnchorSideTop.Control = lblLength
           Left = 268
           Height = 15
-          Top = 59
+          Top = 105
           Width = 58
           Caption = 'Offset (m)'
           Font.Style = [fsBold]
@@ -277,19 +277,16 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
           AnchorSideTop.Control = lblLength
           Left = 353
           Height = 15
-          Top = 59
+          Top = 105
           Width = 77
           Caption = 'Clock Position'
           Font.Style = [fsBold]
           ParentFont = False
         end
         object lblDescription: TLabel
-          AnchorSideLeft.Control = edtDescription
-          AnchorSideTop.Control = grpDetails
-          AnchorSideBottom.Control = edtDescription
           Left = 13
           Height = 15
-          Top = 109
+          Top = 153
           Width = 64
           BorderSpacing.Top = 109
           BorderSpacing.Bottom = 2
@@ -302,7 +299,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
           AnchorSideBottom.Control = edtDescription
           Left = 13
           Height = 15
-          Top = 11
+          Top = 58
           Width = 26
           Anchors = [akLeft]
           BorderSpacing.Bottom = 2
@@ -313,13 +310,37 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
         object DBEdit1: TDBEdit
           Left = 13
           Height = 23
-          Top = 29
+          Top = 75
           Width = 419
           DataField = 'Type'
           DataSource = dsAnomalyDetails
+          ReadOnly = True
           Anchors = [akTop, akLeft, akRight]
           MaxLength = 0
           TabOrder = 6
+        end
+        object lblDescription4: TLabel
+          Left = 13
+          Height = 15
+          Top = 8
+          Width = 110
+          Anchors = [akLeft]
+          BorderSpacing.Bottom = 2
+          Caption = 'Anomaly Reference'
+          Font.Style = [fsBold]
+          ParentFont = False
+        end
+        object DBEdit4: TDBEdit
+          Left = 13
+          Height = 23
+          Top = 26
+          Width = 417
+          DataField = 'Anomaly_No'
+          DataSource = dsAnomalyDetails
+          ReadOnly = True
+          Anchors = [akLeft]
+          MaxLength = 0
+          TabOrder = 7
         end
       end
     end
@@ -327,7 +348,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
       Cursor = crVSplit
       Left = 0
       Height = 5
-      Top = 454
+      Top = 438
       Width = 671
       Align = alBottom
       ResizeAnchor = akBottom
@@ -338,12 +359,12 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
     AnchorSideLeft.Side = asrCenter
     AnchorSideTop.Control = pnlRight
     Left = 756
-    Height = 120
+    Height = 168
     Top = 274
     Width = 278
     BorderSpacing.Top = 250
     BevelOuter = bvNone
-    ClientHeight = 120
+    ClientHeight = 168
     ClientWidth = 278
     Color = 11599871
     ParentBackground = False
@@ -352,7 +373,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
     object lblDescription2: TLabel
       Left = 13
       Height = 15
-      Top = 6
+      Top = 56
       Width = 26
       Anchors = [akLeft]
       BorderSpacing.Bottom = 2
@@ -363,10 +384,11 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
     object DBEdit2: TDBEdit
       Left = 13
       Height = 23
-      Top = 32
+      Top = 76
       Width = 250
       DataField = 'Type'
       DataSource = dsAnomalyDetails
+      ReadOnly = True
       MaxLength = 0
       TabOrder = 0
     end
@@ -376,7 +398,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
       AnchorSideBottom.Control = edtLength1
       Left = 13
       Height = 15
-      Top = 59
+      Top = 104
       Width = 61
       Anchors = [akLeft, akBottom]
       BorderSpacing.Top = 1
@@ -388,7 +410,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
     object edtLength1: TDBEdit
       Left = 13
       Height = 23
-      Top = 76
+      Top = 121
       Width = 80
       DataField = 'Length_(m)'
       DataSource = dsAnomalyDetails
@@ -402,7 +424,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
       AnchorSideTop.Control = lblLength1
       Left = 98
       Height = 15
-      Top = 59
+      Top = 104
       Width = 56
       Caption = 'Width (m)'
       Font.Style = [fsBold]
@@ -414,7 +436,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
       AnchorSideTop.Control = edtLength1
       Left = 98
       Height = 23
-      Top = 76
+      Top = 121
       Width = 80
       DataField = 'Width_(m)'
       DataSource = dsAnomalyDetails
@@ -429,7 +451,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
       AnchorSideTop.Control = lblLength1
       Left = 183
       Height = 15
-      Top = 59
+      Top = 104
       Width = 60
       Caption = 'Height (m)'
       Font.Style = [fsBold]
@@ -441,7 +463,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
       AnchorSideTop.Control = edtLength1
       Left = 183
       Height = 23
-      Top = 76
+      Top = 121
       Width = 80
       DataField = 'Height_(m)'
       DataSource = dsAnomalyDetails
@@ -450,6 +472,29 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
       BorderSpacing.Left = 5
       MaxLength = 0
       TabOrder = 3
+    end
+    object lblDescription3: TLabel
+      Left = 13
+      Height = 15
+      Top = 7
+      Width = 110
+      Anchors = [akLeft]
+      BorderSpacing.Bottom = 2
+      Caption = 'Anomaly Reference'
+      Font.Style = [fsBold]
+      ParentFont = False
+    end
+    object DBEdit3: TDBEdit
+      Left = 13
+      Height = 23
+      Top = 26
+      Width = 250
+      DataField = 'Anomaly_No'
+      DataSource = dsAnomalyDetails
+      ReadOnly = True
+      Anchors = [akLeft]
+      MaxLength = 0
+      TabOrder = 4
     end
   end
   inherited ilImages: TImageList[7]

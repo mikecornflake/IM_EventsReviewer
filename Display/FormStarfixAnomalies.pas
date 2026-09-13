@@ -10,7 +10,7 @@ Uses
   // Library
   FormMain, FrameImageViewer, FrameGrids, FrameVideoPlayer, FrameSyncedVideo,
   // Application
-  ApplicationSettings, StarfixDatabaseProvider, MediaProvider, BGRAShape, FrameVerticalDBGrid;
+  ApplicationSettings, StarfixDatabaseProvider, MediaProvider, FrameVerticalDBGrid;
 
 Type
 
@@ -23,6 +23,8 @@ Type
     actMain: TActionList;
     DBEdit1: TDBEdit;
     DBEdit2: TDBEdit;
+    DBEdit3: TDBEdit;
+    DBEdit4: TDBEdit;
     dsAnomalyDetails: TDataSource;
     edtClock: TDBEdit;
     edtDescription: TDBMemo;
@@ -38,6 +40,8 @@ Type
     lblDescription: TLabel;
     lblDescription1: TLabel;
     lblDescription2: TLabel;
+    lblDescription3: TLabel;
+    lblDescription4: TLabel;
     lblHeight: TLabel;
     lblHeight1: TLabel;
     lblLength: TLabel;
@@ -47,7 +51,9 @@ Type
     lblWidth1: TLabel;
     mnuDatabase: TMenuItem;
     mnuDatabaseOpen: TMenuItem;
+    mnuEdit: TMenuItem;
     mnuExit: TMenuItem;
+    mnuSeektoVideo: TMenuItem;
     mnuSettings: TMenuItem;
     pnlDetailsGrid: TPanel;
     pnlImages: TPanel;
@@ -329,8 +335,6 @@ Begin
 End;
 
 Procedure TfrmStarfixAnomalies.DoProviderReady(Sender: TObject);
-Var
-  oColumn: TColumn;
 Begin
   // We're now either connected to database, or have the offline data available
   If FDataProvider.Ready Then
