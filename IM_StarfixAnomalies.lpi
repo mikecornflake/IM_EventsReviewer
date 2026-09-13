@@ -19,7 +19,7 @@
       <UseVersionInfo Value="True"/>
       <AutoIncrementBuild Value="True"/>
       <MinorVersionNr Value="1"/>
-      <BuildNr Value="22"/>
+      <BuildNr Value="27"/>
       <Attributes pvaPreRelease="True"/>
       <StringTable Comments="Starfix Anomaly Manager" CompanyName="Inspector Mike 2.0 Pty Ltd" LegalCopyright="(c) 2026"/>
     </VersionInfo>
@@ -147,11 +147,11 @@
         <ResourceBaseClass Value="Form"/>
       </Unit>
       <Unit>
-        <Filename Value="Display\DialogSettings.pas"/>
+        <Filename Value="Display\FrameApplicationSettings.pas"/>
         <IsPartOfProject Value="True"/>
-        <ComponentName Value="dlgSettings"/>
+        <ComponentName Value="fmeApplicationSettings"/>
         <HasResources Value="True"/>
-        <ResourceBaseClass Value="Form"/>
+        <ResourceBaseClass Value="Frame"/>
       </Unit>
       <Unit>
         <Filename Value="Display\FrameImageViewer.pas"/>

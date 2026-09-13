@@ -44,7 +44,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
     end
     object ToolButton3: TToolButton
       Left = 199
-      Height = 8
+      Height = 22
       Top = 2
       AutoSize = True
       Style = tbsSeparator
@@ -640,19 +640,27 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
         OnClick = mnuExitClick
       end
     end
-    inherited mnuOptions: TMenuItem[1]
+    object mnuEdit: TMenuItem[1]
+      Caption = 'Edit'
+      object mnuSeektoVideo: TMenuItem
+        Action = actSeekVideo
+      end
+    end
+    inherited mnuOptions: TMenuItem[2]
       inherited mnuMultilineGrids: TMenuItem
         Caption = '&Multiline Grids'
+        Visible = False
       end
       object Separator1: TMenuItem[1]
         Caption = '-'
+        Visible = False
       end
       object mnuSettings: TMenuItem[2]
         Caption = '&Settings'
         OnClick = actSettingsClick
       end
     end
-    inherited mnuHelp: TMenuItem[2]
+    inherited mnuHelp: TMenuItem[3]
     end
   end
   object dsAnomalyDetails: TDataSource[9]
@@ -683,7 +691,15 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
     object actSeekVideo: TAction
       Caption = 'Seek to Anomaly start'
       ImageIndex = 5
+      ShortCut = 114
       OnExecute = actSeekVideoExecute
     end
+  end
+  object tmrSeekAfterLoadVideo: TTimer[12]
+    Enabled = False
+    Interval = 300
+    OnTimer = tmrSeekAfterLoadVideoTimer
+    Left = 768
+    Top = 152
   end
 end

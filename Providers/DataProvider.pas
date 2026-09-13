@@ -36,6 +36,8 @@ Type
 
     Function Open: Boolean;
 
+    Function Title: String;
+
     // Properties
     Property AnomalyDataSet: TDataSet Read GetAnomalyDataSet;
     Property Ready: Boolean Read GetReady;
@@ -66,6 +68,8 @@ Type
     Procedure SetOnAnomalyChanged(AValue: TAnomalyChangedEvent);
   Public
     Function Open: Boolean; Virtual; Abstract;
+
+    Function Title: String; Virtual; Abstract;
 
     Function GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles; Virtual; Abstract;
     Function AnomalyDateTime: TDateTime; Virtual; Abstract;

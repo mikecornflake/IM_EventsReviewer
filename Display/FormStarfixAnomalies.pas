@@ -61,6 +61,7 @@ Type
     splImages: TSplitter;
     splDetailsGrid: TSplitter;
     tmrHideSummary: TTimer;
+    tmrSeekAfterLoadVideo: TTimer;
     tbMain: TToolBar;
     btnOpenDatabase: TToolButton;
     btnSettings: TToolButton;
@@ -74,6 +75,7 @@ Type
     Procedure mnuExitClick(Sender: TObject);
     Procedure actSettingsClick(Sender: TObject);
     Procedure tmrHideSummaryTimer(Sender: TObject);
+    procedure tmrSeekAfterLoadVideoTimer(Sender: TObject);
   Private
     // Settings
     FSettings: TApplicationSettings;
@@ -120,7 +122,7 @@ Var
 Implementation
 
 Uses
-  ThirdPartySupport, FrameVideoLibmpv, StringSupport, FileUtil, DialogMSSQLConnection, MediaTypes,
+  ThirdPartySupport, FrameVideoLibmpv, StringSupport, FileUtil, MSSQLSupport, MediaTypes,
   Windows, DBGrids;
 
   {$R *.lfm}
@@ -337,6 +339,9 @@ Begin
 
     // Resize columns etc
     fmeAnomalies.InitialiseDBGrid(True);
+
+    Caption := Format('%s: [%s]', [Application.Title, FDataProvider.Title]);
+    Status := '';
   End;
 
   RefreshUI;
@@ -469,11 +474,18 @@ End;
 
 Procedure TfrmStarfixAnomalies.DoVideoLoaded(Sender: TObject);
 Begin
+  tmrSeekAfterLoadVideo.Enabled := True;
+End;
+
+procedure TfrmStarfixAnomalies.tmrSeekAfterLoadVideoTimer(Sender: TObject);
+begin
+  tmrSeekAfterLoadVideo.Enabled := False;
+
   If FSeekPending Then
   Begin
     FSeekPending := False;
     fmeSyncedVideo.PositionAsTime := FPendingVideoTime;
   End;
-End;
+end;
 
 End.

@@ -40,6 +40,9 @@ Type
     Destructor Destroy; Override;
 
     Function Open: Boolean; Override;
+    Function Title: String; Override;
+
+
     Function GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles; Override;
     Function AnomalyDateTime: TDateTime; Override;
 
@@ -50,7 +53,7 @@ Type
 Implementation
 
 Uses
-  FormMain, DialogMSSQLConnection, ThirdPartySupport, Dialogs, Controls, Forms;
+  FormMain, MSSQLSupport, ThirdPartySupport, Dialogs, Controls, Forms;
 
   { TStarfixDatabaseProvider }
 
@@ -71,9 +74,9 @@ Begin
   qryAnomalies.SQL.Add('       E.[KP],                       ');
   qryAnomalies.SQL.Add('       E.[Type],                     ');
   qryAnomalies.SQL.Add('       E.[Anomaly_No],               ');
-  qryAnomalies.SQL.Add('       E.Length As [Length_(m)],     ');
-  qryAnomalies.SQL.Add('       E.Width As [Width_(m)],       ');
-  qryAnomalies.SQL.Add('       E.Height As [Height_(m)],     ');
+  qryAnomalies.SQL.Add('       TRY_CONVERT(decimal(18,3), E.Length) As [Length_(m)], ');
+  qryAnomalies.SQL.Add('       TRY_CONVERT(decimal(18,3), E.Width) As [Width_(m)],   ');
+  qryAnomalies.SQL.Add('       TRY_CONVERT(decimal(18,3), E.Height) As [Height_(m)], ');
   qryAnomalies.SQL.Add('       E.Observed_Offset As [Offset_(m)],  ');
   qryAnomalies.SQL.Add('       E.[Clock],                    ');
   qryAnomalies.SQL.Add('       E.Comment As [Description],   ');
@@ -233,6 +236,14 @@ Begin
   End;
 End;
 
+Function TStarfixDatabaseProvider.Title: String;
+Begin
+  If Ready Then
+    Result := 'Connected to ' + FDatabaseName
+  Else
+    Result := 'Not connected';
+End;
+
 Procedure TStarfixDatabaseProvider.DoAnomalyScrollTimer(Sender: TObject);
 Var
   sAnomalyNo: String;
@@ -261,6 +272,10 @@ Begin
   TFloatField(qryAnomalies.FieldByName('Easting')).DisplayFormat := '0.00';
   TFloatField(qryAnomalies.FieldByName('Northing')).DisplayFormat := '0.00';
   TFloatField(qryAnomalies.FieldByName('Depth')).DisplayFormat := '0.00';
+  TFloatField(qryAnomalies.FieldByName('Offset_(m)')).DisplayFormat := '0.00';
+  TFloatField(qryAnomalies.FieldByName('Length_(m)')).DisplayFormat := '0.00';
+  TFloatField(qryAnomalies.FieldByName('Width_(m)')).DisplayFormat := '0.00';
+  TFloatField(qryAnomalies.FieldByName('Height_(m)')).DisplayFormat := '0.00';
 End;
 
 Function TStarfixDatabaseProvider.GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles;

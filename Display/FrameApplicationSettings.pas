@@ -1,36 +1,44 @@
-Unit DialogSettings;
+Unit FrameApplicationSettings;
 
 {$mode ObjFPC}{$H+}
 
 Interface
 
 Uses
-  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls, EditBtn;
+  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls, EditBtn,
+  FrameBase;
 
 Type
 
-  { TdlgSettings }
+  { TfmeApplicationSettings }
 
-  TdlgSettings = Class(TForm)
+  TfmeApplicationSettings = Class(TFrameBase)
     Bevel1: TBevel;
     Bevel2: TBevel;
-    btnCancel: TButton;
-    btnOK: TButton;
-    edtImageFolder: TDirectoryEdit;
+    Bevel3: TBevel;
+    edtVessel: TEdit;
     edtAnomalySpreadsheet: TFileNameEdit;
+    edtImageFolder: TDirectoryEdit;
+    edtROV: TEdit;
     edtVideoFolder: TDirectoryEdit;
     Label1: TLabel;
     Label2: TLabel;
     Label3: TLabel;
     Label4: TLabel;
+    Label5: TLabel;
+    Label6: TLabel;
     memChannelOrder: TMemo;
     Procedure FormCreate(Sender: TObject);
   Private
     Function GetImageFolder: String;
     Function GetAnomalySpreadsheet: String;
+    function GetROV: String;
+    function GetVessel: String;
     Function GetVideoFolder: String;
     Procedure SetImageFolder(Const AValue: String);
     Procedure SetAnomalySpreadsheet(Const AValue: String);
+    procedure SetROV(const AValue: String);
+    procedure SetVessel(const AValue: String);
     Procedure SetVideoFolder(Const AValue: String);
 
   Public
@@ -40,52 +48,75 @@ Type
     Property ImageFolder: String Read GetImageFolder Write SetImageFolder;
     Property VideoFolder: String Read GetVideoFolder Write SetVideoFolder;
     Property AnomalySpreadsheet: String Read GetAnomalySpreadsheet Write SetAnomalySpreadsheet;
+
+    Property Vessel: String Read GetVessel Write SetVessel;
+    Property ROV: String Read GetROV Write SetROV;
   End;
 
 Implementation
 
 {$R *.lfm}
 
-{ TdlgSettings }
+{ TfmeApplicationSettings }
 
-Procedure TdlgSettings.FormCreate(Sender: TObject);
+Procedure TfmeApplicationSettings.FormCreate(Sender: TObject);
 Begin
   edtImageFolder.Text := '';
   edtVideoFolder.Text := '';
   edtAnomalySpreadsheet.Text := '';
 End;
 
-Function TdlgSettings.GetImageFolder: String;
+Function TfmeApplicationSettings.GetImageFolder: String;
 Begin
   Result := edtImageFolder.Text;
 End;
 
-Function TdlgSettings.GetAnomalySpreadsheet: String;
+Function TfmeApplicationSettings.GetAnomalySpreadsheet: String;
 Begin
   Result := edtAnomalySpreadsheet.Text;
 End;
 
-Function TdlgSettings.GetVideoFolder: String;
+function TfmeApplicationSettings.GetROV: String;
+begin
+  Result := edtROV.Text;
+end;
+
+function TfmeApplicationSettings.GetVessel: String;
+begin
+  Result := edtVessel.Text;
+end;
+
+Function TfmeApplicationSettings.GetVideoFolder: String;
 Begin
   Result := edtVideoFolder.Text;
 End;
 
-Procedure TdlgSettings.SetImageFolder(Const AValue: String);
+Procedure TfmeApplicationSettings.SetImageFolder(Const AValue: String);
 Begin
   edtImageFolder.Text := AValue;
 End;
 
-Procedure TdlgSettings.SetAnomalySpreadsheet(Const AValue: String);
+Procedure TfmeApplicationSettings.SetAnomalySpreadsheet(Const AValue: String);
 Begin
   edtAnomalySpreadsheet.Text := AValue;
 End;
 
-Procedure TdlgSettings.SetVideoFolder(Const AValue: String);
+procedure TfmeApplicationSettings.SetROV(const AValue: String);
+begin
+  edtROV.Text := AValue;
+end;
+
+procedure TfmeApplicationSettings.SetVessel(const AValue: String);
+begin
+  edtVessel.Text := AValue;
+end;
+
+Procedure TfmeApplicationSettings.SetVideoFolder(Const AValue: String);
 Begin
   edtVideoFolder.Text := AValue;
 End;
 
-Procedure TdlgSettings.GetChannelOrder(Const AChannelOrder: TStringList);
+Procedure TfmeApplicationSettings.GetChannelOrder(Const AChannelOrder: TStringList);
 Var
   i: Integer;
 Begin
@@ -100,7 +131,7 @@ Begin
   AChannelOrder.Assign(memChannelOrder.Lines);
 End;
 
-Procedure TdlgSettings.SetChannelOrder(Const AChannelOrder: TStringList);
+Procedure TfmeApplicationSettings.SetChannelOrder(Const AChannelOrder: TStringList);
 Begin
   memChannelOrder.Lines.Assign(AChannelOrder);
 

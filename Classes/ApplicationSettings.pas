@@ -6,7 +6,9 @@ Unit ApplicationSettings;
 Interface
 
 Uses
-  Classes, SysUtils, Controls, IniFiles;
+  Classes, SysUtils, Controls, IniFiles,
+  // Application
+  FrameApplicationSettings;
 
 Type
 
@@ -45,6 +47,9 @@ Type
     Procedure LoadSettings(oInifile: TIniFile);
     Procedure SaveSettings(oInifile: TIniFile);
 
+    Procedure ApplySettingsFrame(AFrame: TfmeApplicationSettings);
+    Procedure PopulateSettingsFrame(AFrame: TfmeApplicationSettings);
+
     Property ImageFolder: String Read GetImageFolder;
     Property VideoFolder: String Read GetVideoFolder;
     Property AnomalySpreadsheet: String Read GetAnomalySpreadsheet;
@@ -54,11 +59,10 @@ Type
 Implementation
 
 Uses
-  // Library
-  FormMain,
+  Forms,
 
-  // Application
-  DialogSettings;
+  // Library
+  FormMain, DialogFrameHost;
 
   { TApplicationSettings }
 
@@ -77,53 +81,71 @@ Begin
 End;
 
 Function TApplicationSettings.GetImageFolder: String;
-begin
- Result := FImageFolder;
-end;
+Begin
+  Result := FImageFolder;
+End;
 
 Function TApplicationSettings.GetVideoFolder: String;
-begin
+Begin
   Result := FVideoFolder;
-end;
+End;
 
 Function TApplicationSettings.GetAnomalySpreadsheet: String;
-begin
+Begin
   Result := FAnomalySpreadsheet;
-end;
+End;
 
 Function TApplicationSettings.GetChannelOrder: TStrings;
-begin
+Begin
   Result := FChannelOrder;
-end;
+End;
 
 Function TApplicationSettings.OpenSettings: Boolean;
 Var
-  oDlg: TdlgSettings;
+  oDlg: TDialogFrameHost;
+  oFrame: TfmeApplicationSettings;
 Begin
   Result := False;
 
-  oDlg := TdlgSettings.Create(MainForm);
+  oDlg := TDialogFrameHost.Create(MainForm);
+  oFrame := TfmeApplicationSettings.Create(oDlg);
   Try
+    oDlg.Caption := Application.Title;
+    oDlg.RegisterFrame(oFrame, 'Application');
+
     // Define settings
-    oDlg.AnomalySpreadsheet := FAnomalySpreadsheet;
-    oDlg.ImageFolder := FImageFolder;
-    oDlg.VideoFolder := FVideoFolder;
-    oDlg.SetChannelOrder(FChannelOrder);
+    PopulateSettingsFrame(oFrame);
 
     If oDlg.ShowModal = mrOk Then
     Begin
       // Update settings
-      FAnomalySpreadsheet := oDlg.AnomalySpreadsheet;
-      FImageFolder := oDlg.ImageFolder;
-      FVideoFolder := oDlg.VideoFolder;
-      oDlg.GetChannelOrder(FChannelOrder);
+      ApplySettingsFrame(oFrame);
 
       Result := True;
     End;
   Finally
+    oFrame.Free;
     oDlg.Free;
   End;
 End;
+
+Procedure TApplicationSettings.ApplySettingsFrame(AFrame: TfmeApplicationSettings);
+Begin
+  FAnomalySpreadsheet := AFrame.AnomalySpreadsheet;
+  FImageFolder := AFrame.ImageFolder;
+  FVideoFolder := AFrame.VideoFolder;
+  AFrame.GetChannelOrder(FChannelOrder);
+End;
+
+Procedure TApplicationSettings.PopulateSettingsFrame(AFrame: TfmeApplicationSettings);
+Begin
+  AFrame.AnomalySpreadsheet := FAnomalySpreadsheet;
+  AFrame.ImageFolder := FImageFolder;
+  AFrame.VideoFolder := FVideoFolder;
+  AFrame.SetChannelOrder(FChannelOrder);
+  AFrame.ROV := ''; // TODO
+  AFrame.Vessel := ''; // TODO
+end;
 
 Procedure TApplicationSettings.LoadSettings(oInifile: TIniFile);
 Begin
