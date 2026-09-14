@@ -47,8 +47,8 @@ Type
     Procedure LoadSettings(oInifile: TIniFile);
     Procedure SaveSettings(oInifile: TIniFile);
 
-    Procedure ApplySettingsFrame(AFrame: TfmeApplicationSettings);
-    Procedure PopulateSettingsFrame(AFrame: TfmeApplicationSettings);
+    Procedure ApplySettingsFrame(AFrame: TFrameApplicationSettings);
+    Procedure PopulateSettingsFrame(AFrame: TFrameApplicationSettings);
 
     Property ImageFolder: String Read GetImageFolder;
     Property VideoFolder: String Read GetVideoFolder;
@@ -103,15 +103,15 @@ End;
 Function TApplicationSettings.OpenSettings: Boolean;
 Var
   oDlg: TDialogFrameHost;
-  oFrame: TfmeApplicationSettings;
+  oFrame: TFrameApplicationSettings;
 Begin
   Result := False;
 
   oDlg := TDialogFrameHost.Create(MainForm);
-  oFrame := TfmeApplicationSettings.Create(oDlg);
+  oFrame := TFrameApplicationSettings.Create(oDlg);
   Try
     oDlg.Caption := Application.Title;
-    oDlg.RegisterFrame(oFrame, 'Application');
+    oDlg.RegisterFrame(oFrame, 'Starfix');
 
     // Define settings
     PopulateSettingsFrame(oFrame);
@@ -129,7 +129,7 @@ Begin
   End;
 End;
 
-Procedure TApplicationSettings.ApplySettingsFrame(AFrame: TfmeApplicationSettings);
+Procedure TApplicationSettings.ApplySettingsFrame(AFrame: TFrameApplicationSettings);
 Begin
   FAnomalySpreadsheet := AFrame.AnomalySpreadsheet;
   FImageFolder := AFrame.ImageFolder;
@@ -137,7 +137,7 @@ Begin
   AFrame.GetChannelOrder(FChannelOrder);
 End;
 
-Procedure TApplicationSettings.PopulateSettingsFrame(AFrame: TfmeApplicationSettings);
+Procedure TApplicationSettings.PopulateSettingsFrame(AFrame: TFrameApplicationSettings);
 Begin
   AFrame.AnomalySpreadsheet := FAnomalySpreadsheet;
   AFrame.ImageFolder := FImageFolder;

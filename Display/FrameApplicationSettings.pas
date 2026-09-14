@@ -10,9 +10,9 @@ Uses
 
 Type
 
-  { TfmeApplicationSettings }
+  { TFrameApplicationSettings }
 
-  TfmeApplicationSettings = Class(TFrameBase)
+  TFrameApplicationSettings = Class(TFrameBase)
     Bevel1: TBevel;
     Bevel2: TBevel;
     Bevel3: TBevel;
@@ -57,66 +57,66 @@ Implementation
 
 {$R *.lfm}
 
-{ TfmeApplicationSettings }
+{ TFrameApplicationSettings }
 
-Procedure TfmeApplicationSettings.FormCreate(Sender: TObject);
+Procedure TFrameApplicationSettings.FormCreate(Sender: TObject);
 Begin
   edtImageFolder.Text := '';
   edtVideoFolder.Text := '';
   edtAnomalySpreadsheet.Text := '';
 End;
 
-Function TfmeApplicationSettings.GetImageFolder: String;
+Function TFrameApplicationSettings.GetImageFolder: String;
 Begin
   Result := edtImageFolder.Text;
 End;
 
-Function TfmeApplicationSettings.GetAnomalySpreadsheet: String;
+Function TFrameApplicationSettings.GetAnomalySpreadsheet: String;
 Begin
   Result := edtAnomalySpreadsheet.Text;
 End;
 
-function TfmeApplicationSettings.GetROV: String;
+function TFrameApplicationSettings.GetROV: String;
 begin
   Result := edtROV.Text;
 end;
 
-function TfmeApplicationSettings.GetVessel: String;
+function TFrameApplicationSettings.GetVessel: String;
 begin
   Result := edtVessel.Text;
 end;
 
-Function TfmeApplicationSettings.GetVideoFolder: String;
+Function TFrameApplicationSettings.GetVideoFolder: String;
 Begin
   Result := edtVideoFolder.Text;
 End;
 
-Procedure TfmeApplicationSettings.SetImageFolder(Const AValue: String);
+Procedure TFrameApplicationSettings.SetImageFolder(Const AValue: String);
 Begin
   edtImageFolder.Text := AValue;
 End;
 
-Procedure TfmeApplicationSettings.SetAnomalySpreadsheet(Const AValue: String);
+Procedure TFrameApplicationSettings.SetAnomalySpreadsheet(Const AValue: String);
 Begin
   edtAnomalySpreadsheet.Text := AValue;
 End;
 
-procedure TfmeApplicationSettings.SetROV(const AValue: String);
+procedure TFrameApplicationSettings.SetROV(const AValue: String);
 begin
   edtROV.Text := AValue;
 end;
 
-procedure TfmeApplicationSettings.SetVessel(const AValue: String);
+procedure TFrameApplicationSettings.SetVessel(const AValue: String);
 begin
   edtVessel.Text := AValue;
 end;
 
-Procedure TfmeApplicationSettings.SetVideoFolder(Const AValue: String);
+Procedure TFrameApplicationSettings.SetVideoFolder(Const AValue: String);
 Begin
   edtVideoFolder.Text := AValue;
 End;
 
-Procedure TfmeApplicationSettings.GetChannelOrder(Const AChannelOrder: TStringList);
+Procedure TFrameApplicationSettings.GetChannelOrder(Const AChannelOrder: TStringList);
 Var
   i: Integer;
 Begin
@@ -131,7 +131,7 @@ Begin
   AChannelOrder.Assign(memChannelOrder.Lines);
 End;
 
-Procedure TfmeApplicationSettings.SetChannelOrder(Const AChannelOrder: TStringList);
+Procedure TFrameApplicationSettings.SetChannelOrder(Const AChannelOrder: TStringList);
 Begin
   memChannelOrder.Lines.Assign(AChannelOrder);
 

@@ -81,7 +81,7 @@ Type
     Procedure mnuExitClick(Sender: TObject);
     Procedure actSettingsClick(Sender: TObject);
     Procedure tmrHideSummaryTimer(Sender: TObject);
-    procedure tmrSeekAfterLoadVideoTimer(Sender: TObject);
+    Procedure tmrSeekAfterLoadVideoTimer(Sender: TObject);
   Private
     // Settings
     FSettings: TApplicationSettings;
@@ -129,7 +129,7 @@ Implementation
 
 Uses
   ThirdPartySupport, FrameVideoLibmpv, StringSupport, FileUtil, MSSQLSupport, MediaTypes,
-  Windows, DBGrids;
+  Windows, DBGrids, FrameApplicationSettings, DialogFrameHost;
 
   {$R *.lfm}
 
@@ -259,8 +259,8 @@ Begin
 End;
 
 Procedure TfrmStarfixAnomalies.LoadLocalSettings(oInifile: TIniFile);
-begin
-  inherited LoadLocalSettings(oInifile);
+Begin
+  Inherited LoadLocalSettings(oInifile);
 
   // Allow the controls to persist their own settings (data filters, volume etc)
   fmeImageViewer.LoadSettings(oInifile);
@@ -276,10 +276,10 @@ begin
   splDetailsGrid.Top := pnlDetailsGrid.Top - splDetailsGrid.Height;
   splImages.Top := pnlImages.Top - splImages.Height;
   splAnomalies.Left := pnlAnomalies.Left + splAnomalies.Width;
-end;
+End;
 
 Procedure TfrmStarfixAnomalies.SaveLocalSettings(oInifile: TIniFile);
-begin
+Begin
   // Allow the controls to persist their settings
   fmeImageViewer.SaveSettings(oInifile);
   fmeAnomalies.SaveSettings(oInifile);
@@ -291,8 +291,8 @@ begin
   oInifile.WriteInteger('Form', 'pnlAnomalies.Width', pnlAnomalies.Width);
 
   // Form Position
-  inherited SaveLocalSettings(oInifile);
-end;
+  Inherited SaveLocalSettings(oInifile);
+End;
 
 Procedure TfrmStarfixAnomalies.RefreshUI;
 Begin
@@ -321,12 +321,35 @@ Begin
 End;
 
 Procedure TfrmStarfixAnomalies.actDatabaseOpenClick(Sender: TObject);
+Var
+  oDlg: TDialogFrameHost;
+  bDoConnection: Boolean;
+  fmeMSSQL: TFrameMSSQLConnection;
+  fmeApp: TFrameApplicationSettings;
 Begin
-  // TODO: Move Settings into a Frame, then
-  //       add a plugin capability to OpenDaabase dialog
-  If FSettings.OpenSettings Then
-    If FDataProvider.Open Then
-      RefreshUI;
+  oDlg := TDialogFrameHost.Create(Self);
+  fmeMSSQL := TFrameMSSQLConnection.Create(oDlg);
+  fmeApp := TFrameApplicationSettings.Create(oDlg);
+  Try
+    oDlg.Caption := Application.Title;
+    oDlg.RegisterFrame(fmeMSSQL, 'Database Server');
+    FDataProvider.PopulateSettingsFrame(fmeMSSQL);
+
+    oDlg.RegisterFrame(fmeApp, 'Starfix');
+    FSettings.PopulateSettingsFrame(fmeApp);
+
+    If oDlg.ShowModal = mrOk Then
+    Begin
+      FDataProvider.ApplySettingsFrame(fmeMSSQL);
+      FSettings.ApplySettingsFrame(fmeApp);
+    End;
+  Finally
+    fmeMSSQL.Free;
+    fmeApp.Free;
+    oDlg.Free;
+  End;
+
+  RefreshUI;
 End;
 
 Procedure TfrmStarfixAnomalies.mnuExitClick(Sender: TObject);
@@ -391,8 +414,8 @@ Begin
     End;
 
     // Do I need to load new Video?
-    If (fmeSyncedVideo.StartDateTime <= ADateTime) And
-      (ADateTime <= fmeSyncedVideo.EndDateTime) Then
+    If (fmeSyncedVideo.StartDateTime <= ADateTime) And (ADateTime <=
+      fmeSyncedVideo.EndDateTime) Then
     Begin
       fmeSyncedVideo.PositionAsTime := ADateTime;
 
@@ -481,8 +504,8 @@ Begin
   tmrSeekAfterLoadVideo.Enabled := True;
 End;
 
-procedure TfrmStarfixAnomalies.tmrSeekAfterLoadVideoTimer(Sender: TObject);
-begin
+Procedure TfrmStarfixAnomalies.tmrSeekAfterLoadVideoTimer(Sender: TObject);
+Begin
   tmrSeekAfterLoadVideo.Enabled := False;
 
   If FSeekPending Then
@@ -490,6 +513,6 @@ begin
     FSeekPending := False;
     fmeSyncedVideo.PositionAsTime := FPendingVideoTime;
   End;
-end;
+End;
 
 End.

@@ -6,7 +6,8 @@ Unit StarfixDatabaseProvider;
 Interface
 
 Uses
-  Classes, SysUtils, DataProvider, MediaTypes, Inifiles, mssqlconn, sqldb, dblib, DB, ExtCtrls;
+  Classes, SysUtils, DataProvider, MediaTypes, Inifiles, mssqlconn, sqldb, dblib, DB, ExtCtrls,
+  MSSQLSupport;
 
 Type
 
@@ -42,6 +43,8 @@ Type
     Function Open: Boolean; Override;
     Function Title: String; Override;
 
+    Procedure ApplySettingsFrame(AFrame: TFrameMSSQLConnection);
+    Procedure PopulateSettingsFrame(AFrame: TFrameMSSQLConnection);
 
     Function GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles; Override;
     Function AnomalyDateTime: TDateTime; Override;
@@ -53,7 +56,7 @@ Type
 Implementation
 
 Uses
-  FormMain, MSSQLSupport, ThirdPartySupport, Dialogs, Controls, Forms;
+  FormMain, ThirdPartySupport, Dialogs, Controls, Forms, DialogFrameHost;
 
   { TStarfixDatabaseProvider }
 
@@ -157,33 +160,26 @@ End;
 
 Function TStarfixDatabaseProvider.Open: Boolean;
 Var
-  oDlg: TdlgMSSQLConnection;
+  oDlg: TDialogFrameHost;
   bDoConnection: Boolean;
+  oFrame: TFrameMSSQLConnection;
 Begin
   Result := False;
   If MSSQL.Available Then
   Begin
-    oDlg := TdlgMSSQLConnection.Create(MainForm);
+    oDlg := TDialogFrameHost.Create(MainForm);
+    oFrame:= TFrameMSSQLConnection.Create(oDlg);
     Try
-      // Define Connection
-      oDlg.Database := FDatabaseName;
-      oDlg.Server := FServer;
-      oDlg.Port := FPort;
-      oDlg.Username := FUsername;
-      oDlg.Password := FPassword;
+      oDlg.RegisterFrame(oFrame, 'Database');
+
+      PopulateSettingsFrame(oFrame);
 
       bDoConnection := (oDlg.ShowModal = mrOk);
 
       If bDoConnection Then
-      Begin
-        // Update Connection
-        FDatabaseName := oDlg.Database;
-        FServer := oDlg.Server;
-        FPort := oDlg.Port;
-        FUsername := oDlg.Username;
-        FPassword := oDlg.Password;
-      End;
+        ApplySettingsFrame(oFrame);
     Finally
+      oFrame.Free;
       oDlg.Free;
     End;
 
@@ -235,6 +231,27 @@ Begin
     End;
   End;
 End;
+
+Procedure TStarfixDatabaseProvider.PopulateSettingsFrame(AFrame: TFrameMSSQLConnection);
+Begin
+  // Define Connection
+  AFrame.Database := FDatabaseName;
+  AFrame.Server := FServer;
+  AFrame.Port := FPort;
+  AFrame.Username := FUsername;
+  AFrame.Password := FPassword;
+end;
+
+Procedure TStarfixDatabaseProvider.ApplySettingsFrame(AFrame: TFrameMSSQLConnection);
+Begin
+  // Update Connection
+  FDatabaseName := AFrame.Database;
+  FServer := AFrame.Server;
+  FPort := AFrame.Port;
+  FUsername := AFrame.Username;
+  FPassword := AFrame.Password;
+end;
+
 
 Function TStarfixDatabaseProvider.Title: String;
 Begin

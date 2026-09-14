@@ -1,10 +1,10 @@
-inherited fmeApplicationSettings: TfmeApplicationSettings
-  Height = 423
+inherited FrameApplicationSettings: TFrameApplicationSettings
+  Height = 410
   Width = 327
   Anchors = [akTop, akLeft, akRight]
-  ClientHeight = 423
+  ClientHeight = 410
   ClientWidth = 327
-  Constraints.MinHeight = 350
+  Constraints.MinHeight = 410
   Constraints.MinWidth = 300
   LCLVersion = '4.99.0.0'
   object Label1: TLabel[0]
@@ -78,7 +78,7 @@ inherited fmeApplicationSettings: TfmeApplicationSettings
   end
   object memChannelOrder: TMemo[7]
     Left = 8
-    Height = 86
+    Height = 73
     Top = 326
     Width = 305
     Anchors = [akTop, akLeft, akRight, akBottom]
