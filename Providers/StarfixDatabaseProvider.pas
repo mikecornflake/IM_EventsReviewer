@@ -159,75 +159,52 @@ Begin
 End;
 
 Function TStarfixDatabaseProvider.Open: Boolean;
-Var
-  oDlg: TDialogFrameHost;
-  bDoConnection: Boolean;
-  oFrame: TFrameMSSQLConnection;
 Begin
   Result := False;
   If MSSQL.Available Then
   Begin
-    oDlg := TDialogFrameHost.Create(MainForm);
-    oFrame:= TFrameMSSQLConnection.Create(oDlg);
+    // Try to connect to database
+    If FConnection.Connected Then
+      FConnection.Connected := False;
+
+    If (Pos('\', FServer) > 0) Or (Pos(':', FServer) > 0) Then
+      FConnection.Hostname := FServer
+    Else
+      FConnection.Hostname := Format('%s:%d', [FServer, FPort]);
+    FConnection.DatabaseName := FDatabaseName;
+    FConnection.Username := FUsername;
+    FConnection.Password := FPassword;
+
+    // Here to allow debugging in MS SQL
+    FConnection.Params.Clear;
+    FConnection.Params.Add('APPLICATIONNAME=' + Copy(Application.Title, 1, 25));
+
+    MainForm.Status := 'Connecting to MS SQL';
+    MainForm.Busy := True;
     Try
-      oDlg.RegisterFrame(oFrame, 'Database');
-
-      PopulateSettingsFrame(oFrame);
-
-      bDoConnection := (oDlg.ShowModal = mrOk);
-
-      If bDoConnection Then
-        ApplySettingsFrame(oFrame);
-    Finally
-      oFrame.Free;
-      oDlg.Free;
-    End;
-
-    If bDoConnection Then
-    Begin
-      // Try to connect to database
-      If FConnection.Connected Then
-        FConnection.Connected := False;
-
-      If (Pos('\', FServer) > 0) Or (Pos(':', FServer) > 0) Then
-        FConnection.Hostname := FServer
-      Else
-        FConnection.Hostname := Format('%s:%d', [FServer, FPort]);
-      FConnection.DatabaseName := FDatabaseName;
-      FConnection.Username := FUsername;
-      FConnection.Password := FPassword;
-
-      // Here to allow debugging in MS SQL
-      FConnection.Params.Clear;
-      FConnection.Params.Add('APPLICATIONNAME=' + Copy(Application.Title, 1, 25));
-
-      MainForm.Status := 'Connecting to MS SQL';
-      MainForm.Busy := True;
       Try
-        Try
-          FConnection.Connected := True;
+        FConnection.Connected := True;
 
-          FTransaction.StartTransaction;
-          FConnection.ExecuteDirect('SET CONCAT_NULL_YIELDS_NULL ON');
-          FConnection.ExecuteDirect('SET QUOTED_IDENTIFIER ON');
-          FConnection.ExecuteDirect('SET ANSI_WARNINGS ON');
-          FConnection.ExecuteDirect('SET ANSI_PADDING ON');
-          FConnection.ExecuteDirect('SET ANSI_NULLS ON');
-          FTransaction.Commit;
+        FTransaction.StartTransaction;
+        FConnection.ExecuteDirect('SET CONCAT_NULL_YIELDS_NULL ON');
+        FConnection.ExecuteDirect('SET QUOTED_IDENTIFIER ON');
+        FConnection.ExecuteDirect('SET ANSI_WARNINGS ON');
+        FConnection.ExecuteDirect('SET ANSI_PADDING ON');
+        FConnection.ExecuteDirect('SET ANSI_NULLS ON');
+        FTransaction.Commit;
 
-          // Retrieving anomaly results
-          qryAnomalies.Open;
+        // Retrieving anomaly results
+        qryAnomalies.Open;
 
-          // Let the Application know we're now ready for it
-          If Assigned(FOnProviderReady) Then
-            FOnProviderReady(Self);
-        Except
-          On E: Exception Do
-            ShowMessage(E.Message);
-        End;
-      Finally
-        MainForm.Busy := False;
+        // Let the Application know we're now ready for it
+        If Assigned(FOnProviderReady) Then
+          FOnProviderReady(Self);
+      Except
+        On E: Exception Do
+          ShowMessage(E.Message);
       End;
+    Finally
+      MainForm.Busy := False;
     End;
   End;
 End;
@@ -240,7 +217,7 @@ Begin
   AFrame.Port := FPort;
   AFrame.Username := FUsername;
   AFrame.Password := FPassword;
-end;
+End;
 
 Procedure TStarfixDatabaseProvider.ApplySettingsFrame(AFrame: TFrameMSSQLConnection);
 Begin
@@ -250,7 +227,7 @@ Begin
   FPort := AFrame.Port;
   FUsername := AFrame.Username;
   FPassword := AFrame.Password;
-end;
+End;
 
 
 Function TStarfixDatabaseProvider.Title: String;

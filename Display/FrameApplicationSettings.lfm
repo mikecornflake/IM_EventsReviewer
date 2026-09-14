@@ -1,16 +1,14 @@
 inherited FrameApplicationSettings: TFrameApplicationSettings
-  Height = 410
-  Width = 327
+  Height = 230
+  Width = 320
   Anchors = [akTop, akLeft, akRight]
-  ClientHeight = 410
-  ClientWidth = 327
-  Constraints.MinHeight = 410
-  Constraints.MinWidth = 300
+  ClientHeight = 230
+  ClientWidth = 320
   LCLVersion = '4.99.0.0'
   object Label1: TLabel[0]
     Left = 8
     Height = 15
-    Top = 57
+    Top = 168
     Width = 73
     Caption = 'Image Folder'
     Font.Style = [fsBold]
@@ -19,8 +17,8 @@ inherited FrameApplicationSettings: TFrameApplicationSettings
   object edtImageFolder: TDirectoryEdit[1]
     Left = 8
     Height = 23
-    Top = 74
-    Width = 305
+    Top = 185
+    Width = 298
     Directory = 'edtImageFolder'
     ShowHidden = False
     ButtonWidth = 23
@@ -33,7 +31,7 @@ inherited FrameApplicationSettings: TFrameApplicationSettings
   object Label3: TLabel[2]
     Left = 8
     Height = 15
-    Top = 9
+    Top = 120
     Width = 99
     Caption = 'Video Base Folder'
     Font.Style = [fsBold]
@@ -42,8 +40,8 @@ inherited FrameApplicationSettings: TFrameApplicationSettings
   object edtVideoFolder: TDirectoryEdit[3]
     Left = 8
     Height = 23
-    Top = 26
-    Width = 305
+    Top = 137
+    Width = 298
     Directory = 'edtVideoFolder'
     ShowHidden = False
     ButtonWidth = 23
@@ -53,109 +51,47 @@ inherited FrameApplicationSettings: TFrameApplicationSettings
     TabOrder = 1
     Text = 'edtVideoFolder'
   end
-  object Bevel1: TBevel[4]
-    Left = 8
+  object Bevel2: TBevel[4]
+    Left = 0
     Height = 2
-    Top = 120
-    Width = 305
+    Top = 104
+    Width = 320
     Anchors = [akTop, akLeft, akRight]
   end
-  object Bevel2: TBevel[5]
-    Left = 8
-    Height = 2
-    Top = 184
-    Width = 305
-    Anchors = [akTop, akLeft, akRight]
-  end
-  object Label4: TLabel[6]
+  object Label5: TLabel[5]
     Left = 8
     Height = 15
-    Top = 304
-    Width = 181
-    Caption = 'Video Order (Across, then down)'
-    Font.Style = [fsBold]
-    ParentFont = False
-  end
-  object memChannelOrder: TMemo[7]
-    Left = 8
-    Height = 73
-    Top = 326
-    Width = 305
-    Anchors = [akTop, akLeft, akRight, akBottom]
-    Lines.Strings = (
-      'Centre'
-      'Aux'
-      'Port'
-      'Stbd'
-    )
-    ScrollBars = ssAutoBoth
-    TabOrder = 2
-  end
-  object edtAnomalySpreadsheet: TFileNameEdit[8]
-    Left = 8
-    Height = 23
-    Top = 146
-    Width = 305
-    FileName = 'edtAnomalySpreadsheet'
-    FilterIndex = 0
-    HideDirectories = False
-    ButtonWidth = 23
-    NumGlyphs = 1
-    Anchors = [akTop, akLeft, akRight]
-    MaxLength = 0
-    TabOrder = 3
-    Text = 'edtAnomalySpreadsheet'
-  end
-  object Label2: TLabel[9]
-    Left = 8
-    Height = 15
-    Top = 128
-    Width = 163
-    Caption = 'Master Anomaly Spreadsheet'
-    Font.Style = [fsBold]
-    ParentFont = False
-  end
-  object Label5: TLabel[10]
-    Left = 8
-    Height = 15
-    Top = 197
+    Top = 8
     Width = 34
     Caption = 'Vessel'
     Font.Style = [fsBold]
     ParentFont = False
   end
-  object edtVessel: TEdit[11]
+  object edtVessel: TEdit[6]
     Left = 8
     Height = 23
-    Top = 215
-    Width = 305
+    Top = 26
+    Width = 298
     Anchors = [akTop, akLeft, akRight]
-    TabOrder = 4
+    TabOrder = 2
     Text = 'edtVessel'
   end
-  object Label6: TLabel[12]
+  object Label6: TLabel[7]
     Left = 8
     Height = 15
-    Top = 240
+    Top = 51
     Width = 25
     Caption = 'ROV'
     Font.Style = [fsBold]
     ParentFont = False
   end
-  object edtROV: TEdit[13]
+  object edtROV: TEdit[8]
     Left = 8
     Height = 23
-    Top = 258
-    Width = 305
+    Top = 69
+    Width = 298
     Anchors = [akTop, akLeft, akRight]
-    TabOrder = 5
+    TabOrder = 3
     Text = 'edtROV'
-  end
-  object Bevel3: TBevel[14]
-    Left = 8
-    Height = 2
-    Top = 296
-    Width = 305
-    Anchors = [akTop, akLeft, akRight]
   end
 end

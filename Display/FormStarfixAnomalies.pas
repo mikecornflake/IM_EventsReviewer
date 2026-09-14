@@ -129,7 +129,8 @@ Implementation
 
 Uses
   ThirdPartySupport, FrameVideoLibmpv, StringSupport, FileUtil, MSSQLSupport, MediaTypes,
-  Windows, DBGrids, FrameApplicationSettings, DialogFrameHost;
+  Windows, DBGrids, VideoEngineFactory,
+  FrameApplicationSettings, FrameSettingsSyncedVideo, DialogFrameHost;
 
   {$R *.lfm}
 
@@ -174,10 +175,7 @@ Begin
   fmeSyncedVideo := TFrameSyncedVideo(fmeVideoPlayer.PlaybackFrame);
 
   // Change this line to switch playback engines (mpv, vlc, mlplayer
-  { TODO: Make fmeSyncedVideo.VideoEngineClass a per-user choice based on available options }
-  { TODO: fmeVideoPlayer/fmeSyncedVideo Code here was copied from IM_Video, I've simplified code
-          here and it's all still working - backport changes to IM_Video }
-  fmeSyncedVideo.VideoEngineClass := TFrameVideoLibmpv;
+  fmeSyncedVideo.VideoEngineClass := TVideoEngineFactory.DefaultClass;
   fmeVideoPlayer.Autoplay := False;
   fmeSyncedVideo.OnVideoLoaded := @DoVideoLoaded;
 
@@ -316,36 +314,69 @@ Begin
 End;
 
 Procedure TfrmStarfixAnomalies.actSettingsClick(Sender: TObject);
+Var
+  oDlg: TDialogFrameHost;
+  fmeSettingsApp: TFrameApplicationSettings;
+  fmeSettingsVideo: TFrameSettingsSyncedVideo;
 Begin
-  FSettings.OpenSettings;
+  oDlg := TDialogFrameHost.Create(Self);
+  fmeSettingsApp := TFrameApplicationSettings.Create(oDlg);
+  fmeSettingsVideo := TFrameSettingsSyncedVideo.Create(oDlg);
+  Try
+    oDlg.Caption := Application.Title;
+
+    oDlg.RegisterFrame(fmeSettingsApp, 'Starfix');
+    FSettings.PopulateSettingsFrame(fmeSettingsApp);
+
+    oDlg.RegisterFrame(fmeSettingsVideo, 'Video');
+    fmeSyncedVideo.PopulateSettingsFrame(fmeSettingsVideo);
+
+    If oDlg.ShowModal = mrOk Then
+    Begin
+      FSettings.ApplySettingsFrame(fmeSettingsApp);
+      fmeSyncedVideo.ApplySettingsFrame(fmeSettingsVideo);
+    End;
+  Finally
+    fmeSettingsApp.Free;
+    fmeSettingsVideo.Free;
+    oDlg.Free;
+  End;
+
+  RefreshUI;
 End;
 
 Procedure TfrmStarfixAnomalies.actDatabaseOpenClick(Sender: TObject);
 Var
   oDlg: TDialogFrameHost;
-  bDoConnection: Boolean;
-  fmeMSSQL: TFrameMSSQLConnection;
-  fmeApp: TFrameApplicationSettings;
+  fmeSettingsMSSQL: TFrameMSSQLConnection;
+  fmeSettingsApp: TFrameApplicationSettings;
 Begin
   oDlg := TDialogFrameHost.Create(Self);
-  fmeMSSQL := TFrameMSSQLConnection.Create(oDlg);
-  fmeApp := TFrameApplicationSettings.Create(oDlg);
+  fmeSettingsMSSQL := TFrameMSSQLConnection.Create(oDlg);
+  fmeSettingsApp := TFrameApplicationSettings.Create(oDlg);
   Try
     oDlg.Caption := Application.Title;
-    oDlg.RegisterFrame(fmeMSSQL, 'Database Server');
-    FDataProvider.PopulateSettingsFrame(fmeMSSQL);
 
-    oDlg.RegisterFrame(fmeApp, 'Starfix');
-    FSettings.PopulateSettingsFrame(fmeApp);
+    // Additional filter to limit the databases available to be opened
+    fmeSettingsMSSQL.DatabasePrefix:='SFX';
+
+    oDlg.RegisterFrame(fmeSettingsMSSQL, 'Database Server');
+    FDataProvider.PopulateSettingsFrame(fmeSettingsMSSQL);
+
+    oDlg.RegisterFrame(fmeSettingsApp, 'Starfix');
+    FSettings.PopulateSettingsFrame(fmeSettingsApp);
 
     If oDlg.ShowModal = mrOk Then
     Begin
-      FDataProvider.ApplySettingsFrame(fmeMSSQL);
-      FSettings.ApplySettingsFrame(fmeApp);
+      FDataProvider.ApplySettingsFrame(fmeSettingsMSSQL);
+      FSettings.ApplySettingsFrame(fmeSettingsApp);
+
+      If FDataProvider.Open Then
+        RefreshUI;
     End;
   Finally
-    fmeMSSQL.Free;
-    fmeApp.Free;
+    fmeSettingsMSSQL.Free;
+    fmeSettingsApp.Free;
     oDlg.Free;
   End;
 
@@ -380,7 +411,6 @@ Procedure TfrmStarfixAnomalies.DoAnomalyChanged(Sender: TObject;
 Var
   slImages: TStringList;
   sImageFile, sFolder: String;
-  sWantedChannel: String;
   oVideoFiles: TVideoFiles;
   oVideoFile: TVideoFile;
 
@@ -442,26 +472,14 @@ Begin
           Try
             fmeSyncedVideo.BeginLoadVideos;
             Try
-              If FSettings.ChannelOrder.Count = 0 Then
-                FSettings.ChannelOrder.Add('*');
-
-              For sWantedChannel In FSettings.ChannelOrder Do
+              For oVideoFile In oVideoFiles Do
               Begin
-                For oVideoFile In oVideoFiles Do
-                Begin
-                  If (oVideoFile.Channel = '*') Or SameText(oVideoFile.Channel,
-                    sWantedChannel) Then
-                  Begin
-                    sFolder := IncludeTrailingBackslash(
-                      FMediaProvider.LookupFolder(oVideoFile.Filename));
+                sFolder := IncludeTrailingBackslash(
+                  FMediaProvider.LookupFolder(oVideoFile.Filename));
 
-                    If FileExists(sFolder + oVideoFile.Filename) Then
-                      fmeSyncedVideo.Load(sFolder + oVideoFile.Filename,
-                        oVideoFile.Channel, oVideoFile.StartDateTime);
-
-                    Break;
-                  End;
-                End;
+                If FileExists(sFolder + oVideoFile.Filename) Then
+                  fmeSyncedVideo.Load(sFolder + oVideoFile.Filename,
+                    oVideoFile.Channel, oVideoFile.StartDateTime);
               End;
             Finally
               fmeSyncedVideo.EndLoadVideos;
@@ -470,12 +488,6 @@ Begin
 
             If fmeSyncedVideo.VideoFileCount > 0 Then
             Begin
-              // Rearrange video layout
-              If fmeSyncedVideo.VideoFileCount > 2 Then
-                fmeSyncedVideo.Layout(2, 2)
-              Else
-                fmeSyncedVideo.Layout(1, fmeSyncedVideo.VideoFileCount);
-
               // Pause the video (this is anomaly review, user will want to study the start)
               fmeSyncedVideo.Pause;
 
