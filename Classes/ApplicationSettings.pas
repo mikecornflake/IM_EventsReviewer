@@ -44,7 +44,6 @@ Implementation
 Uses
   Forms;
 
-
   { TApplicationSettings }
 
 Function TApplicationSettings.GetImageFolder: String;

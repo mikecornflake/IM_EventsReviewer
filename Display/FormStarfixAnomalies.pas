@@ -74,7 +74,7 @@ Type
     btnSyncVideo: TToolButton;
     ToolButton3: TToolButton;
     Procedure actSeekVideoExecute(Sender: TObject);
-    procedure DBEditClick(Sender: TObject);
+    Procedure DBEditClick(Sender: TObject);
     Procedure FormCreate(Sender: TObject);
     Procedure FormDestroy(Sender: TObject);
     Procedure FormShow(Sender: TObject);
@@ -103,6 +103,7 @@ Type
     // Tracking video playback status
     FPendingVideoTime: TDateTime;
     FSeekPending: Boolean;
+    Procedure DoPlayerGrabImage(Sender: TObject; Const AFolder: String);
     Procedure DoVideoLoaded(Sender: TObject);
   Protected
     Procedure RefreshUI; Override;
@@ -131,13 +132,16 @@ Implementation
 Uses
   ThirdPartySupport, FrameVideoLibmpv, StringSupport, FileUtil, MSSQLSupport, MediaTypes,
   Windows, DBGrids, VideoEngineFactory,
-  FrameApplicationSettings, FrameSettingsSyncedVideo, DialogFrameHost;
+  FrameApplicationSettings, FrameSettingsSyncedVideo, DialogFrameHost, OSSupport,
+  DialogImageSelection;
 
   {$R *.lfm}
 
   { TfrmStarfixAnomalies }
 
 Procedure TfrmStarfixAnomalies.FormCreate(Sender: TObject);
+Var
+  sPath: String;
 Begin
   // This isn't going to be app that only an Admin can change settings...
   FAlwaysSaveSettings := True;
@@ -162,6 +166,11 @@ Begin
   fmeVideoPlayer.Align := alClient;
   fmeVideoPlayer.Autoplay := True;
   fmeVideoPlayer.ShowLabel := True;
+
+  sPath := IncludeTrailingBackslash(GetAppConfigDir(False)) + 'Images' + PathDelim + '%TIMESTAMP%';
+  fmeVideoPlayer.ImageGrabFolder := sPath;
+  fmeVideoPlayer.OnGrabImage := @DoPlayerGrabImage;
+  fmeVideoPlayer.ImageGrabHint := 'Selected images will be saved in Anomaly Image folder';
 
   fmeDetailGrid := TFrameVerticalDBGrid.Create(Self);
   fmeDetailGrid.Parent := pnlDetailsGrid;
@@ -300,6 +309,9 @@ Begin
   mnuDatabaseOpen.Enabled := MSSQL.Available;
   actSeekVideo.Enabled := FDataProvider.Ready And Assigned(dsAnomalyDetails.Dataset) And
     (dsAnomalyDetails.Dataset.Active);
+
+  If FSettings.ImageFolder <> '' Then
+    fmeVideoPlayer.ImageGrabHint := 'Selected images will be saved in ' + FSettings.ImageFolder;
 End;
 
 Procedure TfrmStarfixAnomalies.tmrHideSummaryTimer(Sender: TObject);
@@ -314,10 +326,10 @@ Begin
     fmeSyncedVideo.PositionAsTime := FDataProvider.AnomalyDateTime;
 End;
 
-procedure TfrmStarfixAnomalies.DBEditClick(Sender: TObject);
-begin
+Procedure TfrmStarfixAnomalies.DBEditClick(Sender: TObject);
+Begin
   TDBEdit(Sender).SelectAll;
-end;
+End;
 
 Procedure TfrmStarfixAnomalies.actSettingsClick(Sender: TObject);
 Var
@@ -364,7 +376,7 @@ Begin
     oDlg.Caption := Application.Title;
 
     // Additional filter to limit the databases available to be opened
-    fmeSettingsMSSQL.DatabasePrefix:='SFX';
+    fmeSettingsMSSQL.DatabasePrefix := 'SFX';
 
     oDlg.RegisterFrame(fmeSettingsMSSQL, 'Database Server');
     FDataProvider.PopulateSettingsFrame(fmeSettingsMSSQL);
@@ -450,8 +462,8 @@ Begin
     End;
 
     // Do I need to load new Video?
-    If (fmeSyncedVideo.StartDateTime <= ADateTime) And (ADateTime <=
-      fmeSyncedVideo.EndDateTime) Then
+    If (fmeSyncedVideo.StartDateTime <= ADateTime) And
+      (ADateTime <= fmeSyncedVideo.EndDateTime) Then
     Begin
       fmeSyncedVideo.PositionAsTime := ADateTime;
 
@@ -530,6 +542,28 @@ Begin
   Begin
     FSeekPending := False;
     fmeSyncedVideo.PositionAsTime := FPendingVideoTime;
+  End;
+End;
+
+Procedure TfrmStarfixAnomalies.DoPlayerGrabImage(Sender: TObject; Const AFolder: String);
+Var
+  oDlg: TDialogImageSelection;
+Begin
+  oDlg := TDialogImageSelection.Create(Self);
+  Try
+    oDlg.LoadFromFolder(AFolder);
+
+    If oDlg.ShowModal = mrOk Then
+    Begin
+      // Move and rename
+    End;
+  Finally
+    Try
+      // Delete all remaining files
+      DeleteDirectory(AFolder, False);
+    Finally
+      oDlg.Free;
+    End;
   End;
 End;
 
