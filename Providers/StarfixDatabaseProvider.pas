@@ -261,15 +261,22 @@ Begin
 End;
 
 Procedure TStarfixDatabaseProvider.qryAnomaliesAfterOpen(DataSet: TDataSet);
+
+  Procedure TrySetDisplayFormat(AField: TField; AFormat: String);
+  Begin
+    If AField Is TFloatField Then
+      TFloatField(AField).DisplayFormat := AFormat;
+  End;
+
 Begin
-  TFloatField(qryAnomalies.FieldByName('KP')).DisplayFormat := '0.000';
-  TFloatField(qryAnomalies.FieldByName('Easting')).DisplayFormat := '0.00';
-  TFloatField(qryAnomalies.FieldByName('Northing')).DisplayFormat := '0.00';
-  TFloatField(qryAnomalies.FieldByName('Depth')).DisplayFormat := '0.00';
-  TFloatField(qryAnomalies.FieldByName('Offset_(m)')).DisplayFormat := '0.00';
-  TFloatField(qryAnomalies.FieldByName('Length_(m)')).DisplayFormat := '0.00';
-  TFloatField(qryAnomalies.FieldByName('Width_(m)')).DisplayFormat := '0.00';
-  TFloatField(qryAnomalies.FieldByName('Height_(m)')).DisplayFormat := '0.00';
+  TrySetDisplayFormat(qryAnomalies.FieldByName('KP'), '0.000');
+  TrySetDisplayFormat(qryAnomalies.FieldByName('Easting'), '0.00');
+  TrySetDisplayFormat(qryAnomalies.FieldByName('Northing'), '0.00');
+  TrySetDisplayFormat(qryAnomalies.FieldByName('Depth'), '0.00');
+  TrySetDisplayFormat(qryAnomalies.FieldByName('Offset_(m)'), '0.00');
+  TrySetDisplayFormat(qryAnomalies.FieldByName('Length_(m)'), '0.00');
+  TrySetDisplayFormat(qryAnomalies.FieldByName('Width_(m)'), '0.00');
+  TrySetDisplayFormat(qryAnomalies.FieldByName('Height_(m)'), '0.00');
 End;
 
 Function TStarfixDatabaseProvider.GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles;

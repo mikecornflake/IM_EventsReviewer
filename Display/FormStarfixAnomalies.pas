@@ -61,7 +61,6 @@ Type
     pnlAnomalies: TPanel;
     pnlRight: TPanel;
     pnlVideo: TPanel;
-    Separator1: TMenuItem;
     Separator2: TMenuItem;
     splAnomalies: TSplitter;
     splImages: TSplitter;
@@ -132,7 +131,7 @@ Implementation
 Uses
   ThirdPartySupport, FrameVideoLibmpv, StringSupport, FileUtil, MSSQLSupport, MediaTypes,
   Windows, DBGrids, VideoEngineFactory,
-  FrameApplicationSettings, FrameSettingsSyncedVideo, DialogFrameHost, OSSupport,
+  FrameApplicationSettings, FrameSettingsSyncedVideo, DialogFrameHost,
   DialogImageSelection;
 
   {$R *.lfm}

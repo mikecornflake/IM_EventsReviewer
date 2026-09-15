@@ -44,7 +44,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
     end
     object ToolButton3: TToolButton
       Left = 199
-      Height = 8
+      Height = 22
       Top = 2
       AutoSize = True
       Style = tbsSeparator
@@ -705,15 +705,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
       end
     end
     inherited mnuOptions: TMenuItem[2]
-      inherited mnuMultilineGrids: TMenuItem
-        Caption = '&Multiline Grids'
-        Visible = False
-      end
-      object Separator1: TMenuItem[1]
-        Caption = '-'
-        Visible = False
-      end
-      object mnuSettings: TMenuItem[2]
+      object mnuSettings: TMenuItem[0]
         Caption = '&Settings'
         OnClick = actSettingsClick
       end

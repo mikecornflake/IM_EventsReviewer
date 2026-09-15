@@ -19,7 +19,7 @@
       <UseVersionInfo Value="True"/>
       <AutoIncrementBuild Value="True"/>
       <MinorVersionNr Value="1"/>
-      <BuildNr Value="34"/>
+      <BuildNr Value="39"/>
       <Attributes pvaPreRelease="True"/>
       <StringTable Comments="Starfix Anomaly Manager" CompanyName="Inspector Mike 2.0 Pty Ltd" LegalCopyright="(c) 2026"/>
     </VersionInfo>
@@ -67,6 +67,7 @@
             <CompilerMessages>
               <IgnoredMessages idx6058="True" idx5024="True" idx3124="True" idx3123="True"/>
             </CompilerMessages>
+            <CustomOptions Value="-dIM_DEBUG"/>
           </Other>
         </CompilerOptions>
       </Item>
@@ -205,6 +206,10 @@
       <CompilerMessages>
         <IgnoredMessages idx6058="True" idx5024="True" idx3124="True" idx3123="True"/>
       </CompilerMessages>
+      <CustomOptions Value="-dIM_DEBUG"/>
+      <OtherDefines Count="1">
+        <Define0 Value="IM_DEBUG"/>
+      </OtherDefines>
     </Other>
   </CompilerOptions>
   <Debugging>
