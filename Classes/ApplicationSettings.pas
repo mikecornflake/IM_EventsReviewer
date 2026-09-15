@@ -42,10 +42,8 @@ Type
 Implementation
 
 Uses
-  Forms,
+  Forms;
 
-  // Library
-  FormMain, DialogFrameHost;
 
   { TApplicationSettings }
 

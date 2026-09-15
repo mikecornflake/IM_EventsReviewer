@@ -19,7 +19,7 @@
       <UseVersionInfo Value="True"/>
       <AutoIncrementBuild Value="True"/>
       <MinorVersionNr Value="1"/>
-      <BuildNr Value="30"/>
+      <BuildNr Value="33"/>
       <Attributes pvaPreRelease="True"/>
       <StringTable Comments="Starfix Anomaly Manager" CompanyName="Inspector Mike 2.0 Pty Ltd" LegalCopyright="(c) 2026"/>
     </VersionInfo>
@@ -159,13 +159,6 @@
         <ResourceBaseClass Value="Frame"/>
       </Unit>
       <Unit>
-        <Filename Value="Display\FrameImageViewer.pas"/>
-        <IsPartOfProject Value="True"/>
-        <ComponentName Value="FrameImageViewer"/>
-        <HasResources Value="True"/>
-        <ResourceBaseClass Value="Frame"/>
-      </Unit>
-      <Unit>
         <Filename Value="Classes\ApplicationSettings.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit>
@@ -184,13 +177,6 @@
       <Unit>
         <Filename Value="Providers\StarfixDatabaseProvider.pas"/>
         <IsPartOfProject Value="True"/>
-      </Unit>
-      <Unit>
-        <Filename Value="Display\FrameVerticalDBGrid.pas"/>
-        <IsPartOfProject Value="True"/>
-        <ComponentName Value="FrameVerticalDBGrid"/>
-        <HasResources Value="True"/>
-        <ResourceBaseClass Value="Frame"/>
       </Unit>
     </Units>
   </ProjectOptions>

@@ -133,7 +133,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
         ClientWidth = 441
         TabOrder = 0
         object edtLength: TDBEdit
-          Left = 13
+          Left = 10
           Height = 23
           Top = 122
           Width = 80
@@ -149,7 +149,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
           AnchorSideLeft.Control = edtLength
           AnchorSideLeft.Side = asrBottom
           AnchorSideTop.Control = edtLength
-          Left = 98
+          Left = 95
           Height = 23
           Top = 122
           Width = 80
@@ -166,7 +166,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
           AnchorSideLeft.Control = edtWidth
           AnchorSideLeft.Side = asrBottom
           AnchorSideTop.Control = edtLength
-          Left = 183
+          Left = 180
           Height = 23
           Top = 122
           Width = 80
@@ -183,7 +183,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
           AnchorSideLeft.Control = edtHeight
           AnchorSideLeft.Side = asrBottom
           AnchorSideTop.Control = edtLength
-          Left = 268
+          Left = 265
           Height = 23
           Top = 122
           Width = 80
@@ -200,7 +200,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
           AnchorSideLeft.Control = edtOffset
           AnchorSideLeft.Side = asrBottom
           AnchorSideTop.Control = edtLength
-          Left = 353
+          Left = 350
           Height = 23
           Top = 122
           Width = 80
@@ -217,7 +217,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
           AnchorSideLeft.Control = edtLength
           AnchorSideTop.Side = asrCenter
           AnchorSideBottom.Control = edtLength
-          Left = 13
+          Left = 10
           Height = 15
           Top = 105
           Width = 61
@@ -232,13 +232,14 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
           AnchorSideTop.Control = lblLength
           AnchorSideRight.Control = grpDetails
           AnchorSideRight.Side = asrBottom
-          Left = 13
+          Left = 10
           Height = 43
           Top = 171
-          Width = 419
-          Anchors = [akTop, akLeft, akRight]
+          Width = 422
+          Anchors = [akTop, akLeft, akRight, akBottom]
           BorderSpacing.Top = 66
           BorderSpacing.Right = 9
+          Constraints.MinHeight = 27
           DataField = 'Description'
           DataSource = dsAnomalyDetails
           ReadOnly = True
@@ -247,7 +248,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
         object lblWidth: TLabel
           AnchorSideLeft.Control = edtWidth
           AnchorSideTop.Control = lblLength
-          Left = 98
+          Left = 95
           Height = 15
           Top = 105
           Width = 56
@@ -258,7 +259,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
         object lblHeight: TLabel
           AnchorSideLeft.Control = edtHeight
           AnchorSideTop.Control = lblLength
-          Left = 183
+          Left = 180
           Height = 15
           Top = 105
           Width = 60
@@ -269,7 +270,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
         object lblOffset: TLabel
           AnchorSideLeft.Control = edtOffset
           AnchorSideTop.Control = lblLength
-          Left = 268
+          Left = 265
           Height = 15
           Top = 105
           Width = 58
@@ -280,7 +281,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
         object lblClock: TLabel
           AnchorSideLeft.Control = edtClock
           AnchorSideTop.Control = lblLength
-          Left = 353
+          Left = 350
           Height = 15
           Top = 105
           Width = 77
@@ -289,7 +290,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
           ParentFont = False
         end
         object lblDescription: TLabel
-          Left = 13
+          Left = 10
           Height = 15
           Top = 153
           Width = 64
@@ -302,7 +303,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
         object lblDescription1: TLabel
           AnchorSideLeft.Control = edtDescription
           AnchorSideBottom.Control = edtDescription
-          Left = 13
+          Left = 10
           Height = 15
           Top = 58
           Width = 110
@@ -313,7 +314,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
           ParentFont = False
         end
         object DBEdit1: TDBEdit
-          Left = 13
+          Left = 10
           Height = 23
           Top = 75
           Width = 419
@@ -326,7 +327,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
           OnClick = DBEditClick
         end
         object lblDescription4: TLabel
-          Left = 13
+          Left = 10
           Height = 15
           Top = 8
           Width = 26
@@ -337,7 +338,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
           ParentFont = False
         end
         object DBEdit4: TDBEdit
-          Left = 13
+          Left = 10
           Height = 23
           Top = 26
           Width = 417

@@ -56,7 +56,7 @@ Type
 Implementation
 
 Uses
-  FormMain, ThirdPartySupport, Dialogs, Controls, Forms, DialogFrameHost;
+  FormMain, ThirdPartySupport, Dialogs, Controls, Forms;
 
   { TStarfixDatabaseProvider }
 
