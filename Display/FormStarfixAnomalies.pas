@@ -74,6 +74,7 @@ Type
     btnSyncVideo: TToolButton;
     ToolButton3: TToolButton;
     Procedure actSeekVideoExecute(Sender: TObject);
+    procedure DBEditClick(Sender: TObject);
     Procedure FormCreate(Sender: TObject);
     Procedure FormDestroy(Sender: TObject);
     Procedure FormShow(Sender: TObject);
@@ -313,6 +314,11 @@ Begin
     fmeSyncedVideo.PositionAsTime := FDataProvider.AnomalyDateTime;
 End;
 
+procedure TfrmStarfixAnomalies.DBEditClick(Sender: TObject);
+begin
+  TDBEdit(Sender).SelectAll;
+end;
+
 Procedure TfrmStarfixAnomalies.actSettingsClick(Sender: TObject);
 Var
   oDlg: TDialogFrameHost;
@@ -379,7 +385,7 @@ Begin
     fmeSettingsApp.Free;
     oDlg.Free;
   End;
-
+  fmeAnomalies.SetFocus;
   RefreshUI;
 End;
 

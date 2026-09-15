@@ -44,7 +44,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
     end
     object ToolButton3: TToolButton
       Left = 199
-      Height = 8
+      Height = 22
       Top = 2
       AutoSize = True
       Style = tbsSeparator
@@ -142,7 +142,8 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
           ReadOnly = True
           Alignment = taCenter
           MaxLength = 0
-          TabOrder = 0
+          TabOrder = 2
+          OnClick = DBEditClick
         end
         object edtWidth: TDBEdit
           AnchorSideLeft.Control = edtLength
@@ -158,7 +159,8 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
           Alignment = taCenter
           BorderSpacing.Left = 5
           MaxLength = 0
-          TabOrder = 1
+          TabOrder = 3
+          OnClick = DBEditClick
         end
         object edtHeight: TDBEdit
           AnchorSideLeft.Control = edtWidth
@@ -174,7 +176,8 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
           Alignment = taCenter
           BorderSpacing.Left = 5
           MaxLength = 0
-          TabOrder = 2
+          TabOrder = 4
+          OnClick = DBEditClick
         end
         object edtOffset: TDBEdit
           AnchorSideLeft.Control = edtHeight
@@ -190,7 +193,8 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
           Alignment = taCenter
           BorderSpacing.Left = 5
           MaxLength = 0
-          TabOrder = 3
+          TabOrder = 5
+          OnClick = DBEditClick
         end
         object edtClock: TDBEdit
           AnchorSideLeft.Control = edtOffset
@@ -206,7 +210,8 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
           Alignment = taCenter
           BorderSpacing.Left = 5
           MaxLength = 0
-          TabOrder = 4
+          TabOrder = 6
+          OnClick = DBEditClick
         end
         object lblLength: TLabel
           AnchorSideLeft.Control = edtLength
@@ -237,7 +242,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
           DataField = 'Description'
           DataSource = dsAnomalyDetails
           ReadOnly = True
-          TabOrder = 5
+          TabOrder = 7
         end
         object lblWidth: TLabel
           AnchorSideLeft.Control = edtWidth
@@ -300,10 +305,10 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
           Left = 13
           Height = 15
           Top = 58
-          Width = 26
+          Width = 110
           Anchors = [akLeft]
           BorderSpacing.Bottom = 2
-          Caption = 'Type'
+          Caption = 'Anomaly Reference'
           Font.Style = [fsBold]
           ParentFont = False
         end
@@ -312,21 +317,22 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
           Height = 23
           Top = 75
           Width = 419
-          DataField = 'Type'
+          DataField = 'Anomaly_no'
           DataSource = dsAnomalyDetails
           ReadOnly = True
           Anchors = [akTop, akLeft, akRight]
           MaxLength = 0
-          TabOrder = 6
+          TabOrder = 1
+          OnClick = DBEditClick
         end
         object lblDescription4: TLabel
           Left = 13
           Height = 15
           Top = 8
-          Width = 110
+          Width = 26
           Anchors = [akLeft]
           BorderSpacing.Bottom = 2
-          Caption = 'Anomaly Reference'
+          Caption = 'Type'
           Font.Style = [fsBold]
           ParentFont = False
         end
@@ -335,12 +341,13 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
           Height = 23
           Top = 26
           Width = 417
-          DataField = 'Anomaly_No'
+          DataField = 'Type'
           DataSource = dsAnomalyDetails
           ReadOnly = True
           Anchors = [akLeft]
           MaxLength = 0
-          TabOrder = 7
+          TabOrder = 0
+          OnClick = DBEditClick
         end
       end
     end
@@ -374,10 +381,10 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
       Left = 13
       Height = 15
       Top = 56
-      Width = 26
+      Width = 110
       Anchors = [akLeft]
       BorderSpacing.Bottom = 2
-      Caption = 'Type'
+      Caption = 'Anomaly Reference'
       Font.Style = [fsBold]
       ParentFont = False
     end
@@ -386,11 +393,12 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
       Height = 23
       Top = 76
       Width = 250
-      DataField = 'Type'
+      DataField = 'Anomaly_No'
       DataSource = dsAnomalyDetails
       ReadOnly = True
       MaxLength = 0
-      TabOrder = 0
+      TabOrder = 1
+      OnClick = DBEditClick
     end
     object lblLength1: TLabel
       AnchorSideLeft.Control = edtLength1
@@ -417,7 +425,8 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
       ReadOnly = True
       Alignment = taCenter
       MaxLength = 0
-      TabOrder = 1
+      TabOrder = 2
+      OnClick = DBEditClick
     end
     object lblWidth1: TLabel
       AnchorSideLeft.Control = edtWidth1
@@ -444,7 +453,8 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
       Alignment = taCenter
       BorderSpacing.Left = 5
       MaxLength = 0
-      TabOrder = 2
+      TabOrder = 3
+      OnClick = DBEditClick
     end
     object lblHeight1: TLabel
       AnchorSideLeft.Control = edtHeight1
@@ -471,16 +481,17 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
       Alignment = taCenter
       BorderSpacing.Left = 5
       MaxLength = 0
-      TabOrder = 3
+      TabOrder = 4
+      OnClick = DBEditClick
     end
     object lblDescription3: TLabel
       Left = 13
       Height = 15
       Top = 7
-      Width = 110
+      Width = 26
       Anchors = [akLeft]
       BorderSpacing.Bottom = 2
-      Caption = 'Anomaly Reference'
+      Caption = 'Type'
       Font.Style = [fsBold]
       ParentFont = False
     end
@@ -489,12 +500,13 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
       Height = 23
       Top = 26
       Width = 250
-      DataField = 'Anomaly_No'
+      DataField = 'Type'
       DataSource = dsAnomalyDetails
       ReadOnly = True
       Anchors = [akLeft]
       MaxLength = 0
-      TabOrder = 4
+      TabOrder = 0
+      OnClick = DBEditClick
     end
   end
   inherited ilImages: TImageList[7]
