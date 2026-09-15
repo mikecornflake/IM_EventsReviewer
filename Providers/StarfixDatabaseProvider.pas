@@ -48,6 +48,7 @@ Type
 
     Function GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles; Override;
     Function AnomalyDateTime: TDateTime; Override;
+    Function AnomalyReference: String;
 
     Procedure LoadSettings(AInifile: TIniFile); Override;
     Procedure SaveSettings(AInifile: TIniFile); Override;
@@ -56,7 +57,7 @@ Type
 Implementation
 
 Uses
-  FormMain, ThirdPartySupport, Dialogs, Controls, Forms;
+  FormMain, ThirdPartySupport, Dialogs, Controls, Forms, LazLogger;
 
   { TStarfixDatabaseProvider }
 
@@ -283,6 +284,10 @@ Function TStarfixDatabaseProvider.GetVideoFilesForTime(Const ADateTime: TDateTim
 Var
   oVideoFile: TVideoFile;
 Begin
+  {$IFNDEF RELEASE}
+  DebugLn([ClassName, '.', {$I %CURRENTROUTINE%}]);
+  {$ENDIF}
+
   Result := TVideoFiles.Create;
 
   // Find the target videos
@@ -295,9 +300,14 @@ Begin
     qryVideosforTime.Open;
   Except
     On E: Exception Do
+    Begin
+      DebugLn(['DATABASE EXCEPTION: ', E.ClassName, ': ', E.Message,
+        ' Connected=', FConnection.Connected, ' Transaction.Active=', FTransaction.Active]);
+
       Raise Exception.CreateFmt('%s: %s' + LineEnding + 'Connection connected: %s' +
         LineEnding + 'Transaction active: %s', [E.ClassName, E.Message,
         BoolToStr(FConnection.Connected, True), BoolToStr(FTransaction.Active, True)]);
+    End;
   End;
 
   qryVideosforTime.First;
@@ -323,6 +333,14 @@ Begin
     Result := qryAnomalies.FieldByName('Start').AsDateTime
   Else
     Result := 0;
+End;
+
+Function TStarfixDatabaseProvider.AnomalyReference: String;
+Begin
+  If (qryAnomalies.Active) And (qryAnomalies.RecordCount > 0) Then
+    Result := qryAnomalies.FieldByName('Anomaly_No').AsString
+  Else
+    Result := '';
 End;
 
 Procedure TStarfixDatabaseProvider.LoadSettings(AInifile: TIniFile);

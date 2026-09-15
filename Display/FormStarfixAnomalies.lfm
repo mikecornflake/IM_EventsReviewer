@@ -752,4 +752,9 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
     Left = 768
     Top = 152
   end
+  object dlgAddImage: TOpenPictureDialog[13]
+    Options = [ofEnableSizing, ofViewDetail]
+    Left = 360
+    Top = 296
+  end
 end

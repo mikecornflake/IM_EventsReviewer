@@ -6,7 +6,7 @@ Interface
 
 Uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ComCtrls, Menus, ExtCtrls, StdCtrls,
-  DBCtrls, ActnList, IniFiles, DB,
+  DBCtrls, ActnList, ExtDlgs, IniFiles, DB,
   // Library
   FormMain, FrameImageViewer, FrameGrids, FrameVideoPlayer, FrameSyncedVideo,
   // Application
@@ -55,6 +55,7 @@ Type
     mnuExit: TMenuItem;
     mnuSeektoVideo: TMenuItem;
     mnuSettings: TMenuItem;
+    dlgAddImage: TOpenPictureDialog;
     pnlDetailsGrid: TPanel;
     pnlImages: TPanel;
     pnlHidingSummary: TPanel;
@@ -102,8 +103,13 @@ Type
     // Tracking video playback status
     FPendingVideoTime: TDateTime;
     FSeekPending: Boolean;
+    Function AddAnomalyImage(Const ASourceFilename: String): Boolean;
     Procedure DoPlayerGrabImage(Sender: TObject; Const AFolder: String);
     Procedure DoVideoLoaded(Sender: TObject);
+    Procedure LoadAnomalyImages(Const AAnomalyReference: String);
+
+    Procedure DoRefreshAnomalyImages(Sender: TObject);
+    Procedure DoAddNewImage(Sender: TObject);
   Protected
     Procedure RefreshUI; Override;
 
@@ -129,10 +135,10 @@ Var
 Implementation
 
 Uses
-  ThirdPartySupport, FrameVideoLibmpv, StringSupport, FileUtil, MSSQLSupport, MediaTypes,
+  ThirdPartySupport, StringSupport, FileUtil, MSSQLSupport, MediaTypes,
   Windows, DBGrids, VideoEngineFactory,
   FrameApplicationSettings, FrameSettingsSyncedVideo, DialogFrameHost,
-  DialogImageSelection;
+  DialogImageSelection, FileSupport, LazLogger, FrameVideoLibmpv;
 
   {$R *.lfm}
 
@@ -153,6 +159,9 @@ Begin
   fmeImageViewer.Parent := pnlImages;
   fmeImageViewer.Name := 'fmeImageViewer';
   fmeImageViewer.Align := alClient;
+  fmeImageViewer.OnRequestAddImage := @DoAddNewImage;
+  fmeImageViewer.OnRequestRefreshImages := @DoRefreshAnomalyImages;
+  fmeImageViewer.Enabled := False;;
 
   fmeAnomalies := TFrameGrid.Create(Self);
   fmeAnomalies.Parent := pnlAnomalies;
@@ -417,9 +426,54 @@ Begin
 
     Caption := Format('%s: [%s]', [Application.Title, FDataProvider.Title]);
     Status := '';
+
+    fmeImageViewer.Enabled := True;
   End;
 
   RefreshUI;
+End;
+
+Procedure TfrmStarfixAnomalies.LoadAnomalyImages(Const AAnomalyReference: String);
+Var
+  slImages: TStringList;
+  sImageFile: String;
+
+  Function Caption(ABaseFolder: String; AFilename: String): String;
+  Begin
+    Result := TextBetween(AFilename, IncludeTrailingBackslash(ABaseFolder), '');
+  End;
+
+Begin
+  {$IFNDEF RELEASE}
+  DebugLn([ClassName, '.', {$I %CURRENTROUTINE%}, ' ', AAnomalyReference]);
+  {$ENDIF}
+
+  // Load Anomaly Images
+  fmeImageViewer.ClearImages;
+
+  If Trim(AAnomalyReference) = '' Then
+    Exit;
+
+  slImages := TStringList.Create;
+  Try
+    FindAllFiles(slImages, FSettings.ImageFolder, AAnomalyReference + '*.*', True);
+
+    For sImageFile In slImages Do
+      fmeImageViewer.AddImage(sImageFile, Caption(FSettings.ImageFolder, sImageFile));
+  Finally
+    slImages.Free;
+  End;
+End;
+
+Procedure TfrmStarfixAnomalies.DoRefreshAnomalyImages(Sender: TObject);
+Var
+  sAnomalyRef: String;
+Begin
+  If FDataProvider.Ready Then
+  Begin
+    sAnomalyRef := FDataProvider.AnomalyReference;
+    LoadAnomalyImages(sAnomalyRef);
+  End;
 End;
 
 // Data has just loaded or User has scrolled to the next anomaly in the list
@@ -430,98 +484,76 @@ Var
   sImageFile, sFolder: String;
   oVideoFiles: TVideoFiles;
   oVideoFile: TVideoFile;
-
-  Function Caption(ABaseFolder: String; AFilename: String): String;
-  Begin
-    Result := TextBetween(AFilename, IncludeTrailingBackslash(ABaseFolder), '');
-  End;
-
 Begin
   tmrHideSummary.Enabled := True;
   pnlHidingSummary.Visible := True;
 
-  fmeImageViewer.ClearImages;
-
   If DirectoryExists(FSettings.ImageFolder) Then
-  Begin
-    // Load Anomaly Images
+    LoadAnomalyImages(ANewAnomalyNo)
+  Else
     fmeImageViewer.ClearImages;
 
-    If Trim(ANewAnomalyNo) = '' Then
-      Exit;
+  // Do I need to load new Video?
+  If (fmeSyncedVideo.StartDateTime <= ADateTime) And (ADateTime <=
+    fmeSyncedVideo.EndDateTime) Then
+  Begin
+    // No, we just need to seek to the new time
+    fmeSyncedVideo.PositionAsTime := ADateTime;
+  End
+  Else
+  Begin
+    // Yes, videos need to be updated
 
-    slImages := TStringList.Create;
+    oVideoFiles := FDataProvider.GetVideoFilesForTime(ADateTime);
     Try
-      FindAllFiles(slImages, FSettings.ImageFolder, ANewAnomalyNo + '*.*', True);
+      If oVideoFiles.Count = 0 Then
+      Begin
+        fmeVideoPlayer.Clear;
 
-      For sImageFile In slImages Do
-        fmeImageViewer.AddImage(sImageFile, Caption(FSettings.ImageFolder, sImageFile));
-    Finally
-      slImages.Free;
-    End;
-
-    // Do I need to load new Video?
-    If (fmeSyncedVideo.StartDateTime <= ADateTime) And
-      (ADateTime <= fmeSyncedVideo.EndDateTime) Then
-    Begin
-      fmeSyncedVideo.PositionAsTime := ADateTime;
-
-      // TODO: Stop Seeking from restarting the video :-(
-      fmeSyncedVideo.Pause;
-    End
-    Else
-    Begin
-      oVideoFiles := FDataProvider.GetVideoFilesForTime(ADateTime);
-      Try
-        If oVideoFiles.Count = 0 Then
-        Begin
-          fmeVideoPlayer.Clear;
-
-          // TODO: Implement fmeSyncedVideo.clear
-          //       Not done now as this will require testing all Video modules
-          fmeSyncedVideo.ClearVideoCount;
-          fmeSyncedVideo.ClearUnloadedVideoFrames;
-        End
-        Else
-        Begin
-          MainForm.Busy := True;
-          MainForm.DisableAutoSizing;
+        // TODO: Implement fmeSyncedVideo.clear
+        //       Not done now as this will require testing all Video modules
+        fmeSyncedVideo.ClearVideoCount;
+        fmeSyncedVideo.ClearUnloadedVideoFrames;
+      End
+      Else
+      Begin
+        MainForm.Busy := True;
+        MainForm.DisableAutoSizing;
+        Try
+          fmeSyncedVideo.BeginLoadVideos;
           Try
-            fmeSyncedVideo.BeginLoadVideos;
-            Try
-              For oVideoFile In oVideoFiles Do
-              Begin
-                sFolder := IncludeTrailingBackslash(
-                  FMediaProvider.LookupFolder(oVideoFile.Filename));
-
-                If FileExists(sFolder + oVideoFile.Filename) Then
-                  fmeSyncedVideo.Load(sFolder + oVideoFile.Filename,
-                    oVideoFile.Channel, oVideoFile.StartDateTime);
-              End;
-            Finally
-              fmeSyncedVideo.EndLoadVideos;
-              FSeekPending := True;
-            End;
-
-            If fmeSyncedVideo.VideoFileCount > 0 Then
+            For oVideoFile In oVideoFiles Do
             Begin
-              // Pause the video (this is anomaly review, user will want to study the start)
-              fmeSyncedVideo.Pause;
+              sFolder := IncludeTrailingBackslash(
+                FMediaProvider.LookupFolder(oVideoFile.Filename));
 
-              // Seek
-              fmeSyncedVideo.PositionAsTime := ADateTime;
-              FPendingVideoTime := ADateTime;
-
-              fmeVideoPlayer.RefreshUI;
+              If FileExists(sFolder + oVideoFile.Filename) Then
+                fmeSyncedVideo.Load(sFolder + oVideoFile.Filename,
+                  oVideoFile.Channel, oVideoFile.StartDateTime);
             End;
           Finally
-            MainForm.EnableAutoSizing;
-            MainForm.Busy := False;
+            fmeSyncedVideo.EndLoadVideos;
+            FSeekPending := True;
           End;
+
+          If fmeSyncedVideo.VideoFileCount > 0 Then
+          Begin
+            // Pause the video (this is anomaly review, user will want to study the start)
+            fmeSyncedVideo.Pause;
+
+            // Seek
+            fmeSyncedVideo.PositionAsTime := ADateTime;
+            FPendingVideoTime := ADateTime;
+
+            fmeVideoPlayer.RefreshUI;
+          End;
+        Finally
+          MainForm.EnableAutoSizing;
+          MainForm.Busy := False;
         End;
-      Finally
-        oVideoFiles.Free;
       End;
+    Finally
+      oVideoFiles.Free;
     End;
   End;
 
@@ -544,9 +576,46 @@ Begin
   End;
 End;
 
+Function TfrmStarfixAnomalies.AddAnomalyImage(Const ASourceFilename: String): Boolean;
+Var
+  iFileSuffix: Integer;
+  sFilename, sAnomalyRef, sDir, sExt: String;
+Begin
+  Result := False;
+
+  sAnomalyRef := FDataProvider.AnomalyReference;
+  sDir := IncludeTrailingBackslash(FSettings.ImageFolder);
+  sExt := ExtractFileExt(ASourceFilename);
+
+  iFileSuffix := 0;
+
+  Repeat
+    sFilename := Format('%s%s_%s%s', [sDir, sAnomalyRef, Chr(Ord('a') + iFileSuffix), sExt]);
+
+    Inc(iFileSuffix);
+  Until Not FileExists(sFilename) Or (iFileSuffix = 26);
+
+  // We exhausted a-z
+  If FileExists(sFilename) Then
+  Begin
+    Status := 'Unable to add anomaly image - no free filename';
+    Exit;
+  End;
+
+  Result := FileUtil.CopyFile(ASourceFilename, sFilename);
+
+  If Result Then
+    Status := 'Successfully added anomaly image ' + sFilename
+  Else
+    Status := 'Unable to copy anomaly image ' + ASourceFilename;
+End;
+
 Procedure TfrmStarfixAnomalies.DoPlayerGrabImage(Sender: TObject; Const AFolder: String);
 Var
   oDlg: TDialogImageSelection;
+  i, iFileSuffix: Integer;
+  oImage: TViewerImage;
+  sFilename, sAnomalyRef, sDir, sExt: String;
 Begin
   oDlg := TDialogImageSelection.Create(Self);
   Try
@@ -555,6 +624,15 @@ Begin
     If oDlg.ShowModal = mrOk Then
     Begin
       // Move and rename
+      For i := 0 To oDlg.ImageCount - 1 Do
+      Begin
+        oImage := oDlg.Image[i];
+
+        If oImage.Selected Then
+          AddAnomalyImage(oImage.Filename);
+      End;
+
+      LoadAnomalyImages(FDataProvider.AnomalyReference);
     End;
   Finally
     Try
@@ -562,6 +640,20 @@ Begin
       DeleteDirectory(AFolder, False);
     Finally
       oDlg.Free;
+    End;
+  End;
+End;
+
+Procedure TfrmStarfixAnomalies.DoAddNewImage(Sender: TObject);
+Begin
+  If FDataProvider.Ready Then
+  Begin
+    dlgAddImage.Options := dlgAddImage.Options - [ofAutoPreview];
+
+    If dlgAddImage.Execute Then
+    Begin
+      If AddAnomalyImage(dlgAddImage.Filename) Then
+        LoadAnomalyImages(FDataProvider.AnomalyReference);
     End;
   End;
 End;
