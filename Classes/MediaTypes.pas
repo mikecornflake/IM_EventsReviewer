@@ -21,6 +21,9 @@ Type
     InferredFormatName: String;
 
     Procedure InferMissingInfo;
+
+    // ADefaultDuration is only used if EndDateTime=0
+    Function ContainsTime(Const ADateTime: TDateTime; Const ADefaultDuration: TDateTime): Boolean;
   End;
 
   { TVideoFiles }
@@ -31,7 +34,7 @@ Type
 
     Procedure InternalScanFolder(Const AFolder: String);
   Public
-    Constructor Create;
+    Constructor Create(AFreeObjects: Boolean = True);
     Destructor Destroy; Override;
 
     Procedure Clear;
@@ -70,11 +73,25 @@ Begin
   End;
 End;
 
+// ADefaultDuration is only used if EndDateTime is invalid
+Function TVideoFile.ContainsTime(Const ADateTime: TDateTime;
+  Const ADefaultDuration: TDateTime): Boolean;
+Var
+  dtEffectiveEnd: TDateTime;
+Begin
+  If EndDateTime > StartDateTime Then
+    dtEffectiveEnd := EndDateTime
+  Else
+    dtEffectiveEnd := StartDateTime + ADefaultDuration;
+
+  Result := (ADateTime >= StartDateTime) And (ADateTime <= dtEffectiveEnd);
+End;
+
 { TVideoFiles }
 
-Constructor TVideoFiles.Create;
+Constructor TVideoFiles.Create(AFreeObjects: Boolean);
 Begin
-  Inherited Create(True);
+  Inherited Create(AFreeObjects);
 
   FFilenameIndex := TStringList.Create;
   FFilenameIndex.Duplicates := dupError;
@@ -148,7 +165,7 @@ Begin
 End;
 
 Function TVideoFiles.Find(Const AFilename: String): TVideoFile;
-var
+Var
   i: Integer;
 Begin
   Result := nil;

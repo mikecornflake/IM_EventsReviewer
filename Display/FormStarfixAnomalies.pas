@@ -10,7 +10,8 @@ Uses
   // Library
   FormMain, FrameImageViewer, FrameGrids, FrameVideoPlayer, FrameSyncedVideo,
   // Application
-  ApplicationSettings, StarfixDatabaseProvider, MediaProvider, FrameVerticalDBGrid;
+  ApplicationSettings, StarfixDatabaseProvider, EventListingProvider,
+  MediaProvider, FrameVerticalDBGrid;
 
 Type
 
@@ -92,7 +93,8 @@ Type
     FSettings: TApplicationSettings;
 
     // Providers
-    FDataProvider: TStarfixDatabaseProvider;
+    //FDataProvider: TStarfixDatabaseProvider;
+    FDataProvider: TEventListingProvider;
     FMediaProvider: TMediaProvider;
 
     //UI
@@ -205,7 +207,8 @@ Begin
   // Now the UI is created, let's create the providers and bind/register
 
   // Data Provider
-  FDataProvider := TStarfixDatabaseProvider.Create;
+  //FDataProvider := TStarfixDatabaseProvider.Create;
+  FDataProvider := TEventListingProvider.Create;
   FDataProvider.OnProviderReady := @DoProviderReady;
   FDataProvider.OnAnomalyChanged := @DoAnomalyChanged;
 
@@ -341,8 +344,6 @@ Begin
     fmeSyncedVideo.PositionAsTime := FDataProvider.AnomalyDateTime;
 End;
 
-
-
 Procedure TfrmStarfixAnomalies.DBEditClick(Sender: TObject);
 Begin
   TDBEdit(Sender).SelectAll;
@@ -396,14 +397,14 @@ Begin
     fmeSettingsMSSQL.DatabasePrefix := 'SFX';
 
     oDlg.RegisterFrame(fmeSettingsMSSQL, 'Database Server');
-    FDataProvider.PopulateSettingsFrame(fmeSettingsMSSQL);
+    //FDataProvider.PopulateSettingsFrame(fmeSettingsMSSQL); //TODO
 
     oDlg.RegisterFrame(fmeSettingsApp, 'Starfix');
     FSettings.PopulateSettingsFrame(fmeSettingsApp);
 
     If oDlg.ShowModal = mrOk Then
     Begin
-      FDataProvider.ApplySettingsFrame(fmeSettingsMSSQL);
+      //FDataProvider.ApplySettingsFrame(fmeSettingsMSSQL); //TODO
       FSettings.ApplySettingsFrame(fmeSettingsApp);
 
       If FDataProvider.Open Then
@@ -509,8 +510,8 @@ Begin
     fmeImageViewer.ClearImages;
 
   // Do I need to load new Video?
-  If (fmeSyncedVideo.StartDateTime <= ADateTime) And
-    (ADateTime <= fmeSyncedVideo.EndDateTime) Then
+  If (fmeSyncedVideo.StartDateTime <= ADateTime) And (ADateTime <=
+    fmeSyncedVideo.EndDateTime) Then
   Begin
     // No, we just need to seek to the new time
     fmeSyncedVideo.PositionAsTime := ADateTime;
@@ -519,7 +520,12 @@ Begin
   Begin
     // Yes, videos need to be updated
 
+    // Does the Data Provider know anything about Videos?
     oVideoFiles := FDataProvider.GetVideoFilesForTime(ADateTime);
+
+    // If not, ask the Media Provider...
+    If Not assigned(oVideoFiles) Then
+      oVideoFiles := FMediaProvider.VideoFilesForDateTime(ADateTime);
     Try
       If oVideoFiles.Count = 0 Then
       Begin

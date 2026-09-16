@@ -23,8 +23,13 @@ Type
     Procedure ScanVideoFiles(AFolder: String);
     Function LookupFolder(AVideoFilename: String): String;
 
+    Function VideoFilesForDateTime(Const ADateTime: TDateTime): TVideoFiles;
+
     Property Videos: TVideoFiles Read FVideos;
   End;
+
+Const
+  DEFAULT_VIDEO_DURATION_MINUTES = 15;
 
 Implementation
 
@@ -33,8 +38,8 @@ Implementation
 Constructor TMediaProvider.Create;
 Begin
   // Video Filename/Folder lookup...
-  FVideos := TVideoFiles.Create;
-  FVideos.InferInfoFromFilename := False;
+  FVideos := TVideoFiles.Create(True);
+  FVideos.InferInfoFromFilename := True;
 End;
 
 Destructor TMediaProvider.Destroy;
@@ -60,6 +65,58 @@ Begin
     Result := oVideo.Folder
   Else
     Result := '';
+End;
+
+Function TMediaProvider.VideoFilesForDateTime(Const ADateTime: TDateTime): TVideoFiles;
+Var
+  i: Integer;
+  oVideo: TVideoFile;
+  oBest: TVideoFile;
+  slBestByChannel: TStringList;
+  iChannelIndex: Integer;
+  dtMaxAge: TDateTime;
+Begin
+  Result := TVideoFiles.Create(False);
+
+  slBestByChannel := TStringList.Create;
+  Try
+    slBestByChannel.Sorted := True;
+    slBestByChannel.Duplicates := dupIgnore;
+    slBestByChannel.OwnsObjects := False;
+
+    dtMaxAge := DEFAULT_VIDEO_DURATION_MINUTES / MinsPerDay;
+
+    For i := 0 To FVideos.Count - 1 Do
+    Begin
+      oVideo := FVideos[i];
+
+      // Find all videos within the valid window
+      If Not oVideo.ContainsTime(ADateTime, dtMaxAge) Then
+        Continue;
+
+      iChannelIndex := slBestByChannel.IndexOf(oVideo.Channel);
+
+      If iChannelIndex < 0 Then
+      Begin
+        slBestByChannel.AddObject(oVideo.Channel, oVideo);
+      End
+      Else
+      Begin
+        oBest := TVideoFile(slBestByChannel.Objects[iChannelIndex]);
+
+        // Keep the most recently started ovideo for this channel.
+        If oVideo.StartDateTime > oBest.StartDateTime Then
+          slBestByChannel.Objects[iChannelIndex] := oVideo;
+      End;
+    End;
+
+    // Return references to the selected videos.
+    For i := 0 To slBestByChannel.Count - 1 Do
+      Result.Add(TVideoFile(slBestByChannel.Objects[i]));
+
+  Finally
+    slBestByChannel.Free;
+  End;
 End;
 
 End.

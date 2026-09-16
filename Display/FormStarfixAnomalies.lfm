@@ -44,7 +44,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
     end
     object ToolButton3: TToolButton
       Left = 302
-      Height = 22
+      Height = 8
       Top = 2
       AutoSize = True
       Style = tbsSeparator
@@ -56,7 +56,7 @@ inherited frmStarfixAnomalies: TfrmStarfixAnomalies
     end
     object ToolButton1: TToolButton
       Left = 214
-      Height = 22
+      Height = 8
       Top = 2
       Caption = 'ToolButton1'
       Style = tbsSeparator

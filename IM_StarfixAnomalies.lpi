@@ -19,7 +19,7 @@
       <UseVersionInfo Value="True"/>
       <AutoIncrementBuild Value="True"/>
       <MinorVersionNr Value="1"/>
-      <BuildNr Value="41"/>
+      <BuildNr Value="42"/>
       <Attributes pvaPreRelease="True"/>
       <StringTable Comments="Starfix Anomaly Manager" CompanyName="Inspector Mike 2.0 Pty Ltd" LegalCopyright="(c) 2026"/>
     </VersionInfo>
@@ -119,6 +119,9 @@
     </RunParams>
     <RequiredPackages>
       <Item>
+        <PackageName Value="laz_fpspreadsheet"/>
+      </Item>
+      <Item>
         <PackageName Value="bgracontrols"/>
       </Item>
       <Item>
@@ -177,6 +180,10 @@
       </Unit>
       <Unit>
         <Filename Value="Providers\StarfixDatabaseProvider.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Providers\EventListingProvider.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit>
     </Units>
