@@ -104,6 +104,7 @@ Type
     FPendingVideoTime: TDateTime;
     FSeekPending: Boolean;
     Function AddAnomalyImage(Const ASourceFilename: String): Boolean;
+    Function CheckAnomalyReferenceReadiness: Boolean;
     Procedure DoPlayerGrabImage(Sender: TObject; Const AFolder: String);
     Procedure DoVideoLoaded(Sender: TObject);
     Procedure LoadAnomalyImages(Const AAnomalyReference: String);
@@ -480,8 +481,7 @@ End;
 Procedure TfrmStarfixAnomalies.DoAnomalyChanged(Sender: TObject;
   Const ANewAnomalyNo: String; Const ADateTime: TDateTime);
 Var
-  slImages: TStringList;
-  sImageFile, sFolder: String;
+  sFolder: String;
   oVideoFiles: TVideoFiles;
   oVideoFile: TVideoFile;
 Begin
@@ -610,13 +610,27 @@ Begin
     Status := 'Unable to copy anomaly image ' + ASourceFilename;
 End;
 
+Function TfrmStarfixAnomalies.CheckAnomalyReferenceReadiness: Boolean;
+Begin
+  Result := False;
+
+  If FDataProvider.Ready Then
+    If Trim(FDataProvider.AnomalyReference) = '' Then
+      ShowMessage('The current anomaly does not have an Anomaly Reference assigned.' +
+        LineEnding + 'This needs to be resolved using Starfix.Edit first.')
+    Else
+      Result := True;
+End;
+
 Procedure TfrmStarfixAnomalies.DoPlayerGrabImage(Sender: TObject; Const AFolder: String);
 Var
   oDlg: TDialogImageSelection;
-  i, iFileSuffix: Integer;
+  i: Integer;
   oImage: TViewerImage;
-  sFilename, sAnomalyRef, sDir, sExt: String;
 Begin
+  If Not CheckAnomalyReferenceReadiness Then
+    Exit;
+
   oDlg := TDialogImageSelection.Create(Self);
   Try
     oDlg.LoadFromFolder(AFolder);
@@ -646,15 +660,15 @@ End;
 
 Procedure TfrmStarfixAnomalies.DoAddNewImage(Sender: TObject);
 Begin
-  If FDataProvider.Ready Then
-  Begin
-    dlgAddImage.Options := dlgAddImage.Options - [ofAutoPreview];
+  If Not CheckAnomalyReferenceReadiness Then
+    Exit;
 
-    If dlgAddImage.Execute Then
-    Begin
-      If AddAnomalyImage(dlgAddImage.Filename) Then
-        LoadAnomalyImages(FDataProvider.AnomalyReference);
-    End;
+  dlgAddImage.Options := dlgAddImage.Options - [ofAutoPreview];
+
+  If dlgAddImage.Execute Then
+  Begin
+    If AddAnomalyImage(dlgAddImage.Filename) Then
+      LoadAnomalyImages(FDataProvider.AnomalyReference);
   End;
 End;
 
