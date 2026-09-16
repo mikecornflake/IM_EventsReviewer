@@ -68,6 +68,7 @@ Type
     Procedure SetOnAnomalyChanged(AValue: TAnomalyChangedEvent);
   Public
     Function Open: Boolean; Virtual; Abstract;
+    Function Refresh: Boolean; Virtual; Abstract;
 
     Function Title: String; Virtual; Abstract;
 

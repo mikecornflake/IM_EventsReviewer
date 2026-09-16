@@ -17,6 +17,7 @@ Type
   { TfrmStarfixAnomalies }
 
   TfrmStarfixAnomalies = Class(TFormMain)
+    actRefreshDatabase: TAction;
     actSeekVideo: TAction;
     actSettings: TAction;
     actOpenDatabase: TAction;
@@ -72,7 +73,10 @@ Type
     btnOpenDatabase: TToolButton;
     btnSettings: TToolButton;
     btnSyncVideo: TToolButton;
+    ToolButton1: TToolButton;
+    btnRefreshDatabase: TToolButton;
     ToolButton3: TToolButton;
+    Procedure actRefreshDatabaseExecute(Sender: TObject);
     Procedure actSeekVideoExecute(Sender: TObject);
     Procedure DBEditClick(Sender: TObject);
     Procedure FormCreate(Sender: TObject);
@@ -315,7 +319,9 @@ Procedure TfrmStarfixAnomalies.RefreshUI;
 Begin
   Inherited RefreshUI;
 
-  mnuDatabaseOpen.Enabled := MSSQL.Available;
+  actOpenDatabase.Enabled := MSSQL.Available;
+  actRefreshDatabase.Enabled := FDataProvider.Ready;
+
   actSeekVideo.Enabled := FDataProvider.Ready And Assigned(dsAnomalyDetails.Dataset) And
     (dsAnomalyDetails.Dataset.Active);
 
@@ -334,6 +340,8 @@ Begin
   If FDataProvider.Ready Then
     fmeSyncedVideo.PositionAsTime := FDataProvider.AnomalyDateTime;
 End;
+
+
 
 Procedure TfrmStarfixAnomalies.DBEditClick(Sender: TObject);
 Begin
@@ -407,6 +415,13 @@ Begin
     oDlg.Free;
   End;
   fmeAnomalies.SetFocus;
+  RefreshUI;
+End;
+
+Procedure TfrmStarfixAnomalies.actRefreshDatabaseExecute(Sender: TObject);
+Begin
+  FDataProvider.Refresh;
+
   RefreshUI;
 End;
 
@@ -494,8 +509,8 @@ Begin
     fmeImageViewer.ClearImages;
 
   // Do I need to load new Video?
-  If (fmeSyncedVideo.StartDateTime <= ADateTime) And (ADateTime <=
-    fmeSyncedVideo.EndDateTime) Then
+  If (fmeSyncedVideo.StartDateTime <= ADateTime) And
+    (ADateTime <= fmeSyncedVideo.EndDateTime) Then
   Begin
     // No, we just need to seek to the new time
     fmeSyncedVideo.PositionAsTime := ADateTime;

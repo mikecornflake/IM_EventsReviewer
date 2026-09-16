@@ -41,6 +41,7 @@ Type
     Destructor Destroy; Override;
 
     Function Open: Boolean; Override;
+    Function Refresh: Boolean; Override;
     Function Title: String; Override;
 
     Procedure ApplySettingsFrame(AFrame: TFrameMSSQLConnection);
@@ -207,6 +208,23 @@ Begin
     Finally
       MainForm.Busy := False;
     End;
+  End;
+End;
+
+Function TStarfixDatabaseProvider.Refresh: Boolean;
+Begin
+  Result := False;
+
+  If Ready Then
+  Begin
+    qryAnomalies.Close;
+    qryAnomalies.Open;
+
+    Result := True;
+
+    // Let the Application know we're now ready for it
+    If Assigned(FOnProviderReady) Then
+      FOnProviderReady(Self);
   End;
 End;
 
