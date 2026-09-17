@@ -9,7 +9,7 @@ Uses
   Classes, SysUtils, MediaTypes, DB, Inifiles;
 
 Type
-  TAnomalyChangedEvent = Procedure(Sender: TObject; Const AAnomalyNo: String;
+  TDataChangedEvent = Procedure(Sender: TObject; Const AAnomalyNo: String;
     Const ADateTime: TDateTime) Of Object;
 
   { IIM_Persistent }
@@ -19,42 +19,45 @@ Type
   End;
 
 
-  { IAnomalyProvider }
-  IAnomalyProvider = Interface
+  { IDataProvider }
+  IDataProvider = Interface
     Function GetOnProviderReady: TNotifyEvent;
     Procedure SetOnProviderReady(AValue: TNotifyEvent);
 
-    Function GetOnAnomalyChanged: TAnomalyChangedEvent;
-    Procedure SetOnAnomalyChanged(AValue: TAnomalyChangedEvent);
+    Function GetOnDataChanged: TDataChangedEvent;
+    Procedure SetOnDataChanged(AValue: TDataChangedEvent);
     Function GetReady: Boolean;
 
-    Function GetAnomalyDataSet: TDataSet;
+    Function GetDataSet: TDataSet;
 
-    // TODO Think long and hard - should these be here?
     Function GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles;
-    Function AnomalyDateTime: TDateTime;
+    Function DateTime: TDateTime;
 
     Function Open: Boolean;
+    Function Refresh: Boolean;
+    Function Close: Boolean;
 
     Function Title: String;
 
     // Properties
-    Property AnomalyDataSet: TDataSet Read GetAnomalyDataSet;
+    Property DataSet: TDataSet Read GetDataSet;
     Property Ready: Boolean Read GetReady;
 
     // Events
     Property OnProviderReady: TNotifyEvent Read GetOnProviderReady Write SetOnProviderReady;
-    Property OnAnomalyChanged: TAnomalyChangedEvent Read GetOnAnomalyChanged
-      Write SetOnAnomalyChanged;
+    Property OnDataChanged: TDataChangedEvent Read GetOnDataChanged Write SetOnDataChanged;
   End;
 
   { TDataProvider }
-  TDataProvider = Class(TObject, IAnomalyProvider, IIM_Persistent)
+  TDataProvider = Class(TObject, IDataProvider, IIM_Persistent)
   Protected
-    FOnProviderReady: TNotifyEvent;
-    FOnAnomalyChanged: TAnomalyChangedEvent;
+    // State
+    FLoaded: Boolean;
 
-    Function GetAnomalyDataSet: TDataSet; Virtual; Abstract;
+    FOnProviderReady: TNotifyEvent;
+    FOnDataChanged: TDataChangedEvent;
+
+    Function GetDataSet: TDataSet; Virtual; Abstract;
 
     Procedure DoProviderReady;
     Procedure DoAnomalyChanged(Const AAnomalyNo: String; Const ADateTime: TDateTime);
@@ -64,18 +67,21 @@ Type
     Function GetOnProviderReady: TNotifyEvent;
     Procedure SetOnProviderReady(AValue: TNotifyEvent);
 
-    Function GetOnAnomalyChanged: TAnomalyChangedEvent;
-    Procedure SetOnAnomalyChanged(AValue: TAnomalyChangedEvent);
+    Function GetOnDataChanged: TDataChangedEvent;
+    Procedure SetOnDataChanged(AValue: TDataChangedEvent);
   Public
     Function Open: Boolean; Virtual; Abstract;
     Function Refresh: Boolean; Virtual; Abstract;
+    Function Close: Boolean; Virtual; Abstract;
 
     Function Title: String; Virtual; Abstract;
 
     Function GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles; Virtual; Abstract;
-    Function AnomalyDateTime: TDateTime; Virtual; Abstract;
 
-    Property AnomalyDataSet: TDataSet Read GetAnomalyDataSet;
+    Function DateTime: TDateTime; Virtual; Abstract;
+    Function AnomalyReference: String; Virtual; Abstract;
+
+    Property DataSet: TDataSet Read GetDataSet;
 
     Procedure LoadSettings(AInifile: TIniFile); Virtual; Abstract;
     Procedure SaveSettings(AInifile: TIniFile); Virtual; Abstract;
@@ -85,8 +91,7 @@ Type
 
     // Events
     Property OnProviderReady: TNotifyEvent Read GetOnProviderReady Write SetOnProviderReady;
-    Property OnAnomalyChanged: TAnomalyChangedEvent Read GetOnAnomalyChanged
-      Write SetOnAnomalyChanged;
+    Property OnDataChanged: TDataChangedEvent Read GetOnDataChanged Write SetOnDataChanged;
   End;
 
 Implementation
@@ -101,8 +106,8 @@ End;
 
 Procedure TDataProvider.DoAnomalyChanged(Const AAnomalyNo: String; Const ADateTime: TDateTime);
 Begin
-  If Assigned(FOnAnomalyChanged) Then
-    FOnAnomalyChanged(Self, AAnomalyNo, ADateTime);
+  If Assigned(FOnDataChanged) Then
+    FOnDataChanged(Self, AAnomalyNo, ADateTime);
 End;
 
 Function TDataProvider.GetOnProviderReady: TNotifyEvent;
@@ -115,14 +120,14 @@ Begin
   FOnProviderReady := AValue;
 End;
 
-Function TDataProvider.GetOnAnomalyChanged: TAnomalyChangedEvent;
+Function TDataProvider.GetOnDataChanged: TDataChangedEvent;
 Begin
-  Result := FOnAnomalyChanged;
+  Result := FOnDataChanged;
 End;
 
-Procedure TDataProvider.SetOnAnomalyChanged(AValue: TAnomalyChangedEvent);
+Procedure TDataProvider.SetOnDataChanged(AValue: TDataChangedEvent);
 Begin
-  FOnAnomalyChanged := AValue;
+  FOnDataChanged := AValue;
 End;
 
 End.

@@ -6,7 +6,7 @@ Interface
 
 Uses
   Classes, SysUtils, DataProvider, MediaTypes, Inifiles, DB, ExtCtrls, DBSupport,
-  BufDataset, fpspreadsheet, xlsxOOXML;
+  BufDataset, fpspreadsheet, xlsxOOXML, FrameEventListingSettings;
 
 Type
 
@@ -16,27 +16,26 @@ Type
   Private
     // Settings
     FFileName: String;
+    FWorksheetName: String;
     FStartCol: Integer;
     FStartRow: Integer;
-    FUTCOffset: TDateTime;
+    FUTCOffset: Double;
 
     // FPSreadsheet controls
     FSpreadsheet: TsWorkbook;
     FWorksheet: TsWorksheet;
 
+    // Dataset
     FEvents: TMemTable;
 
-    Function CellText(ARow, ACol: Integer): String;
-    Function CellFloat(ARow, ACol: Integer; Out AValue: Double): Boolean;
-    Function CellDateTime(ARow, ACol: Integer; Out AValue: TDateTime): Boolean;
     Function RowIsEmpty(ARow: Integer): Boolean;
 
     Procedure CreateFields;
     Procedure LoadEvents;
 
-    Procedure DoEventsAfterScroll(DataSet: TDataSet);
+    Procedure DoEventsAfterScroll(ADataSet: TDataSet);
   Protected
-    Function GetAnomalyDataSet: TDataSet; Override;
+    Function GetDataSet: TDataSet; Override;
     Function GetReady: Boolean; Override;
 
   Public
@@ -45,11 +44,16 @@ Type
 
     Function Open: Boolean; Override;
     Function Refresh: Boolean; Override;
+    Function Close: Boolean; Override;
+
     Function Title: String; Override;
 
     Function GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles; Override;
-    Function AnomalyDateTime: TDateTime; Override;
-    Function AnomalyReference: String;
+    Function DateTime: TDateTime; Override;
+    Function AnomalyReference: String; Override;
+
+    Procedure ApplySettingsFrame(AFrame: TFrameEventListingSettings);
+    Procedure PopulateSettingsFrame(AFrame: TFrameEventListingSettings);
 
     Procedure LoadSettings(AIniFile: TIniFile); Override;
     Procedure SaveSettings(AIniFile: TIniFile); Override;
@@ -58,10 +62,7 @@ Type
 Implementation
 
 Uses
-  fpsTypes;
-
-Const
-  HOURS_TO_DATETIME = 1 / HoursPerDay;
+  fpsTypes, SpreadsheetSupport, LazLogger, Dialogs;
 
   { TEventListingProvider }
 
@@ -69,13 +70,15 @@ Constructor TEventListingProvider.Create;
 Begin
   Inherited Create;
 
+  FLoaded := False;
+
   FSpreadsheet := nil;
   FWorksheet := nil;
 
   FStartCol := 0;   // Column A
   FStartRow := 0;   // Row 1
 
-  FUTCOffset := 1 / HoursPerDay;
+  FUTCOffset := 1;
 
   FEvents := TMemTable.Create;
 
@@ -92,21 +95,30 @@ Begin
 End;
 
 Function TEventListingProvider.Open: Boolean;
+Var
+  sMessage: String;
 Begin
+  FLoaded := False;
   Result := False;
+
+  If Not FileExists(FFileName) Then
+  Begin
+    sMessage := 'Event Listing filename ' + FFileName + ' does not exist';
+    DebugLn([ClassName, '.', {$I %CURRENTROUTINE%}, ' ', sMessage]);
+    ShowMessage(sMessage);
+
+    Exit;
+  End;
 
   FreeAndNil(FSpreadsheet);
   FWorksheet := nil;
-
-  FFileName :=
-    'D:\Projects\2026 06 24 - Fugro Saipem\507464_28IN_TEESSIDE_As-Laid_Event Listing_KP21.0000 to KP30.0000_Rev03.xlsx';
 
   FSpreadsheet := TsWorkbook.Create;
 
   Try
     FSpreadsheet.ReadFromFile(FFileName, sfOOXML);
 
-    FWorksheet := FSpreadsheet.GetWorksheetByName('Event Header');
+    FWorksheet := FSpreadsheet.GetWorksheetByName(FWorksheetName);
 
     If FWorksheet = nil Then
       Raise Exception.Create('Worksheet "Event Header" was not found in:' +
@@ -115,10 +127,14 @@ Begin
     LoadEvents;
 
     Result := True;
+    FLoaded := True;
 
     // Let the Application know we're now ready for it
     If Assigned(FOnProviderReady) Then
       FOnProviderReady(Self);
+
+    // We suppressed the first event being loaded, so broadcast it now manually
+    DoEventsAfterScroll(FEvents.Table);
   Except
     FreeAndNil(FSpreadsheet);
     FWorksheet := nil;
@@ -131,7 +147,20 @@ Begin
   Result := Open;
 End;
 
-Function TEventListingProvider.GetAnomalyDataSet: TDataSet;
+Function TEventListingProvider.Close: Boolean;
+Begin
+  FLoaded := False;
+
+  FreeAndNil(FSpreadsheet);
+  FWorksheet := nil;
+
+  FEvents.Close;
+  FEvents.ClearAllRecords;
+
+  Result := True;
+End;
+
+Function TEventListingProvider.GetDataSet: TDataSet;
 Begin
   Result := FEvents.Table;
 End;
@@ -139,14 +168,13 @@ End;
 
 Function TEventListingProvider.GetReady: Boolean;
 Begin
-  Result :=
-    Assigned(FEvents) And FEvents.Active;
+  Result := FLoaded And Assigned(FEvents) And FEvents.Active;
 End;
 
 
-Function TEventListingProvider.AnomalyDateTime: TDateTime;
+Function TEventListingProvider.DateTime: TDateTime;
 Begin
-  Result := FEvents['Start'].AsDateTime;
+  Result := FEvents['Start_(UTC)'].AsDateTime;
 End;
 
 
@@ -155,20 +183,48 @@ Begin
   Result := FEvents['Anomaly_No'].AsString;
 End;
 
+Procedure TEventListingProvider.ApplySettingsFrame(AFrame: TFrameEventListingSettings);
+Begin
+  FFileName := AFrame.Filename;
+  FWorksheetName := AFrame.Worksheet;
+  FStartCol := AFrame.StartCol;
+  FStartRow := AFrame.StartRow;
+  FUTCOffset := AFrame.UTC_Offset;
+End;
+
+Procedure TEventListingProvider.PopulateSettingsFrame(AFrame: TFrameEventListingSettings);
+Begin
+  AFrame.Filename := FFileName;
+  AFrame.Worksheet := FWorksheetName;
+  AFrame.StartCol := FStartCol;
+  AFrame.StartRow := FStartRow;
+  AFrame.UTC_Offset := FUTCOffset;
+End;
+
 Procedure TEventListingProvider.LoadSettings(AIniFile: TIniFile);
 Begin
-
+  FFileName := AIniFile.ReadString('EventListing', 'Filename', '');
+  FWorksheetName := AIniFile.ReadString('EventListing', 'Worksheet', '');
+  FStartCol := AIniFile.ReadInteger('EventListing', 'StartCol', 0);
+  FStartRow := AIniFile.ReadInteger('EventListing', 'StartRow', 0);
+  FUTCOffset := AIniFile.ReadFloat('EventListing', 'UTCOffset', 1);
 End;
 
 Procedure TEventListingProvider.SaveSettings(AIniFile: TIniFile);
 Begin
-
+  AIniFile.WriteString('EventListing', 'Filename', FFileName);
+  AIniFile.WriteString('EventListing', 'Worksheet', FWorksheetName);
+  AIniFile.WriteInteger('EventListing', 'StartCol', FStartCol);
+  AIniFile.WriteInteger('EventListing', 'StartRow', FStartRow);
+  AIniFile.WriteFloat('EventListing', 'UTCOffset', FUTCOffset);
 End;
-
 
 Function TEventListingProvider.Title: String;
 Begin
   Result := 'Fugro Event Listing';
+
+  If Ready And (FFileName <> '') Then
+    Result += ': ' + ExtractFilename(FFileName);
 End;
 
 Function TEventListingProvider.GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles;
@@ -179,7 +235,7 @@ End;
 Procedure TEventListingProvider.CreateFields;
 Begin
   FEvents.AddField('UNIQUE_ID', ftInteger);
-  FEvents.AddField('Start', ftDateTime);
+  FEvents.AddField('Start_(UTC)', ftDateTime);
   FEvents.AddField('KP', ftFloat);
   FEvents.AddField('Type', ftString, 255);
   FEvents.AddField('Anomaly_No', ftString, 100);
@@ -197,80 +253,20 @@ Begin
   FEvents.AddField('Depth', ftFloat);
 End;
 
-Function TEventListingProvider.CellText(ARow, ACol: Integer): String;
-Begin
-  Result := Trim(FWorksheet.ReadAsText(ARow, ACol));
-End;
-
-
-Function TEventListingProvider.CellFloat(ARow, ACol: Integer; Out AValue: Double): Boolean;
-Var
-  s: String;
-Begin
-  Result := False;
-  AValue := 0;
-
-  If FWorksheet = nil Then
-    Exit;
-
-  s := CellText(ARow, ACol);
-
-  If s = '' Then
-    Exit;
-
-  // First try FPSpreadsheet's actual numeric value.
-  Try
-    AValue := FWorksheet.ReadAsNumber(ARow, ACol);
-    Result := True;
-  Except
-    // Fall through to textual conversion.
-  End;
-
-  If Not Result Then
-    Result := TryStrToFloat(s, AValue);
-End;
-
-
-Function TEventListingProvider.CellDateTime(ARow, ACol: Integer; Out AValue: TDateTime): Boolean;
-Var
-  s: String;
-Begin
-  Result := False;
-  AValue := 0;
-
-  If FWorksheet = nil Then
-    Exit;
-
-  s := CellText(ARow, ACol);
-
-  If s = '' Then
-    Exit;
-
-  Try
-    FWorksheet.ReadAsDateTime(ARow, ACol, AValue);
-    Result := True;
-  Except
-    // Some deliverables may contain textual dates.
-  End;
-
-  If Not Result Then
-    Result := TryStrToDateTime(s, AValue);
-End;
-
 Function TEventListingProvider.RowIsEmpty(ARow: Integer): Boolean;
 Begin
   Result :=
-    (CellText(ARow, FStartCol + 0) = '') And (CellText(ARow, FStartCol + 1) = '') And
-    (CellText(ARow, FStartCol + 2) = '') And (CellText(ARow, FStartCol + 16) = '');
+    (CellText(FWorksheet, ARow, FStartCol + 0) = '') And
+    (CellText(FWorksheet, ARow, FStartCol + 1) = '') And
+    (CellText(FWorksheet, ARow, FStartCol + 2) = '') And
+    (CellText(FWorksheet, ARow, FStartCol + 16) = '');
 End;
 
 Procedure TEventListingProvider.LoadEvents;
 Var
   iRow: Integer;
 
-  dtDate: TDateTime;
-  dtTime: TDateTime;
-  dtStart: TDateTime;
+  dtDate, dtTime, dtStart, dtOffset: TDateTime;
 
   dValue: Double;
 
@@ -283,6 +279,8 @@ Begin
 
   If FWorksheet = nil Then
     Exit;
+
+  dtOffset := FUTCOffset / HoursPerDay;
 
   FEvents.Open;
   FEvents.Table.DisableControls;
@@ -300,28 +298,28 @@ Begin
         FEvents['UNIQUE_ID'].AsInteger := iRow + 1;
 
         // Start = A + B
-        If CellDateTime(iRow, FStartCol + 0, dtDate) Then
+        If CellDateTime(FWorksheet, iRow, FStartCol + 0, dtDate) Then
         Begin
           dtStart := Trunc(dtDate);
 
-          If CellDateTime(iRow, FStartCol + 1, dtTime) Then
+          If CellDateTime(FWorksheet, iRow, FStartCol + 1, dtTime) Then
             dtStart := dtStart + Frac(dtTime);
 
           dtStart := Trunc(dtDate) + Frac(dtTime);
 
           // Event Listing time -> UTC
-          dtStart := dtStart - FUTCOffset;
+          dtStart := dtStart - dtOffset;
 
-          FEvents['Start'].AsDateTime := dtStart;
+          FEvents['Start_(UTC)'].AsDateTime := dtStart;
         End;
 
         // KP = F
-        If CellFloat(iRow, FStartCol + 5, dValue) Then
+        If CellFloat(FWorksheet, iRow, FStartCol + 5, dValue) Then
           FEvents['KP'].AsFloat := dValue;
 
         // Type = C + '-' + D
-        sType := CellText(iRow, FStartCol + 2);
-        sSubType := CellText(iRow, FStartCol + 3);
+        sType := CellText(FWorksheet, iRow, FStartCol + 2);
+        sSubType := CellText(FWorksheet, iRow, FStartCol + 3);
 
         If (sType <> '') And (sSubType <> '') Then
           FEvents['Type'].AsString := sType + '-' + sSubType
@@ -332,41 +330,38 @@ Begin
 
         // Anomaly_No = Q
         FEvents['Anomaly_No'].AsString :=
-          CellText(iRow, FStartCol + 16);
+          CellText(FWorksheet, iRow, FStartCol + 16);
 
         // Dimensions = K, L, M
-        If CellFloat(iRow, FStartCol + 10, dValue) Then
+        If CellFloat(FWorksheet, iRow, FStartCol + 10, dValue) Then
           FEvents['Length_(m)'].AsFloat := dValue;
 
-        If CellFloat(iRow, FStartCol + 11, dValue) Then
+        If CellFloat(FWorksheet, iRow, FStartCol + 11, dValue) Then
           FEvents['Width_(m)'].AsFloat := dValue;
 
-        If CellFloat(iRow, FStartCol + 12, dValue) Then
+        If CellFloat(FWorksheet, iRow, FStartCol + 12, dValue) Then
           FEvents['Height_(m)'].AsFloat := dValue;
 
         // No Fugro Event Listing equivalent currently.
         FEvents['Offset_(m)'].Clear;
 
         // Clock = O
-        FEvents['Clock'].AsString :=
-          CellText(iRow, FStartCol + 14);
+        FEvents['Clock'].AsString := CellText(FWorksheet, iRow, FStartCol + 14);
 
         // Description = R
-        FEvents['Description'].AsString :=
-          CellText(iRow, FStartCol + 17);
+        FEvents['Description'].AsString := CellText(FWorksheet, iRow, FStartCol + 17);
 
         // Position = H, I, J
-        If CellFloat(iRow, FStartCol + 7, dValue) Then
+        If CellFloat(FWorksheet, iRow, FStartCol + 7, dValue) Then
           FEvents['Easting'].AsFloat := dValue;
 
-        If CellFloat(iRow, FStartCol + 8, dValue) Then
+        If CellFloat(FWorksheet, iRow, FStartCol + 8, dValue) Then
           FEvents['Northing'].AsFloat := dValue;
 
-        If CellFloat(iRow, FStartCol + 9, dValue) Then
+        If CellFloat(FWorksheet, iRow, FStartCol + 9, dValue) Then
           FEvents['Depth'].AsFloat := dValue;
 
         FEvents.Table.Post;
-
       Except
         FEvents.Table.Cancel;
         Raise;
@@ -379,16 +374,16 @@ Begin
   FEvents.Table.First;
 End;
 
-Procedure TEventListingProvider.DoEventsAfterScroll(DataSet: TDataSet);
+Procedure TEventListingProvider.DoEventsAfterScroll(ADataSet: TDataSet);
 Var
   sAnomalyNo: String;
   dtDateTime: TDateTime;
 Begin
-  If Ready And Assigned(FOnAnomalyChanged) And Not FEvents.Table.ControlsDisabled Then
+  If Ready And Assigned(FOnDataChanged) And Not FEvents.Table.ControlsDisabled Then
   Begin
     sAnomalyNo := FEvents['Anomaly_No'].AsString;
-    dtDateTime := FEvents['Start'].AsDateTime;
-    FOnAnomalyChanged(Self, sAnomalyNo, dtDateTime);
+    dtDateTime := FEvents['Start_(UTC)'].AsDateTime;
+    FOnDataChanged(Self, sAnomalyNo, dtDateTime);
   End;
 End;
 

@@ -5,7 +5,7 @@ Unit FrameApplicationSettings;
 Interface
 
 Uses
-  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls, EditBtn,
+  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls, EditBtn, Spin,
   FrameBase;
 
 Type
@@ -20,15 +20,19 @@ Type
     edtVideoFolder: TDirectoryEdit;
     Label1: TLabel;
     Label3: TLabel;
+    Label4: TLabel;
     Label5: TLabel;
     Label6: TLabel;
+    edtMaxVideoDuration: TSpinEdit;
     Procedure FormCreate(Sender: TObject);
   Private
     Function GetImageFolder: String;
+    Function GetMaxVideoDuration: Integer;
     Function GetROV: String;
     Function GetVessel: String;
     Function GetVideoFolder: String;
     Procedure SetImageFolder(Const AValue: String);
+    Procedure SetMaxVideoDuration(Const AValue: Integer);
     Procedure SetROV(Const AValue: String);
     Procedure SetVessel(Const AValue: String);
     Procedure SetVideoFolder(Const AValue: String);
@@ -37,6 +41,7 @@ Type
     Property VideoFolder: String Read GetVideoFolder Write SetVideoFolder;
     Property Vessel: String Read GetVessel Write SetVessel;
     Property ROV: String Read GetROV Write SetROV;
+    Property MaxVideoDuration: Integer Read GetMaxVideoDuration Write SetMaxVideoDuration;
   End;
 
 Implementation
@@ -58,6 +63,11 @@ Begin
   Result := edtImageFolder.Text;
 End;
 
+Function TFrameApplicationSettings.GetMaxVideoDuration: Integer;
+Begin
+  Result := edtMaxVideoDuration.Value;
+End;
+
 Function TFrameApplicationSettings.GetROV: String;
 Begin
   Result := edtROV.Text;
@@ -76,6 +86,11 @@ End;
 Procedure TFrameApplicationSettings.SetImageFolder(Const AValue: String);
 Begin
   edtImageFolder.Text := AValue;
+End;
+
+Procedure TFrameApplicationSettings.SetMaxVideoDuration(Const AValue: Integer);
+Begin
+  edtMaxVideoDuration.Value := AValue;
 End;
 
 Procedure TFrameApplicationSettings.SetROV(Const AValue: String);

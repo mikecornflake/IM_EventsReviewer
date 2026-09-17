@@ -1,14 +1,14 @@
 inherited FrameApplicationSettings: TFrameApplicationSettings
-  Height = 230
-  Width = 320
+  Height = 266
+  Width = 435
   Anchors = [akTop, akLeft, akRight]
-  ClientHeight = 230
-  ClientWidth = 320
+  ClientHeight = 266
+  ClientWidth = 435
   LCLVersion = '4.99.0.0'
   object Label1: TLabel[0]
     Left = 8
     Height = 15
-    Top = 168
+    Top = 112
     Width = 73
     Caption = 'Image Folder'
     Font.Style = [fsBold]
@@ -17,21 +17,21 @@ inherited FrameApplicationSettings: TFrameApplicationSettings
   object edtImageFolder: TDirectoryEdit[1]
     Left = 8
     Height = 23
-    Top = 185
-    Width = 298
+    Top = 129
+    Width = 413
     Directory = 'edtImageFolder'
     ShowHidden = False
     ButtonWidth = 23
     NumGlyphs = 1
     Anchors = [akTop, akLeft, akRight]
     MaxLength = 0
-    TabOrder = 0
+    TabOrder = 2
     Text = 'edtImageFolder'
   end
   object Label3: TLabel[2]
     Left = 8
     Height = 15
-    Top = 120
+    Top = 160
     Width = 99
     Caption = 'Video Base Folder'
     Font.Style = [fsBold]
@@ -40,22 +40,22 @@ inherited FrameApplicationSettings: TFrameApplicationSettings
   object edtVideoFolder: TDirectoryEdit[3]
     Left = 8
     Height = 23
-    Top = 137
-    Width = 298
+    Top = 177
+    Width = 413
     Directory = 'edtVideoFolder'
     ShowHidden = False
     ButtonWidth = 23
     NumGlyphs = 1
     Anchors = [akTop, akLeft, akRight]
     MaxLength = 0
-    TabOrder = 1
+    TabOrder = 3
     Text = 'edtVideoFolder'
   end
   object Bevel2: TBevel[4]
     Left = 0
     Height = 2
     Top = 104
-    Width = 320
+    Width = 435
     Anchors = [akTop, akLeft, akRight]
   end
   object Label5: TLabel[5]
@@ -71,9 +71,9 @@ inherited FrameApplicationSettings: TFrameApplicationSettings
     Left = 8
     Height = 23
     Top = 26
-    Width = 298
+    Width = 413
     Anchors = [akTop, akLeft, akRight]
-    TabOrder = 2
+    TabOrder = 0
     Text = 'edtVessel'
   end
   object Label6: TLabel[7]
@@ -89,9 +89,28 @@ inherited FrameApplicationSettings: TFrameApplicationSettings
     Left = 8
     Height = 23
     Top = 69
-    Width = 298
+    Width = 413
     Anchors = [akTop, akLeft, akRight]
-    TabOrder = 3
+    TabOrder = 1
     Text = 'edtROV'
+  end
+  object Label4: TLabel[9]
+    Left = 8
+    Height = 15
+    Top = 211
+    Width = 167
+    Caption = 'Max Video Duration (minutes)'
+    Font.Style = [fsBold]
+    ParentFont = False
+  end
+  object edtMaxVideoDuration: TSpinEdit[10]
+    Left = 8
+    Height = 23
+    Top = 227
+    Width = 413
+    MaxValue = 120
+    MinValue = 5
+    TabOrder = 4
+    Value = 15
   end
 end
