@@ -1,0 +1,9 @@
+inherited fmeVideo: TfmeVideo
+  object tmrSeekAfterLoadVideo: TTimer[0]
+    Enabled = False
+    Interval = 300
+    OnTimer = tmrSeekAfterLoadVideoTimer
+    Left = 112
+    Top = 40
+  end
+end
