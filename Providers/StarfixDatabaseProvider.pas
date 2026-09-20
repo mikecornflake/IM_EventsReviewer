@@ -34,6 +34,12 @@ Type
   Protected
     Function GetDataSet: TDataSet; Override;
     Function GetReady: Boolean; Override;
+
+    Function GetFilteredDataSet: TDataSet; Override;
+    Procedure SetFilter(Const AValue: String); Override;
+
+    // Messaging
+    Procedure DoReceiveTimeSeekMessage(Sender: TObject);
   Public
     Constructor Create;
     Destructor Destroy; Override;
@@ -58,7 +64,8 @@ Type
 Implementation
 
 Uses
-  FormMain, ThirdPartySupport, Dialogs, Controls, Forms, LazLogger;
+  FormMain, FormEventsReviewer, AppMessaging, ThirdPartySupport,
+  Dialogs, Controls, Forms, LazLogger, DBSupport;
 
   { TStarfixDatabaseProvider }
 
@@ -82,19 +89,26 @@ Begin
   qryData.SQL.Add('       DATEADD(S, E.TIMEDATE, ''1970-01-01'') As [Start_(UTC)], ');
   qryData.SQL.Add('       E.[KP],                       ');
   qryData.SQL.Add('       E.[Type],                     ');
+  qryData.SQL.Add('       E.Comment As [Description],   ');
   qryData.SQL.Add('       E.[Anomaly_No],               ');
+  qryData.SQL.Add('       CASE E.Anomaly WHEN 1 THEN ''Y''   ');
+  qryData.SQL.Add('                      ELSE ''N''     ');
+  qryData.SQL.Add('       END AS [Anomaly],                  ');
+  qryData.SQL.Add('       CASE E.Anomaly WHEN 1 THEN ''Red'' ');
+  qryData.SQL.Add('                      ELSE Null      ');
+  qryData.SQL.Add('       END AS [Colour_ID],           ');
   qryData.SQL.Add('       TRY_CONVERT(decimal(18,3), E.Length) As [Length_(m)], ');
   qryData.SQL.Add('       TRY_CONVERT(decimal(18,3), E.Width) As [Width_(m)],   ');
   qryData.SQL.Add('       TRY_CONVERT(decimal(18,3), E.Height) As [Height_(m)], ');
   qryData.SQL.Add('       E.Observed_Offset As [Offset_(m)],  ');
   qryData.SQL.Add('       E.[Clock],                    ');
-  qryData.SQL.Add('       E.Comment As [Description],   ');
   qryData.SQL.Add('       E.East As [Easting],          ');
   qryData.SQL.Add('       E.North As [Northing],        ');
   qryData.SQL.Add('       E.[Depth]                     ');
   qryData.SQL.Add('FROM dbo.Event_3 E                   ');
-  qryData.SQL.Add('INNER JOIN dbo.SESSIONS S ON (S.START_TIME <= E.TIMEDATE    ');
-  qryData.SQL.Add('                              AND S.END_TIME >= E.TIMEDATE) ');
+  qryData.SQL.Add('INNER JOIN dbo.SESSIONS S ON (    S.START_TIME <= E.TIMEDATE    ');
+  qryData.SQL.Add('                              AND S.END_TIME   >= E.TIMEDATE    ');
+  qryData.SQL.Add('                              AND S.INPUT_FILES=''Pos Import'') ');
   qryData.SQL.Add('WHERE (E.PROC_FLAGS & 512)<>512      ');
   qryData.SQL.Add('ORDER BY [KP] Asc                    ');
 
@@ -130,6 +144,9 @@ Begin
   // Events
   FOnProviderReady := nil;
   FOnDataChanged := nil;
+
+  // Messages
+  frmEventsReviewer.MessageBus.Subscribe(Self, TIMMessageTime, @DoReceiveTimeSeekMessage);
 End;
 
 Destructor TStarfixDatabaseProvider.Destroy;
@@ -154,6 +171,17 @@ Function TStarfixDatabaseProvider.GetReady: Boolean;
 Begin
   Result := FLoaded And FConnection.Connected;
 End;
+
+Function TStarfixDatabaseProvider.GetFilteredDataSet: TDataSet;
+begin
+  // TODO
+end;
+
+Procedure TStarfixDatabaseProvider.SetFilter(Const AValue: String);
+begin
+  inherited SetFilter(AValue);
+  // TODO
+end;
 
 Function TStarfixDatabaseProvider.Open: Boolean;
 Begin
@@ -201,6 +229,9 @@ Begin
         // Let the Application know we're now ready for it
         If Assigned(FOnProviderReady) Then
           FOnProviderReady(Self);
+
+        // New fangled messaging marlarky :-)
+        frmEventsReviewer.MessageBus.BroadcastDataProviderReady(Self, Self);
 
         // We suppressed the first event being loaded, so broadcast it now manually
         qryDataAfterScroll(qryData);
@@ -280,12 +311,18 @@ Procedure TStarfixDatabaseProvider.qryDataAfterScroll(ADataSet: TDataSet);
 Var
   sAnomalyNo: String;
   dtDateTime: TDateTime;
+  dKP: Extended;
 Begin
   If Ready And Assigned(FOnDataChanged) And Not qryData.ControlsDisabled Then
   Begin
     sAnomalyNo := qryData.FieldByName('Anomaly_No').AsString;
     dtDateTime := qryData.FieldByName('Start_(UTC)').AsDateTime;
+    dKP := qryData.FieldByName('KP').AsExtended;
+
     FOnDataChanged(Self, sAnomalyNo, dtDateTime);
+
+    frmEventsReviewer.MessageBus.BroadcastTime(Self, dtDateTime);
+    frmEventsReviewer.MessageBus.BroadcastKP(Self, dKP);
   End;
 End;
 
@@ -298,14 +335,14 @@ Procedure TStarfixDatabaseProvider.qryDataAfterOpen(ADataSet: TDataSet);
   End;
 
 Begin
-  TrySetDisplayFormat(qryData.FieldByName('KP'), '0.000');
-  TrySetDisplayFormat(qryData.FieldByName('Easting'), '0.00');
-  TrySetDisplayFormat(qryData.FieldByName('Northing'), '0.00');
-  TrySetDisplayFormat(qryData.FieldByName('Depth'), '0.00');
-  TrySetDisplayFormat(qryData.FieldByName('Offset_(m)'), '0.00');
-  TrySetDisplayFormat(qryData.FieldByName('Length_(m)'), '0.00');
-  TrySetDisplayFormat(qryData.FieldByName('Width_(m)'), '0.00');
-  TrySetDisplayFormat(qryData.FieldByName('Height_(m)'), '0.00');
+  TrySetDisplayFormat(ADataSet.FieldByName('KP'), '0.000');
+  TrySetDisplayFormat(ADataSet.FieldByName('Easting'), '0.00');
+  TrySetDisplayFormat(ADataSet.FieldByName('Northing'), '0.00');
+  TrySetDisplayFormat(ADataSet.FieldByName('Depth'), '0.00');
+  TrySetDisplayFormat(ADataSet.FieldByName('Offset_(m)'), '0.00');
+  TrySetDisplayFormat(ADataSet.FieldByName('Length_(m)'), '0.00');
+  TrySetDisplayFormat(ADataSet.FieldByName('Width_(m)'), '0.00');
+  TrySetDisplayFormat(ADataSet.FieldByName('Height_(m)'), '0.00');
 End;
 
 Function TStarfixDatabaseProvider.GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles;
@@ -357,10 +394,40 @@ End;
 
 Function TStarfixDatabaseProvider.DateTime: TDateTime;
 Begin
-  If (qryData.Active) And (qryData.RecordCount > 0) Then
+  If Ready And (qryData.Active) And (qryData.RecordCount > 0) Then
     Result := qryData.FieldByName('Start_(UTC)').AsDateTime
   Else
     Result := 0;
+End;
+
+Procedure TStarfixDatabaseProvider.DoReceiveTimeSeekMessage(Sender: TObject);
+Var
+  oMessage: TIMMessageTime;
+  oKP: TField;
+  dStartKP: Extended;
+  dtThreshold: TDateTime;
+Begin
+  If Not (Sender Is TIMMessageTime) Then
+    Exit;
+
+  If Ready And (qryData.Active) And (qryData.RecordCount > 0) Then
+  Begin
+    oMessage := TIMMessageTime(Sender);
+
+    // Are we being asked to jump to a potentially distant point on the video?
+    If frmEventsReviewer.ExactTimeSeek Then
+      dtThreshold := -1
+    Else
+      dtThreshold := 10 / SecsPerDay;
+
+    oKP := qryData.FieldByName('KP');
+    dStartKP := oKP.AsExtended;
+
+    GotoNearestTime(qryData, 'Start_(UTC)', oMessage.DateTime, dtThreshold);
+
+    If (abs(dStartKP - oKP.AsExtended) > 0.001) Then
+      frmEventsReviewer.MessageBus.BroadcastKP(Self, oKP.AsExtended);
+  End;
 End;
 
 Function TStarfixDatabaseProvider.AnomalyReference: String;

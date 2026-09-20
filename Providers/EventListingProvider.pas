@@ -26,18 +26,26 @@ Type
     FWorksheet: TsWorksheet;
 
     // Dataset
-    FEvents: TMemTable;
+    FMaster: TMemTable;
+    FFilteredDataset: TBufDataset;
+    FUpdatingFilteredDataset: Boolean;
 
+    Procedure DatasetAfterOpen(ADataSet: TDataSet);
     Function RowIsEmpty(ARow: Integer): Boolean;
 
     Procedure CreateFields;
     Procedure LoadEvents;
 
     Procedure DoEventsAfterScroll(ADataSet: TDataSet);
+    Procedure DoFilterAfterScroll(ADataSet: TDataSet);
   Protected
     Function GetDataSet: TDataSet; Override;
     Function GetReady: Boolean; Override;
 
+    Function GetFilteredDataSet: TDataSet; Override;
+    Procedure SetFilter(Const AValue: String); Override;
+
+    Procedure DoReceiveTimeSeekMessage(Sender: TObject);
   Public
     Constructor Create;
     Destructor Destroy; Override;
@@ -62,7 +70,8 @@ Type
 Implementation
 
 Uses
-  fpsTypes, SpreadsheetSupport, LazLogger, Dialogs;
+  fpsTypes, SpreadsheetSupport, LazLogger, Dialogs, AppMessaging,
+  FormEventsReviewer;
 
   { TEventListingProvider }
 
@@ -80,16 +89,25 @@ Begin
 
   FUTCOffset := 1;
 
-  FEvents := TMemTable.Create;
+  FMaster := TMemTable.Create;
+  FMaster.Table.AfterScroll := @DoEventsAfterScroll;
+  FMaster.Table.AfterOpen := @DatasetAfterOpen;
 
-  FEvents.Table.AfterScroll := @DoEventsAfterScroll;
+  FFilteredDataset := TBufDataset.Create(nil);
+  FFilteredDataset.AfterScroll := @DoFilterAfterScroll;
+  FFilteredDataset.AfterOpen := @DatasetAfterOpen;
+  FUpdatingFilteredDataset := False;
+
+  // Messages
+  frmEventsReviewer.MessageBus.Subscribe(Self, TIMMessageTime, @DoReceiveTimeSeekMessage);
 End;
 
 
 Destructor TEventListingProvider.Destroy;
 Begin
   FreeAndNil(FSpreadsheet);
-  FreeAndNil(FEvents);
+  FreeAndNil(FMaster);
+  FreeAndNil(FFilteredDataset);
 
   Inherited Destroy;
 End;
@@ -133,8 +151,11 @@ Begin
     If Assigned(FOnProviderReady) Then
       FOnProviderReady(Self);
 
+    // New fangled messaging marlarky :-)
+    frmEventsReviewer.MessageBus.BroadcastDataProviderReady(Self, Self);
+
     // We suppressed the first event being loaded, so broadcast it now manually
-    DoEventsAfterScroll(FEvents.Table);
+    DoEventsAfterScroll(FMaster.Table);
   Except
     FreeAndNil(FSpreadsheet);
     FWorksheet := nil;
@@ -154,33 +175,53 @@ Begin
   FreeAndNil(FSpreadsheet);
   FWorksheet := nil;
 
-  FEvents.Close;
-  FEvents.ClearAllRecords;
+  FMaster.Close;
+  FMaster.ClearAllRecords;
 
   Result := True;
 End;
 
 Function TEventListingProvider.GetDataSet: TDataSet;
 Begin
-  Result := FEvents.Table;
+  Result := FMaster.Table;
 End;
-
 
 Function TEventListingProvider.GetReady: Boolean;
 Begin
-  Result := FLoaded And Assigned(FEvents) And FEvents.Active;
+  Result := FLoaded And Assigned(FMaster) And FMaster.Active;
+End;
+
+Function TEventListingProvider.GetFilteredDataSet: TDataSet;
+Begin
+  Result := FFilteredDataset;
+End;
+
+Procedure TEventListingProvider.SetFilter(Const AValue: String);
+Begin
+  Inherited SetFilter(AValue);
+
+  If Filtered Then
+  Begin
+    BuildFilteredDataset(FMaster.Table, FFilteredDataset, AValue);
+
+    FFilteredDataset.Open;
+
+    // Broadcast Changed Filter
+  End
+  Else If FFilteredDataset.Active Then
+    FFilteredDataset.Close;
 End;
 
 
 Function TEventListingProvider.DateTime: TDateTime;
 Begin
-  Result := FEvents['Start_(UTC)'].AsDateTime;
+  Result := FMaster['Start_(UTC)'].AsDateTime;
 End;
 
 
 Function TEventListingProvider.AnomalyReference: String;
 Begin
-  Result := FEvents['Anomaly_No'].AsString;
+  Result := FMaster['Anomaly_No'].AsString;
 End;
 
 Procedure TEventListingProvider.ApplySettingsFrame(AFrame: TFrameEventListingSettings);
@@ -234,23 +275,27 @@ End;
 
 Procedure TEventListingProvider.CreateFields;
 Begin
-  FEvents.AddField('UNIQUE_ID', ftInteger);
-  FEvents.AddField('Start_(UTC)', ftDateTime);
-  FEvents.AddField('KP', ftFloat);
-  FEvents.AddField('Type', ftString, 255);
-  FEvents.AddField('Anomaly_No', ftString, 100);
+  FMaster.AddField('UNIQUE_ID', ftInteger);
+  FMaster.AddField('Start_(UTC)', ftDateTime);
+  FMaster.AddField('KP', ftFloat);
+  FMaster.AddField('Type', ftString, 255);
 
-  FEvents.AddField('Length_(m)', ftFloat);
-  FEvents.AddField('Width_(m)', ftFloat);
-  FEvents.AddField('Height_(m)', ftFloat);
-  FEvents.AddField('Offset_(m)', ftFloat);
+  FMaster.AddField('Description', ftString, 2048);
 
-  FEvents.AddField('Clock', ftString, 100);
-  FEvents.AddField('Description', ftString, 2048);
+  FMaster.AddField('Anomaly_No', ftString, 100);
+  FMaster.AddField('Anomaly', ftString, 1);
 
-  FEvents.AddField('Easting', ftFloat);
-  FEvents.AddField('Northing', ftFloat);
-  FEvents.AddField('Depth', ftFloat);
+  FMaster.AddField('Colour_ID', ftString, 100);
+
+  FMaster.AddField('Length_(m)', ftFloat);
+  FMaster.AddField('Width_(m)', ftFloat);
+  FMaster.AddField('Height_(m)', ftFloat);
+  FMaster.AddField('Offset_(m)', ftFloat);
+  FMaster.AddField('Clock', ftString, 100);
+
+  FMaster.AddField('Easting', ftFloat);
+  FMaster.AddField('Northing', ftFloat);
+  FMaster.AddField('Depth', ftFloat);
 End;
 
 Function TEventListingProvider.RowIsEmpty(ARow: Integer): Boolean;
@@ -271,10 +316,10 @@ Var
   dValue: Double;
 
   sType: String;
-  sSubType: String;
+  sSubType, sTemp: String;
 Begin
-  FEvents.Close;
-  FEvents.ClearAllRecords;
+  FMaster.Close;
+  FMaster.ClearAllRecords;
   CreateFields;
 
   If FWorksheet = nil Then
@@ -282,8 +327,8 @@ Begin
 
   dtOffset := FUTCOffset / HoursPerDay;
 
-  FEvents.Open;
-  FEvents.Table.DisableControls;
+  FMaster.Open;
+  FMaster.Table.DisableControls;
   Try
     // FStartRow is the HEADER row.
     For iRow := FStartRow + 1 To FWorksheet.GetLastRowIndex Do
@@ -291,11 +336,11 @@ Begin
       If RowIsEmpty(iRow) Then
         Continue;
 
-      FEvents.Table.Append;
+      FMaster.Table.Append;
 
       Try
         // Give offline events a stable ID within this import.
-        FEvents['UNIQUE_ID'].AsInteger := iRow + 1;
+        FMaster['UNIQUE_ID'].AsInteger := iRow + 1;
 
         // Start = A + B
         If CellDateTime(FWorksheet, iRow, FStartCol + 0, dtDate) Then
@@ -310,80 +355,167 @@ Begin
           // Event Listing time -> UTC
           dtStart := dtStart - dtOffset;
 
-          FEvents['Start_(UTC)'].AsDateTime := dtStart;
+          FMaster['Start_(UTC)'].AsDateTime := dtStart;
         End;
 
         // KP = F
         If CellFloat(FWorksheet, iRow, FStartCol + 5, dValue) Then
-          FEvents['KP'].AsFloat := dValue;
+          FMaster['KP'].AsFloat := dValue;
 
         // Type = C + '-' + D
         sType := CellText(FWorksheet, iRow, FStartCol + 2);
         sSubType := CellText(FWorksheet, iRow, FStartCol + 3);
 
         If (sType <> '') And (sSubType <> '') Then
-          FEvents['Type'].AsString := sType + '-' + sSubType
+          FMaster['Type'].AsString := sType + '-' + sSubType
         Else If sType <> '' Then
-          FEvents['Type'].AsString := sType
+          FMaster['Type'].AsString := sType
         Else
-          FEvents['Type'].AsString := sSubType;
+          FMaster['Type'].AsString := sSubType;
 
         // Anomaly_No = Q
-        FEvents['Anomaly_No'].AsString :=
-          CellText(FWorksheet, iRow, FStartCol + 16);
+        sTemp := Trim(CellText(FWorksheet, iRow, FStartCol + 16));
+
+        If sTemp <> '' Then
+        Begin
+          FMaster['Anomaly'].AsString := 'Y';
+          FMaster['Colour_ID'].AsString := 'Red';
+        End
+        Else
+        Begin
+          FMaster['Anomaly'].AsString := 'N';
+          FMaster['Colour_ID'].AsString := '';
+        End;
+
+        FMaster['Anomaly_No'].AsString := sTemp;
 
         // Dimensions = K, L, M
         If CellFloat(FWorksheet, iRow, FStartCol + 10, dValue) Then
-          FEvents['Length_(m)'].AsFloat := dValue;
+          FMaster['Length_(m)'].AsFloat := dValue;
 
         If CellFloat(FWorksheet, iRow, FStartCol + 11, dValue) Then
-          FEvents['Width_(m)'].AsFloat := dValue;
+          FMaster['Width_(m)'].AsFloat := dValue;
 
         If CellFloat(FWorksheet, iRow, FStartCol + 12, dValue) Then
-          FEvents['Height_(m)'].AsFloat := dValue;
+          FMaster['Height_(m)'].AsFloat := dValue;
 
         // No Fugro Event Listing equivalent currently.
-        FEvents['Offset_(m)'].Clear;
+        FMaster['Offset_(m)'].Clear;
 
         // Clock = O
-        FEvents['Clock'].AsString := CellText(FWorksheet, iRow, FStartCol + 14);
+        FMaster['Clock'].AsString := CellText(FWorksheet, iRow, FStartCol + 14);
 
         // Description = R
-        FEvents['Description'].AsString := CellText(FWorksheet, iRow, FStartCol + 17);
+        FMaster['Description'].AsString := CellText(FWorksheet, iRow, FStartCol + 17);
 
         // Position = H, I, J
         If CellFloat(FWorksheet, iRow, FStartCol + 7, dValue) Then
-          FEvents['Easting'].AsFloat := dValue;
+          FMaster['Easting'].AsFloat := dValue;
 
         If CellFloat(FWorksheet, iRow, FStartCol + 8, dValue) Then
-          FEvents['Northing'].AsFloat := dValue;
+          FMaster['Northing'].AsFloat := dValue;
 
         If CellFloat(FWorksheet, iRow, FStartCol + 9, dValue) Then
-          FEvents['Depth'].AsFloat := dValue;
+          FMaster['Depth'].AsFloat := dValue;
 
-        FEvents.Table.Post;
+        FMaster.Table.Post;
       Except
-        FEvents.Table.Cancel;
+        FMaster.Table.Cancel;
         Raise;
       End;
     End;
   Finally
-    FEvents.Table.EnableControls;
+    FMaster.Table.EnableControls;
   End;
 
-  FEvents.Table.First;
+  FMaster.Table.First;
 End;
 
 Procedure TEventListingProvider.DoEventsAfterScroll(ADataSet: TDataSet);
 Var
   sAnomalyNo: String;
   dtDateTime: TDateTime;
+  dKP: Extended;
 Begin
-  If Ready And Assigned(FOnDataChanged) And Not FEvents.Table.ControlsDisabled Then
+  If Ready And Assigned(FOnDataChanged) And Not ADataSet.ControlsDisabled Then
   Begin
-    sAnomalyNo := FEvents['Anomaly_No'].AsString;
-    dtDateTime := FEvents['Start_(UTC)'].AsDateTime;
+    sAnomalyNo := ADataSet.FieldByName('Anomaly_No').AsString;
+    dtDateTime := ADataSet.FieldByName('Start_(UTC)').AsDateTime;
+    dKP := ADataSet.FieldByName('KP').AsExtended;
+
     FOnDataChanged(Self, sAnomalyNo, dtDateTime);
+
+    frmEventsReviewer.MessageBus.BroadcastTime(Self, dtDateTime);
+    frmEventsReviewer.MessageBus.BroadcastKP(Self, dKP);
+  End;
+End;
+
+Procedure TEventListingProvider.DoFilterAfterScroll(ADataSet: TDataSet);
+Begin
+  If FUpdatingFilteredDataset Then
+    Exit;
+
+  If Ready And FMaster.Table.Active And FFilteredDataset.Active And Not
+    ADataSet.ControlsDisabled Then
+    FMaster.Table.RecNo := FFilteredDataset.FieldByName(MASTER_RECNO_FIELD).AsInteger;
+End;
+
+Procedure TEventListingProvider.DatasetAfterOpen(ADataSet: TDataSet);
+
+  Procedure TrySetDisplayFormat(AField: TField; AFormat: String);
+  Begin
+    If AField Is TFloatField Then
+      TFloatField(AField).DisplayFormat := AFormat;
+  End;
+
+Begin
+  TrySetDisplayFormat(ADataSet.FieldByName('KP'), '0.000');
+  TrySetDisplayFormat(ADataSet.FieldByName('Easting'), '0.00');
+  TrySetDisplayFormat(ADataSet.FieldByName('Northing'), '0.00');
+  TrySetDisplayFormat(ADataSet.FieldByName('Depth'), '0.00');
+  TrySetDisplayFormat(ADataSet.FieldByName('Offset_(m)'), '0.00');
+  TrySetDisplayFormat(ADataSet.FieldByName('Length_(m)'), '0.00');
+  TrySetDisplayFormat(ADataSet.FieldByName('Width_(m)'), '0.00');
+  TrySetDisplayFormat(ADataSet.FieldByName('Height_(m)'), '0.00');
+End;
+
+Procedure TEventListingProvider.DoReceiveTimeSeekMessage(Sender: TObject);
+Var
+  oMessage: TIMMessageTime;
+  oKP: TField;
+  dStartKP: Extended;
+  dtThreshold: TDateTime;
+Begin
+  If Not (Sender Is TIMMessageTime) Then
+    Exit;
+
+  If Ready And (FMaster.Table.Active) And (FMaster.Table.RecordCount > 0) Then
+  Begin
+    oMessage := TIMMessageTime(Sender);
+
+    // Are we being asked to jump to a potentially distant point on the video?
+    If frmEventsReviewer.ExactTimeSeek Then
+      dtThreshold := -1
+    Else
+      dtThreshold := 10 / SecsPerDay;
+
+    oKP := FMaster.Table.FieldByName('KP');
+    dStartKP := oKP.AsExtended;
+
+    GotoNearestTime(FMaster.Table, 'Start_(UTC)', oMessage.DateTime, dtThreshold);
+
+    If Filtered Then
+    Begin
+      FUpdatingFilteredDataset := True;
+      Try
+        GotoNearestTime(FFilteredDataset, 'Start_(UTC)', oMessage.DateTime, dtThreshold);
+      Finally
+        FUpdatingFilteredDataset := False;
+      End;
+    end;
+
+    If (abs(dStartKP - oKP.AsExtended) > 0.001) Then
+      frmEventsReviewer.MessageBus.BroadcastKP(Self, oKP.AsExtended);
   End;
 End;
 

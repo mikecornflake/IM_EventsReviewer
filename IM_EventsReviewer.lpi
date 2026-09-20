@@ -5,13 +5,13 @@
     <PathDelim Value="\"/>
     <General>
       <SessionStorage Value="InProjectDir"/>
-      <Title Value="IM Starfix Reviewer"/>
+      <Title Value="IM Events Reviewer"/>
       <Scaled Value="True"/>
       <ResourceType Value="res"/>
       <UseXPManifest Value="True"/>
       <XPManifest>
         <DpiAware Value="True"/>
-        <TextName Value="InspectorMike.IM_Suite.IM_StarfixAnomalies"/>
+        <TextName Value="InspectorMike.IM_Suite.IM_EventsReviewer"/>
       </XPManifest>
       <Icon Value="0"/>
     </General>
@@ -19,9 +19,9 @@
       <UseVersionInfo Value="True"/>
       <AutoIncrementBuild Value="True"/>
       <MinorVersionNr Value="1"/>
-      <BuildNr Value="53"/>
+      <BuildNr Value="82"/>
       <Attributes pvaPreRelease="True"/>
-      <StringTable Comments="Starfix Anomaly Manager" CompanyName="Inspector Mike 2.0 Pty Ltd" LegalCopyright="(c) 2026"/>
+      <StringTable Comments="Inspector Mike Events Reviewer" CompanyName="Inspector Mike 2.0 Pty Ltd" LegalCopyright="(c) 2026"/>
     </VersionInfo>
     <BuildModes>
       <Item Name="Default" Default="True"/>
@@ -30,7 +30,7 @@
           <Version Value="11"/>
           <PathDelim Value="\"/>
           <Target>
-            <Filename Value="$(TestDir)\$NameOnly($(ProjFile))\IM_StarfixReviewer"/>
+            <Filename Value="$(TestDir)\$NameOnly($(ProjFile))\IM_EventsReviewer"/>
           </Target>
           <SearchPaths>
             <IncludeFiles Value="$(ProjOutDir)"/>
@@ -76,7 +76,7 @@
           <Version Value="11"/>
           <PathDelim Value="\"/>
           <Target>
-            <Filename Value="$(TestDir)\$NameOnly($(ProjFile))\IM_StarfixReviewer"/>
+            <Filename Value="$(TestDir)\$NameOnly($(ProjFile))\IM_EventsReviewer"/>
           </Target>
           <SearchPaths>
             <IncludeFiles Value="$(ProjOutDir)"/>
@@ -145,13 +145,13 @@
     </RequiredPackages>
     <Units>
       <Unit>
-        <Filename Value="IM_StarfixReviewer.lpr"/>
+        <Filename Value="IM_EventsReviewer.lpr"/>
         <IsPartOfProject Value="True"/>
       </Unit>
       <Unit>
-        <Filename Value="Display\FormStarfixAnomalies.pas"/>
+        <Filename Value="Display\FormEventsReviewer.pas"/>
         <IsPartOfProject Value="True"/>
-        <ComponentName Value="frmStarfixReviewer"/>
+        <ComponentName Value="frmEventsReviewer"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
       </Unit>
@@ -197,13 +197,30 @@
         <Filename Value="Classes\SpreadsheetSupport.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit>
+      <Unit>
+        <Filename Value="Classes\AppMessaging.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Display\FrameVideo.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="fmeVideo"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Frame"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Display\FramePipelineEvents.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="fmePipelineEvents"/>
+        <ResourceBaseClass Value="Frame"/>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="11"/>
     <PathDelim Value="\"/>
     <Target>
-      <Filename Value="$(TestDir)\$NameOnly($(ProjFile))\IM_StarfixReviewer"/>
+      <Filename Value="$(TestDir)\$NameOnly($(ProjFile))\IM_EventsReviewer"/>
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
@@ -227,17 +244,4 @@
       <CustomOptions Value="-dIM_DEBUG"/>
     </Other>
   </CompilerOptions>
-  <Debugging>
-    <Exceptions>
-      <Item>
-        <Name Value="EAbort"/>
-      </Item>
-      <Item>
-        <Name Value="ECodetoolError"/>
-      </Item>
-      <Item>
-        <Name Value="EFOpenError"/>
-      </Item>
-    </Exceptions>
-  </Debugging>
 </CONFIG>
