@@ -104,8 +104,9 @@ Begin
   qryData.SQL.Add('       E.North As [Northing],        ');
   qryData.SQL.Add('       E.[Depth]                     ');
   qryData.SQL.Add('FROM dbo.Event_3 E                   ');
-  qryData.SQL.Add('INNER JOIN dbo.SESSIONS S ON (S.START_TIME <= E.TIMEDATE    ');
-  qryData.SQL.Add('                              AND S.END_TIME >= E.TIMEDATE) ');
+  qryData.SQL.Add('INNER JOIN dbo.SESSIONS S ON (    S.START_TIME <= E.TIMEDATE    ');
+  qryData.SQL.Add('                              AND S.END_TIME   >= E.TIMEDATE    ');
+  qryData.SQL.Add('                              AND S.INPUT_FILES=''Pos Import'') ');
   qryData.SQL.Add('WHERE (E.PROC_FLAGS & 512)<>512      ');
   qryData.SQL.Add('ORDER BY [KP] Asc                    ');
 
