@@ -72,7 +72,7 @@ End;
 Procedure TfmePipelineEvents.LoadData;
 Var
   bmOriginal: TBookMark;
-  oKP, oLen, oType: TField;
+  oKP, oLen, oType, oAnom: TField;
   sType: String;
   dKP, dLen: Extended;
 Begin
@@ -86,6 +86,7 @@ Begin
   oKP := FDataset.FieldByName('KP');
   oLen := FDataset.FieldByName('Length_(m)');
   oType := FDataset.FieldByName('Type');
+  oAnom := FDataset.FieldByName('Anomaly');
 
   FDataset.DisableControls;
   bmOriginal := FDataset.GetBookmark;
@@ -106,7 +107,7 @@ Begin
         sType := 'Fieldjoint';
 
       If Not sType.Contains(' End') Then
-        fmePipelineView.AddData(sType, dKP, dLen);
+        fmePipelineView.AddData(sType, dKP, dLen,(oAnom.AsString='Y'));
 
       FDataset.Next;
     End;
