@@ -1,4 +1,4 @@
-Program IM_StarfixReviewer;
+Program IM_EventsReviewer;
 
 {$mode objfpc}{$H+}
 
@@ -11,19 +11,19 @@ Uses
   {$ENDIF}
   Interfaces, // this includes the LCL widgetset
   Forms,
-  FormStarfixReviewer;
+  FormEventsReviewer;
 
   {$R *.res}
 
 Begin
   RequireDerivedFormResource := True;
-  Application.Title:='IM Starfix Reviewer';
+  Application.Title:='IM Events Reviewer';
   Application.Scaled:=True;
   {$PUSH}
   {$WARN 5044 OFF}
   Application.MainFormOnTaskbar := True;
   {$POP}
   Application.Initialize;
-  Application.CreateForm(TfrmStarfixReviewer, frmStarfixReviewer);
+  Application.CreateForm(TfrmEventsReviewer, frmEventsReviewer);
   Application.Run;
 End.

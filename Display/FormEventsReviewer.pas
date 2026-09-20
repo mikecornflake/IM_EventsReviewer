@@ -1,4 +1,4 @@
-Unit FormStarfixReviewer;
+Unit FormEventsReviewer;
 
 {$mode objfpc}{$H+}
 {$WARN 5024 off : Parameter "$1" not used}
@@ -15,9 +15,9 @@ Uses
 
 Type
 
-  { TfrmStarfixReviewer }
+  { TfrmEventsReviewer }
 
-  TfrmStarfixReviewer = Class(TFormMain)
+  TfrmEventsReviewer = Class(TFormMain)
     actFilterAnomalies: TAction;
     actFilterSpans: TAction;
     actOpenEventListing: TAction;
@@ -138,7 +138,7 @@ Type
   End;
 
 Var
-  frmStarfixReviewer: TfrmStarfixReviewer;
+  frmEventsReviewer: TfrmEventsReviewer;
 
 Implementation
 
@@ -151,9 +151,9 @@ Uses
 
   {$R *.lfm}
 
-  { TfrmStarfixReviewer }
+  { TfrmEventsReviewer }
 
-Procedure TfrmStarfixReviewer.FormCreate(Sender: TObject);
+Procedure TfrmEventsReviewer.FormCreate(Sender: TObject);
 Var
   sPath: String;
 Begin
@@ -216,7 +216,7 @@ Begin
   FActivated := False;
 End;
 
-Procedure TfrmStarfixReviewer.FormDestroy(Sender: TObject);
+Procedure TfrmEventsReviewer.FormDestroy(Sender: TObject);
 Begin
   FreeAndNil(FMessenger);
 
@@ -234,7 +234,7 @@ Begin
   FreeAndNil(FMediaProvider);
 End;
 
-Procedure TfrmStarfixReviewer.FormShow(Sender: TObject);
+Procedure TfrmEventsReviewer.FormShow(Sender: TObject);
 
   Procedure RoundControl(AControl: TWinControl; ARadius: Integer);
   Var
@@ -257,7 +257,7 @@ Begin
   End;
 End;
 
-Procedure TfrmStarfixReviewer.LoadGlobalSettings(oInifile: TIniFile);
+Procedure TfrmEventsReviewer.LoadGlobalSettings(oInifile: TIniFile);
 Begin
   Inherited LoadGlobalSettings(oInifile);
 
@@ -269,7 +269,7 @@ Begin
   FEventListingProvider.LoadSettings(oInifile);
 End;
 
-Procedure TfrmStarfixReviewer.SaveGlobalSettings(oInifile: TIniFile);
+Procedure TfrmEventsReviewer.SaveGlobalSettings(oInifile: TIniFile);
 Begin
   // Application Settings
   FSettings.SaveSettings(oInifile);
@@ -281,7 +281,7 @@ Begin
   Inherited SaveGlobalSettings(oInifile);
 End;
 
-Procedure TfrmStarfixReviewer.LoadLocalSettings(oInifile: TIniFile);
+Procedure TfrmEventsReviewer.LoadLocalSettings(oInifile: TIniFile);
 Begin
   Inherited LoadLocalSettings(oInifile);
 
@@ -290,7 +290,7 @@ Begin
   fmeDBGrid.LoadSettings(oInifile);
   fmeVideo.LoadSettings(oInifile);
 
-  // persist TfrmStarfixReviewer settings
+  // persist TfrmEventsReviewer settings
   pnlDetailsGrid.Height := oInifile.ReadInteger('Form', 'pnlDetailsGrid.Height',
     pnlDetailsGrid.Height);
   pcBottom.Height := oInifile.ReadInteger('Form', 'pnlImages.Height', pcBottom.Height);
@@ -301,14 +301,14 @@ Begin
   splAnomalies.Left := pnlAnomalies.Left + splAnomalies.Width;
 End;
 
-Procedure TfrmStarfixReviewer.SaveLocalSettings(oInifile: TIniFile);
+Procedure TfrmEventsReviewer.SaveLocalSettings(oInifile: TIniFile);
 Begin
   // Allow the controls to persist their settings
   fmeImageViewer.SaveSettings(oInifile);
   fmeDBGrid.SaveSettings(oInifile);
   fmeVideo.SaveSettings(oInifile);
 
-  // persist TfrmStarfixReviewer settings
+  // persist TfrmEventsReviewer settings
   oInifile.WriteInteger('Form', 'pnlDetailsGrid.Height', pnlDetailsGrid.Height);
   oInifile.WriteInteger('Form', 'pnlImages.Height', pcBottom.Height);
   oInifile.WriteInteger('Form', 'pnlAnomalies.Width', pnlAnomalies.Width);
@@ -317,7 +317,7 @@ Begin
   Inherited SaveLocalSettings(oInifile);
 End;
 
-Procedure TfrmStarfixReviewer.RefreshUI;
+Procedure TfrmEventsReviewer.RefreshUI;
 Begin
   Inherited RefreshUI;
 
@@ -332,24 +332,24 @@ Begin
   actFilterSpans.Enabled := actSeekVideo.Enabled;
 End;
 
-Procedure TfrmStarfixReviewer.tmrHideSummaryTimer(Sender: TObject);
+Procedure TfrmEventsReviewer.tmrHideSummaryTimer(Sender: TObject);
 Begin
   tmrHideSummary.Enabled := False;
   pnlHidingSummary.Visible := False;
 End;
 
-Procedure TfrmStarfixReviewer.actSeekVideoExecute(Sender: TObject);
+Procedure TfrmEventsReviewer.actSeekVideoExecute(Sender: TObject);
 Begin
   If FDataProvider.Ready Then
     FMessenger.BroadcastTime(Self, FDataProvider.DateTime);
 End;
 
-Procedure TfrmStarfixReviewer.DBEditClick(Sender: TObject);
+Procedure TfrmEventsReviewer.DBEditClick(Sender: TObject);
 Begin
   TDBEdit(Sender).SelectAll;
 End;
 
-Procedure TfrmStarfixReviewer.actSettingsClick(Sender: TObject);
+Procedure TfrmEventsReviewer.actSettingsClick(Sender: TObject);
 Var
   oDlg: TDialogFrameHost;
   fmeSettingsApp: TFrameApplicationSettings;
@@ -361,7 +361,7 @@ Begin
   Try
     oDlg.Caption := Application.Title;
 
-    oDlg.RegisterFrame(fmeSettingsApp, 'Starfix');
+    oDlg.RegisterFrame(fmeSettingsApp, 'Folders');
     FSettings.PopulateSettingsFrame(fmeSettingsApp);
 
     oDlg.RegisterFrame(fmeSettingsVideo, 'Video');
@@ -381,7 +381,7 @@ Begin
   RefreshUI;
 End;
 
-Procedure TfrmStarfixReviewer.SetDataProvider(AProvider: TDataProvider);
+Procedure TfrmEventsReviewer.SetDataProvider(AProvider: TDataProvider);
 Begin
   If Assigned(FDataProvider) Then
   Begin
@@ -412,7 +412,7 @@ Begin
   End;
 End;
 
-Procedure TfrmStarfixReviewer.DoReceiveTimeSeekMessage(Sender: TObject);
+Procedure TfrmEventsReviewer.DoReceiveTimeSeekMessage(Sender: TObject);
 //Var
 //  oMessage: TIMMessageTime;
 Begin
@@ -425,7 +425,7 @@ Begin
   //  FormatDateTime('HH:mm:ss', oMessage.DateTime);
 End;
 
-Procedure TfrmStarfixReviewer.actOpenEventListingExecute(Sender: TObject);
+Procedure TfrmEventsReviewer.actOpenEventListingExecute(Sender: TObject);
 Var
   oDlg: TDialogFrameHost;
   fmeSettingsEventListing: TFrameEventListingSettings;
@@ -440,7 +440,7 @@ Begin
     oDlg.RegisterFrame(fmeSettingsEventListing, 'Event Listing');
     FEventListingProvider.PopulateSettingsFrame(fmeSettingsEventListing);
 
-    oDlg.RegisterFrame(fmeSettingsApp, 'Starfix');
+    oDlg.RegisterFrame(fmeSettingsApp, 'Folders');
     FSettings.PopulateSettingsFrame(fmeSettingsApp);
 
     If oDlg.ShowModal = mrOk Then
@@ -461,7 +461,7 @@ Begin
   End;
 End;
 
-Procedure TfrmStarfixReviewer.actDatabaseOpenClick(Sender: TObject);
+Procedure TfrmEventsReviewer.actDatabaseOpenClick(Sender: TObject);
 Var
   oDlg: TDialogFrameHost;
   fmeSettingsMSSQL: TFrameMSSQLConnection;
@@ -479,7 +479,7 @@ Begin
     oDlg.RegisterFrame(fmeSettingsMSSQL, 'Database Server');
     FStarfixDatabaseProvider.PopulateSettingsFrame(fmeSettingsMSSQL);
 
-    oDlg.RegisterFrame(fmeSettingsApp, 'Starfix');
+    oDlg.RegisterFrame(fmeSettingsApp, 'Folders');
     FSettings.PopulateSettingsFrame(fmeSettingsApp);
 
     If oDlg.ShowModal = mrOk Then
@@ -500,7 +500,7 @@ Begin
   End;
 End;
 
-Procedure TfrmStarfixReviewer.DoApplyFilter(Sender: TObject);
+Procedure TfrmEventsReviewer.DoApplyFilter(Sender: TObject);
 Begin
   If actFilterAnomalies.Checked And actFilterSpans.Checked Then
     fmeDBGrid.Filter := '(Anomaly = ''Y'') AND (Type = ''Freespan*'')'
@@ -512,19 +512,19 @@ Begin
     fmeDBGrid.Filter := '';
 End;
 
-Procedure TfrmStarfixReviewer.actRefreshDatabaseExecute(Sender: TObject);
+Procedure TfrmEventsReviewer.actRefreshDatabaseExecute(Sender: TObject);
 Begin
   FDataProvider.Refresh;
 
   RefreshUI;
 End;
 
-Procedure TfrmStarfixReviewer.mnuExitClick(Sender: TObject);
+Procedure TfrmEventsReviewer.mnuExitClick(Sender: TObject);
 Begin
   Close;
 End;
 
-Procedure TfrmStarfixReviewer.DoProviderReady(Sender: TObject);
+Procedure TfrmEventsReviewer.DoProviderReady(Sender: TObject);
 Begin
   // We're now either connected to database, or have the offline data available
   If FDataProvider.Ready Then
@@ -543,7 +543,7 @@ Begin
   RefreshUI;
 End;
 
-Procedure TfrmStarfixReviewer.LoadAnomalyImages(Const AAnomalyReference: String);
+Procedure TfrmEventsReviewer.LoadAnomalyImages(Const AAnomalyReference: String);
 Var
   slImages: TStringList;
   sImageFile: String;
@@ -575,7 +575,7 @@ Begin
   End;
 End;
 
-Procedure TfrmStarfixReviewer.DoRefreshAnomalyImages(Sender: TObject);
+Procedure TfrmEventsReviewer.DoRefreshAnomalyImages(Sender: TObject);
 Var
   sAnomalyRef: String;
 Begin
@@ -587,7 +587,7 @@ Begin
 End;
 
 // Data has just loaded or User has scrolled to the next anomaly in the list
-Procedure TfrmStarfixReviewer.DoDataChanged(Sender: TObject; Const ANewAnomalyNo: String;
+Procedure TfrmEventsReviewer.DoDataChanged(Sender: TObject; Const ANewAnomalyNo: String;
   Const ADateTime: TDateTime);
 Begin
   tmrHideSummary.Enabled := True;
@@ -601,7 +601,7 @@ Begin
   RefreshUI;
 End;
 
-Function TfrmStarfixReviewer.AddAnomalyImage(Const ASourceFilename: String): Boolean;
+Function TfrmEventsReviewer.AddAnomalyImage(Const ASourceFilename: String): Boolean;
 Var
   iFileSuffix: Integer;
   sFilename, sAnomalyRef, sDir, sExt: String;
@@ -635,12 +635,12 @@ Begin
     Status := 'Unable to copy anomaly image ' + ASourceFilename;
 End;
 
-function TfrmStarfixReviewer.GetExactTimeSeek: Boolean;
+function TfrmEventsReviewer.GetExactTimeSeek: Boolean;
 begin
   Result := fmeVideo.VideoTrackbarSeek;
 end;
 
-Function TfrmStarfixReviewer.CheckAnomalyReferenceReadiness: Boolean;
+Function TfrmEventsReviewer.CheckAnomalyReferenceReadiness: Boolean;
 Begin
   Result := False;
 
@@ -652,7 +652,7 @@ Begin
       Result := True;
 End;
 
-Procedure TfrmStarfixReviewer.DoPlayerGrabImage(Const AFolder: String);
+Procedure TfrmEventsReviewer.DoPlayerGrabImage(Const AFolder: String);
 Var
   oDlg: TDialogImageSelection;
   i: Integer;
@@ -688,7 +688,7 @@ Begin
   End;
 End;
 
-Procedure TfrmStarfixReviewer.DoAddNewImage(Sender: TObject);
+Procedure TfrmEventsReviewer.DoAddNewImage(Sender: TObject);
 Begin
   If Not CheckAnomalyReferenceReadiness Then
     Exit;

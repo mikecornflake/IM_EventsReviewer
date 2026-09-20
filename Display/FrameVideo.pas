@@ -64,7 +64,7 @@ Const
 Implementation
 
 Uses
-  FormStarfixReviewer, VideoEngineFactory, NavigationController, FrameVideoLibmpv;
+  FormEventsReviewer, VideoEngineFactory, NavigationController, FrameVideoLibmpv;
 
   {$R *.lfm}
 
@@ -94,7 +94,7 @@ Begin
   fmeVideoPlayer.Autoplay := False;
   fmeSyncedVideo.OnVideoLoaded := @DoVideoLoaded;
 
-  frmStarfixReviewer.Messenger.Register(Self, TIMMessageTime, @DoReceiveTimeSeekMessage);
+  frmEventsReviewer.Messenger.Register(Self, TIMMessageTime, @DoReceiveTimeSeekMessage);
 
   FLastTimeSent := 0;
   FPendingSeek := False;
@@ -164,14 +164,14 @@ Begin
     FLastTimeSent := ADateTime;
     FLastBroadcastTick := GetTickCount64;
 
-    frmStarfixReviewer.Messenger.BroadcastTime(Self, ADateTime);
+    frmEventsReviewer.Messenger.BroadcastTime(Self, ADateTime);
   End;
 End;
 
 Procedure TfmeVideo.DoPlayerGrabImage(Sender: TObject; Const AFolder: String);
 Begin
   // Let the UI decide what to do with the images
-  frmStarfixReviewer.DoPlayerGrabImage(AFolder);
+  frmEventsReviewer.DoPlayerGrabImage(AFolder);
 End;
 
 Procedure TfmeVideo.DoReceiveTimeSeekMessage(Sender: TObject);
@@ -199,11 +199,11 @@ Begin
     // Yes, videos need to be updated
 
     // Does the Data Provider know anything about Videos?
-    oVideoFiles := frmStarfixReviewer.DataProvider.GetVideoFilesForTime(oMessage.DateTime);
+    oVideoFiles := frmEventsReviewer.DataProvider.GetVideoFilesForTime(oMessage.DateTime);
 
     // If not, ask the Media Provider...
     If Not Assigned(oVideoFiles) Then
-      oVideoFiles := frmStarfixReviewer.MediaProvider.VideoFilesForDateTime(oMessage.DateTime);
+      oVideoFiles := frmEventsReviewer.MediaProvider.VideoFilesForDateTime(oMessage.DateTime);
 
     Try
       LoadVideos(oVideoFiles, oMessage.DateTime);
@@ -232,15 +232,15 @@ Begin
     FPendingSeek := True;
     FPendingSeekTime := ASeekDateTime;
 
-    frmStarfixReviewer.Busy := True;
-    frmStarfixReviewer.DisableAutoSizing;
+    frmEventsReviewer.Busy := True;
+    frmEventsReviewer.DisableAutoSizing;
     Try
       fmeSyncedVideo.BeginLoadVideos;
       Try
         For oVideoFile In AVideoFiles Do
         Begin
           sFolder := IncludeTrailingBackslash(
-            frmStarfixReviewer.MediaProvider.LookupFolder(oVideoFile.Filename));
+            frmEventsReviewer.MediaProvider.LookupFolder(oVideoFile.Filename));
 
           If FileExists(sFolder + oVideoFile.Filename) Then
             fmeSyncedVideo.Load(sFolder + oVideoFile.Filename,
@@ -263,8 +263,8 @@ Begin
         fmeVideoPlayer.RefreshUI;
       End;
     Finally
-      frmStarfixReviewer.EnableAutoSizing;
-      frmStarfixReviewer.Busy := False;
+      frmEventsReviewer.EnableAutoSizing;
+      frmEventsReviewer.Busy := False;
     End;
   End;
 End;

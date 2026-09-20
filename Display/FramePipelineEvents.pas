@@ -32,7 +32,7 @@ Type
 Implementation
 
 Uses
-  FormStarfixReviewer, LazLogger;
+  FormEventsReviewer, LazLogger;
 
   {$R *.lfm}
 
@@ -49,8 +49,8 @@ Begin
 
   FDataset := nil;
 
-  frmStarfixReviewer.Messenger.Register(self, TIMMessageKP, @DoReceiveSeekKPMessage);
-  frmStarfixReviewer.Messenger.Register(self, TIMMessageDataProviderReady,
+  frmEventsReviewer.Messenger.Register(self, TIMMessageKP, @DoReceiveSeekKPMessage);
+  frmEventsReviewer.Messenger.Register(self, TIMMessageDataProviderReady,
     @DoReceiveDataProviderReady);
 End;
 
@@ -81,7 +81,7 @@ Begin
 
   ClearData;
 
-  frmStarfixReviewer.Status := 'Loading chart';
+  frmEventsReviewer.Status := 'Loading chart';
 
   oKP := FDataset.FieldByName('KP');
   oLen := FDataset.FieldByName('Length_(m)');
@@ -116,7 +116,7 @@ Begin
     FDataset.EnableControls;
     fmePipelineView.EndUpdate;
 
-    frmStarfixReviewer.Status := '';
+    frmEventsReviewer.Status := '';
   End;
 End;
 
