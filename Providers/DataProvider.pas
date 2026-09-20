@@ -18,9 +18,13 @@ Type
     Procedure SaveSettings(AInifile: TIniFile);
   End;
 
-
   { IDataProvider }
   IDataProvider = Interface
+    Function GetFiltered: Boolean;
+
+    Procedure SetFilter(Const AValue: String);
+    Function GetFilter: String;
+
     Function GetOnProviderReady: TNotifyEvent;
     Procedure SetOnProviderReady(AValue: TNotifyEvent);
 
@@ -29,6 +33,7 @@ Type
     Function GetReady: Boolean;
 
     Function GetDataSet: TDataSet;
+    Function GetFilteredDataSet: TDataSet;
 
     Function GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles;
     Function DateTime: TDateTime;
@@ -39,9 +44,13 @@ Type
 
     Function Title: String;
 
-    // Properties
-    Property DataSet: TDataSet Read GetDataSet;
     Property Ready: Boolean Read GetReady;
+
+    Property DataSet: TDataSet Read GetDataSet;
+
+    Property FilteredDataSet: TDataSet Read GetFilteredDataSet;
+    Property Filtered: Boolean Read GetFiltered;
+    Property Filter: String Read GetFilter Write SetFilter;
 
     // Events
     Property OnProviderReady: TNotifyEvent Read GetOnProviderReady Write SetOnProviderReady;
@@ -53,11 +62,17 @@ Type
   Protected
     // State
     FLoaded: Boolean;
+    FFilter: String;
 
     FOnProviderReady: TNotifyEvent;
     FOnDataChanged: TDataChangedEvent;
 
     Function GetDataSet: TDataSet; Virtual; Abstract;
+    Function GetFilteredDataSet: TDataSet; Virtual; Abstract;
+
+    Function GetFiltered: Boolean;
+    Procedure SetFilter(Const AValue: String); Virtual;
+    Function GetFilter: String; Virtual;
 
     Procedure DoProviderReady;
     Procedure DoAnomalyChanged(Const AAnomalyNo: String; Const ADateTime: TDateTime);
@@ -81,13 +96,17 @@ Type
     Function DateTime: TDateTime; Virtual; Abstract;
     Function AnomalyReference: String; Virtual; Abstract;
 
-    Property DataSet: TDataSet Read GetDataSet;
-
     Procedure LoadSettings(AInifile: TIniFile); Virtual; Abstract;
     Procedure SaveSettings(AInifile: TIniFile); Virtual; Abstract;
 
     // Properties
     Property Ready: Boolean Read GetReady;
+
+    Property DataSet: TDataSet Read GetDataSet;
+
+    Property FilteredDataSet: TDataSet Read GetFilteredDataSet;
+    Property Filtered: Boolean Read GetFiltered;
+    Property Filter: String Read FFilter Write SetFilter;
 
     // Events
     Property OnProviderReady: TNotifyEvent Read GetOnProviderReady Write SetOnProviderReady;
@@ -97,6 +116,21 @@ Type
 Implementation
 
 { TDataProvider }
+
+Function TDataProvider.GetFiltered: Boolean;
+begin
+  Result := Trim(FFilter)<>'';
+end;
+
+Procedure TDataProvider.SetFilter(Const AValue: String);
+begin
+  FFilter := AValue;
+end;
+
+Function TDataProvider.GetFilter: String;
+begin
+  Result := FFilter;
+end;
 
 Procedure TDataProvider.DoProviderReady;
 Begin

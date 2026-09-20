@@ -35,6 +35,9 @@ Type
     Function GetDataSet: TDataSet; Override;
     Function GetReady: Boolean; Override;
 
+    Function GetFilteredDataSet: TDataSet; Override;
+    Procedure SetFilter(Const AValue: String); Override;
+
     // Messaging
     Procedure DoReceiveTimeSeekMessage(Sender: TObject);
   Public
@@ -87,13 +90,13 @@ Begin
   qryData.SQL.Add('       E.[KP],                       ');
   qryData.SQL.Add('       E.[Type],                     ');
   qryData.SQL.Add('       E.Comment As [Description],   ');
+  qryData.SQL.Add('       E.[Anomaly_No],               ');
   qryData.SQL.Add('       CASE E.Anomaly WHEN 1 THEN ''Y''   ');
   qryData.SQL.Add('                      ELSE ''N''     ');
   qryData.SQL.Add('       END AS [Anomaly],                  ');
   qryData.SQL.Add('       CASE E.Anomaly WHEN 1 THEN ''Red'' ');
   qryData.SQL.Add('                      ELSE Null      ');
   qryData.SQL.Add('       END AS [Colour_ID],           ');
-  qryData.SQL.Add('       E.[Anomaly_No],               ');
   qryData.SQL.Add('       TRY_CONVERT(decimal(18,3), E.Length) As [Length_(m)], ');
   qryData.SQL.Add('       TRY_CONVERT(decimal(18,3), E.Width) As [Width_(m)],   ');
   qryData.SQL.Add('       TRY_CONVERT(decimal(18,3), E.Height) As [Height_(m)], ');
@@ -168,6 +171,17 @@ Function TStarfixDatabaseProvider.GetReady: Boolean;
 Begin
   Result := FLoaded And FConnection.Connected;
 End;
+
+Function TStarfixDatabaseProvider.GetFilteredDataSet: TDataSet;
+begin
+  // TODO
+end;
+
+Procedure TStarfixDatabaseProvider.SetFilter(Const AValue: String);
+begin
+  inherited SetFilter(AValue);
+  // TODO
+end;
 
 Function TStarfixDatabaseProvider.Open: Boolean;
 Begin
@@ -321,14 +335,14 @@ Procedure TStarfixDatabaseProvider.qryDataAfterOpen(ADataSet: TDataSet);
   End;
 
 Begin
-  TrySetDisplayFormat(qryData.FieldByName('KP'), '0.000');
-  TrySetDisplayFormat(qryData.FieldByName('Easting'), '0.00');
-  TrySetDisplayFormat(qryData.FieldByName('Northing'), '0.00');
-  TrySetDisplayFormat(qryData.FieldByName('Depth'), '0.00');
-  TrySetDisplayFormat(qryData.FieldByName('Offset_(m)'), '0.00');
-  TrySetDisplayFormat(qryData.FieldByName('Length_(m)'), '0.00');
-  TrySetDisplayFormat(qryData.FieldByName('Width_(m)'), '0.00');
-  TrySetDisplayFormat(qryData.FieldByName('Height_(m)'), '0.00');
+  TrySetDisplayFormat(ADataSet.FieldByName('KP'), '0.000');
+  TrySetDisplayFormat(ADataSet.FieldByName('Easting'), '0.00');
+  TrySetDisplayFormat(ADataSet.FieldByName('Northing'), '0.00');
+  TrySetDisplayFormat(ADataSet.FieldByName('Depth'), '0.00');
+  TrySetDisplayFormat(ADataSet.FieldByName('Offset_(m)'), '0.00');
+  TrySetDisplayFormat(ADataSet.FieldByName('Length_(m)'), '0.00');
+  TrySetDisplayFormat(ADataSet.FieldByName('Width_(m)'), '0.00');
+  TrySetDisplayFormat(ADataSet.FieldByName('Height_(m)'), '0.00');
 End;
 
 Function TStarfixDatabaseProvider.GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles;

@@ -100,10 +100,10 @@ Type
     fmeImageViewer: TFrameImageViewer;
     fmeDBGrid: TFrameGrid;
     fmeVerticalDBGrid: TFrameVerticalDBGrid;
-    fmeChart: TfmePipelineEvents;
+    fmePipelineChart: TfmePipelineEvents;
 
     Function AddAnomalyImage(Const ASourceFilename: String): Boolean;
-    function GetExactTimeSeek: Boolean;
+    Function GetExactTimeSeek: Boolean;
     Procedure LoadAnomalyImages(Const AAnomalyReference: String);
 
     Procedure DoRefreshAnomalyImages(Sender: TObject);
@@ -175,10 +175,10 @@ Begin
   fmeImageViewer.OnRequestRefreshImages := @DoRefreshAnomalyImages;
   fmeImageViewer.Enabled := False;
 
-  fmeChart := TfmePipelineEvents.Create(Self);
-  fmeChart.Parent := tsChart;
-  fmeChart.Name := 'fmeChart';
-  fmeChart.Align := alClient;
+  fmePipelineChart := TfmePipelineEvents.Create(Self);
+  fmePipelineChart.Parent := tsChart;
+  fmePipelineChart.Name := 'fmePipelineChart';
+  fmePipelineChart.Align := alClient;
 
   fmeDBGrid := TFrameGrid.Create(Self);
   fmeDBGrid.Parent := pnlAnomalies;
@@ -208,7 +208,7 @@ Begin
   dsNotification.Dataset := nil;
   fmeDBGrid.Dataset := nil;
   fmeVerticalDBGrid.Dataset := nil;
-  fmeChart.Dataset := nil;
+  fmePipelineChart.Dataset := nil;
 
   // Media Provider
   FMediaProvider := TMediaProvider.Create;
@@ -222,7 +222,7 @@ Begin
 
   // Fully aware these woudl be cleared up by their owner anyway
   // My philosophy is: I create, I clean up...
-  FreeAndNil(fmeChart);
+  FreeAndNil(fmePipelineChart);
   FreeAndNil(fmeImageViewer);
   FreeAndNil(fmeDBGrid);
   FreeAndNil(fmeVideo);
@@ -391,9 +391,10 @@ Begin
     FDataProvider.OnDataChanged := nil;
 
     dsNotification.Dataset := nil;
+    fmePipelineChart.Dataset := nil;
+
     fmeDBGrid.Dataset := nil;
     fmeVerticalDBGrid.Dataset := nil;
-    fmeChart.Dataset := nil;
   End;
 
   FDataProvider := AProvider;
@@ -404,9 +405,10 @@ Begin
     FDataProvider.OnDataChanged := @DoDataChanged;
 
     dsNotification.Dataset := FDataProvider.Dataset;
+    fmePipelineChart.Dataset := FDataProvider.Dataset;
+
     fmeDBGrid.Dataset := FDataProvider.Dataset;
     fmeVerticalDBGrid.Dataset := FDataProvider.Dataset;
-    fmeChart.Dataset := FDataProvider.Dataset;
 
     FDataProvider.Open;
   End;
@@ -419,7 +421,7 @@ Begin
   If Not (Sender Is TIMMessageTime) Then
     Exit;
 
-//  oMessage := TIMMessageTime(Sender);
+  //  oMessage := TIMMessageTime(Sender);
 
   //Caption := oMessage.Sender.ClassName + ' Seek to: ' +
   //  FormatDateTime('HH:mm:ss', oMessage.DateTime);
@@ -502,14 +504,39 @@ End;
 
 Procedure TfrmEventsReviewer.DoApplyFilter(Sender: TObject);
 Begin
+  // TODO FIX HACK, IMPLEMENT MESSAGING
   If actFilterAnomalies.Checked And actFilterSpans.Checked Then
-    fmeDBGrid.Filter := '(Anomaly = ''Y'') AND (Type = ''Freespan*'')'
+  Begin
+    actFilterAnomalies.Checked := False;
+    actFilterSpans.Checked := False;
+
+    FDataProvider.Filter := '';
+    fmeDBGrid.Dataset := FDataProvider.Dataset;
+    fmeVerticalDBGrid.Dataset := FDataProvider.Dataset;
+  End
   Else If actFilterAnomalies.Checked Then
-    fmeDBGrid.Filter := '(Anomaly = ''Y'')'
+  Begin
+    FDataProvider.Filter := '(Anomaly = ''Y'')';
+
+    fmeDBGrid.Dataset := FDataProvider.FilteredDataSet;
+    fmeVerticalDBGrid.Dataset := FDataProvider.FilteredDataSet;
+  End
   Else If actFilterSpans.Checked Then
-    fmeDBGrid.Filter := '(Type = ''Freespan*'')'
+  Begin
+    FDataProvider.Filter := '(Type = ''Freespan*'')';
+
+    fmeDBGrid.Dataset := FDataProvider.FilteredDataSet;
+    fmeVerticalDBGrid.Dataset := FDataProvider.FilteredDataSet;
+  End
   Else
-    fmeDBGrid.Filter := '';
+  Begin
+    FDataProvider.Filter := '';
+    fmeDBGrid.Dataset := FDataProvider.Dataset;
+    fmeVerticalDBGrid.Dataset := FDataProvider.Dataset;
+  End;
+
+  // Resize columns etc
+  fmeDBGrid.InitialiseDBGrid(True);
 End;
 
 Procedure TfrmEventsReviewer.actRefreshDatabaseExecute(Sender: TObject);
@@ -635,10 +662,10 @@ Begin
     Status := 'Unable to copy anomaly image ' + ASourceFilename;
 End;
 
-function TfrmEventsReviewer.GetExactTimeSeek: Boolean;
-begin
+Function TfrmEventsReviewer.GetExactTimeSeek: Boolean;
+Begin
   Result := fmeVideo.VideoTrackbarSeek;
-end;
+End;
 
 Function TfrmEventsReviewer.CheckAnomalyReferenceReadiness: Boolean;
 Begin
