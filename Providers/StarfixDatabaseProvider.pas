@@ -64,7 +64,7 @@ Type
 Implementation
 
 Uses
-  FormMain, FormEventsReviewer, NavigationController, ThirdPartySupport,
+  FormMain, FormEventsReviewer, AppMessaging, ThirdPartySupport,
   Dialogs, Controls, Forms, LazLogger, DBSupport;
 
   { TStarfixDatabaseProvider }
@@ -146,7 +146,7 @@ Begin
   FOnDataChanged := nil;
 
   // Messages
-  frmEventsReviewer.Messenger.Register(Self, TIMMessageTime, @DoReceiveTimeSeekMessage);
+  frmEventsReviewer.MessageBus.Subscribe(Self, TIMMessageTime, @DoReceiveTimeSeekMessage);
 End;
 
 Destructor TStarfixDatabaseProvider.Destroy;
@@ -231,7 +231,7 @@ Begin
           FOnProviderReady(Self);
 
         // New fangled messaging marlarky :-)
-        frmEventsReviewer.Messenger.BroadcastDataProviderReady(Self, Self);
+        frmEventsReviewer.MessageBus.BroadcastDataProviderReady(Self, Self);
 
         // We suppressed the first event being loaded, so broadcast it now manually
         qryDataAfterScroll(qryData);
@@ -321,8 +321,8 @@ Begin
 
     FOnDataChanged(Self, sAnomalyNo, dtDateTime);
 
-    frmEventsReviewer.Messenger.BroadcastTime(Self, dtDateTime);
-    frmEventsReviewer.Messenger.BroadcastKP(Self, dKP);
+    frmEventsReviewer.MessageBus.BroadcastTime(Self, dtDateTime);
+    frmEventsReviewer.MessageBus.BroadcastKP(Self, dKP);
   End;
 End;
 
@@ -426,7 +426,7 @@ Begin
     GotoNearestTime(qryData, 'Start_(UTC)', oMessage.DateTime, dtThreshold);
 
     If (abs(dStartKP - oKP.AsExtended) > 0.001) Then
-      frmEventsReviewer.Messenger.BroadcastKP(Self, oKP.AsExtended);
+      frmEventsReviewer.MessageBus.BroadcastKP(Self, oKP.AsExtended);
   End;
 End;
 

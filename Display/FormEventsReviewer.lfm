@@ -44,7 +44,7 @@ inherited frmEventsReviewer: TfrmEventsReviewer
     end
     object ToolButton3: TToolButton
       Left = 447
-      Height = 22
+      Height = 8
       Top = 2
       AutoSize = True
       Style = tbsSeparator
@@ -66,14 +66,14 @@ inherited frmEventsReviewer: TfrmEventsReviewer
     end
     object ToolButton4: TToolButton
       Left = 256
-      Height = 22
+      Height = 8
       Top = 2
       Caption = 'ToolButton4'
       Style = tbsSeparator
     end
     object ToolButton2: TToolButton
       Left = 359
-      Height = 22
+      Height = 8
       Top = 2
       Caption = 'ToolButton2'
       Style = tbsSeparator
@@ -98,7 +98,7 @@ inherited frmEventsReviewer: TfrmEventsReviewer
     end
     object ToolButton7: TToolButton
       Left = 679
-      Height = 22
+      Height = 8
       Top = 2
       Caption = 'ToolButton7'
       Style = tbsSeparator

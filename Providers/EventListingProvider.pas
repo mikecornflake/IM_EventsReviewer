@@ -70,7 +70,7 @@ Type
 Implementation
 
 Uses
-  fpsTypes, SpreadsheetSupport, LazLogger, Dialogs, NavigationController,
+  fpsTypes, SpreadsheetSupport, LazLogger, Dialogs, AppMessaging,
   FormEventsReviewer;
 
   { TEventListingProvider }
@@ -99,7 +99,7 @@ Begin
   FUpdatingFilteredDataset := False;
 
   // Messages
-  frmEventsReviewer.Messenger.Register(Self, TIMMessageTime, @DoReceiveTimeSeekMessage);
+  frmEventsReviewer.MessageBus.Subscribe(Self, TIMMessageTime, @DoReceiveTimeSeekMessage);
 End;
 
 
@@ -152,7 +152,7 @@ Begin
       FOnProviderReady(Self);
 
     // New fangled messaging marlarky :-)
-    frmEventsReviewer.Messenger.BroadcastDataProviderReady(Self, Self);
+    frmEventsReviewer.MessageBus.BroadcastDataProviderReady(Self, Self);
 
     // We suppressed the first event being loaded, so broadcast it now manually
     DoEventsAfterScroll(FMaster.Table);
@@ -445,8 +445,8 @@ Begin
 
     FOnDataChanged(Self, sAnomalyNo, dtDateTime);
 
-    frmEventsReviewer.Messenger.BroadcastTime(Self, dtDateTime);
-    frmEventsReviewer.Messenger.BroadcastKP(Self, dKP);
+    frmEventsReviewer.MessageBus.BroadcastTime(Self, dtDateTime);
+    frmEventsReviewer.MessageBus.BroadcastKP(Self, dKP);
   End;
 End;
 
@@ -515,7 +515,7 @@ Begin
     end;
 
     If (abs(dStartKP - oKP.AsExtended) > 0.001) Then
-      frmEventsReviewer.Messenger.BroadcastKP(Self, oKP.AsExtended);
+      frmEventsReviewer.MessageBus.BroadcastKP(Self, oKP.AsExtended);
   End;
 End;
 

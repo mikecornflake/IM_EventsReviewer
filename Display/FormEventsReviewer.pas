@@ -11,7 +11,7 @@ Uses
   FormMain, FrameImageViewer, FrameGrids, FrameVideo,
   // Application
   ApplicationSettings, DataProvider, MediaProvider, FrameVerticalDBGrid,
-  StarfixDatabaseProvider, EventListingProvider, NavigationController, FramePipelineEvents;
+  StarfixDatabaseProvider, EventListingProvider, AppMessaging, FramePipelineEvents;
 
 Type
 
@@ -91,7 +91,7 @@ Type
     FMediaProvider: TMediaProvider;
     FStarfixDatabaseProvider: TStarfixDatabaseProvider;
     FEventListingProvider: TEventListingProvider;
-    FMessenger: TMessageController;
+    FMessageBus: TAppMessageBus;
 
     //UI
     FActivated: Boolean;
@@ -132,7 +132,7 @@ Type
     Property DataProvider: TDataProvider Read FDataProvider;
     Property MediaProvider: TMediaProvider Read FMediaProvider;
     Property Settings: TApplicationSettings Read FSettings;
-    Property Messenger: TMessageController Read FMessenger;
+    Property MessageBus: TAppMessageBus Read FMessageBus;
 
     Property ExactTimeSeek: Boolean Read GetExactTimeSeek;
   End;
@@ -160,8 +160,8 @@ Begin
   // This isn't going to be app that only an Admin can change settings...
   FAlwaysSaveSettings := True;
 
-  FMessenger := TMessageController.Create;
-  FMessenger.Register(Self, TIMMessageTime, @DoReceiveTimeSeekMessage);
+  FMessageBus := TAppMessageBus.Create;
+  FMessageBus.Subscribe(Self, TIMMessageTime, @DoReceiveTimeSeekMessage);
 
   // Settings Manager
   FSettings := TApplicationSettings.Create;
@@ -218,7 +218,7 @@ End;
 
 Procedure TfrmEventsReviewer.FormDestroy(Sender: TObject);
 Begin
-  FreeAndNil(FMessenger);
+  FreeAndNil(FMessageBus);
 
   // Fully aware these woudl be cleared up by their owner anyway
   // My philosophy is: I create, I clean up...
@@ -341,7 +341,7 @@ End;
 Procedure TfrmEventsReviewer.actSeekVideoExecute(Sender: TObject);
 Begin
   If FDataProvider.Ready Then
-    FMessenger.BroadcastTime(Self, FDataProvider.DateTime);
+    FMessageBus.BroadcastTime(Self, FDataProvider.DateTime);
 End;
 
 Procedure TfrmEventsReviewer.DBEditClick(Sender: TObject);

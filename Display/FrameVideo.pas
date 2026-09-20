@@ -64,7 +64,7 @@ Const
 Implementation
 
 Uses
-  FormEventsReviewer, VideoEngineFactory, NavigationController, FrameVideoLibmpv;
+  FormEventsReviewer, VideoEngineFactory, AppMessaging, FrameVideoLibmpv;
 
   {$R *.lfm}
 
@@ -94,7 +94,7 @@ Begin
   fmeVideoPlayer.Autoplay := False;
   fmeSyncedVideo.OnVideoLoaded := @DoVideoLoaded;
 
-  frmEventsReviewer.Messenger.Register(Self, TIMMessageTime, @DoReceiveTimeSeekMessage);
+  frmEventsReviewer.MessageBus.Subscribe(Self, TIMMessageTime, @DoReceiveTimeSeekMessage);
 
   FLastTimeSent := 0;
   FPendingSeek := False;
@@ -164,7 +164,7 @@ Begin
     FLastTimeSent := ADateTime;
     FLastBroadcastTick := GetTickCount64;
 
-    frmEventsReviewer.Messenger.BroadcastTime(Self, ADateTime);
+    frmEventsReviewer.MessageBus.BroadcastTime(Self, ADateTime);
   End;
 End;
 

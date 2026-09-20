@@ -6,7 +6,7 @@ Interface
 
 Uses
   Classes, SysUtils, Forms, Controls, FrameBase, PipelineEventMap, FramePipelineView,
-  NavigationController, DB;
+  AppMessaging, DB;
 
 Type
 
@@ -49,8 +49,8 @@ Begin
 
   FDataset := nil;
 
-  frmEventsReviewer.Messenger.Register(self, TIMMessageKP, @DoReceiveSeekKPMessage);
-  frmEventsReviewer.Messenger.Register(self, TIMMessageDataProviderReady,
+  frmEventsReviewer.MessageBus.Subscribe(self, TIMMessageKP, @DoReceiveSeekKPMessage);
+  frmEventsReviewer.MessageBus.Subscribe(self, TIMMessageDataProviderReady,
     @DoReceiveDataProviderReady);
 End;
 
