@@ -421,8 +421,8 @@ Begin
 
   oMessage := TIMMessageTime(Sender);
 
-  Caption := oMessage.Sender.ClassName + ' Seek to: ' +
-    FormatDateTime('HH:mm:ss', oMessage.DateTime);
+  //Caption := oMessage.Sender.ClassName + ' Seek to: ' +
+  //  FormatDateTime('HH:mm:ss', oMessage.DateTime);
 End;
 
 Procedure TfrmStarfixReviewer.actOpenEventListingExecute(Sender: TObject);
