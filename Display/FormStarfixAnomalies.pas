@@ -380,9 +380,6 @@ End;
 
 Procedure TfrmStarfixReviewer.SetDataProvider(AProvider: TDataProvider);
 Begin
-  If FDataProvider = AProvider Then
-    Exit;
-
   If Assigned(FDataProvider) Then
   Begin
     FDataProvider.Close;
@@ -496,11 +493,11 @@ Begin
 
     If oDlg.ShowModal = mrOk Then
     Begin
-      // Set Provider includes the Open Call;
-      SetDataProvider(FStarfixDatabaseProvider);
-
       FStarfixDatabaseProvider.ApplySettingsFrame(fmeSettingsMSSQL);
       FSettings.ApplySettingsFrame(fmeSettingsApp);
+
+      // Set Provider includes the Open Call;
+      SetDataProvider(FStarfixDatabaseProvider);
 
       If FDataProvider.Ready Then
         RefreshUI;
