@@ -29,11 +29,15 @@ Type
     qryData: TSQLQuery;
     qryVideosforTime: TSQLQuery;
 
+    Procedure GotoNearestTime(ADateTime: TDateTime);
     Procedure qryDataAfterOpen(ADataSet: TDataSet);
     Procedure qryDataAfterScroll(ADataSet: TDataSet);
   Protected
     Function GetDataSet: TDataSet; Override;
     Function GetReady: Boolean; Override;
+
+    // Messaging
+    Procedure DoReceiveTimeSeekMessage(Sender: TObject);
   Public
     Constructor Create;
     Destructor Destroy; Override;
@@ -58,7 +62,8 @@ Type
 Implementation
 
 Uses
-  FormMain, ThirdPartySupport, Dialogs, Controls, Forms, LazLogger;
+  FormMain, FormStarfixAnomalies, NavigationController, ThirdPartySupport,
+  Dialogs, Controls, Forms, LazLogger, Math;
 
   { TStarfixDatabaseProvider }
 
@@ -130,6 +135,9 @@ Begin
   // Events
   FOnProviderReady := nil;
   FOnDataChanged := nil;
+
+  // Messages
+  frmStarfixReviewer.Messenger.Register(Self, TIMMessageTime, @DoReceiveTimeSeekMessage);
 End;
 
 Destructor TStarfixDatabaseProvider.Destroy;
@@ -201,6 +209,9 @@ Begin
         // Let the Application know we're now ready for it
         If Assigned(FOnProviderReady) Then
           FOnProviderReady(Self);
+
+        // New fangled messaging marlarky :-)
+        frmStarfixReviewer.Messenger.BroadcastDataProviderReady(Self, Self);
 
         // We suppressed the first event being loaded, so broadcast it now manually
         qryDataAfterScroll(qryData);
@@ -280,12 +291,18 @@ Procedure TStarfixDatabaseProvider.qryDataAfterScroll(ADataSet: TDataSet);
 Var
   sAnomalyNo: String;
   dtDateTime: TDateTime;
+  dKP: Extended;
 Begin
   If Ready And Assigned(FOnDataChanged) And Not qryData.ControlsDisabled Then
   Begin
     sAnomalyNo := qryData.FieldByName('Anomaly_No').AsString;
     dtDateTime := qryData.FieldByName('Start_(UTC)').AsDateTime;
+    dKP := qryData.FieldByName('KP').AsExtended;
+
     FOnDataChanged(Self, sAnomalyNo, dtDateTime);
+
+    frmStarfixReviewer.Messenger.BroadcastTime(Self, dtDateTime);
+    frmStarfixReviewer.Messenger.BroadcastKP(Self, dKP);
   End;
 End;
 
@@ -357,11 +374,90 @@ End;
 
 Function TStarfixDatabaseProvider.DateTime: TDateTime;
 Begin
-  If (qryData.Active) And (qryData.RecordCount > 0) Then
+  If Ready And (qryData.Active) And (qryData.RecordCount > 0) Then
     Result := qryData.FieldByName('Start_(UTC)').AsDateTime
   Else
     Result := 0;
 End;
+
+
+Procedure TStarfixDatabaseProvider.DoReceiveTimeSeekMessage(Sender: TObject);
+Var
+  oMessage: TIMMessageTime;
+Begin
+  If Not (Sender Is TIMMessageTime) Then
+    Exit;
+
+  If Ready And (qryData.Active) And (qryData.RecordCount > 0) Then
+  Begin
+    oMessage := TIMMessageTime(Sender);
+
+    GotoNearestTime(oMessage.DateTime);
+
+    {$IFNDEF RELEASE}
+    DebugLn([ClassName, '.', {$I %CURRENTROUTINE%}, ' Seek to ',
+      FormatDateTime('HH:mm:ss', oMessage.DateTime)]);
+    {$ENDIF}
+  End;
+End;
+
+Procedure TStarfixDatabaseProvider.GotoNearestTime(ADateTime: TDateTime);
+Const
+  FIVE_SECONDS = 5 / SecsPerDay;
+Var
+  dtBestDiff, dtDiff: TDateTime;
+  bmOriginal, bmBest: TBookmark;
+  oStart, oKP: TField;
+  dStartKP: Extended;
+Begin
+  If (Not Ready) Or (Not qryData.Active) Or qryData.IsEmpty Then
+    Exit;
+
+  oStart := qryData.FieldByName('Start_(UTC)');
+  oKP := qryData.FieldByName('KP');
+  dStartKP := oKP.AsExtended;
+
+  bmOriginal := qryData.GetBookmark;
+  bmBest := qryData.GetBookmark;
+  dtBestDiff := MaxDouble;
+
+  qryData.DisableControls;
+  Try
+    qryData.First;
+
+    While Not qryData.EOF Do
+    Begin
+      If Not oStart.IsNull Then
+      Begin
+        dtDiff := Abs(oStart.AsDateTime - ADateTime);
+
+        If dtDiff < dtBestDiff Then
+        Begin
+          dtBestDiff := dtDiff;
+
+          qryData.FreeBookmark(bmBest);
+          bmBest := qryData.GetBookmark;
+        End;
+      End;
+
+      qryData.Next;
+    End;
+
+    If dtBestDiff <= FIVE_SECONDS Then
+      qryData.GotoBookmark(bmBest)
+    Else
+      qryData.GotoBookmark(bmOriginal);
+
+    If (Abs(dStartKP - oKP.AsExtended) > 0.001) Then
+      frmStarfixReviewer.Messenger.BroadcastKP(Self, oKP.AsExtended);
+  Finally
+    qryData.FreeBookmark(bmBest);
+    qryData.FreeBookmark(bmOriginal);
+    qryData.EnableControls;
+  End;
+End;
+
+
 
 Function TStarfixDatabaseProvider.AnomalyReference: String;
 Begin

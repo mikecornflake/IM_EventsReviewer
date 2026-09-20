@@ -5,7 +5,7 @@ Unit NavigationController;
 Interface
 
 Uses
-  Classes, SysUtils, fgl;
+  Classes, SysUtils, fgl, DataProvider;
 
 Type
 
@@ -25,9 +25,20 @@ Type
     DateTime: TDateTime;
   End;
 
+  TIMMessageKP = Class(TIMMessage)
+  Public
+    KP: Extended;
+  End;
+
+  TIMMessageDataProviderReady = Class(TIMMessage)
+  Public
+    DataProvider: TDataProvider;
+  End;
+
   { TRegisteredItem }
 
   TRegisteredItem = Class
+    Requester: TObject;
     MessageClass: TIMMessageClass;
     Callback: TNotifyEvent;
   End;
@@ -46,14 +57,19 @@ Type
     Destructor Destroy; Override;
 
     Procedure BroadcastTime(ASender: TObject; ADateTime: TDateTime);
+    Procedure BroadcastDataProviderReady(ASender: TObject; ADataProvider: TDataProvider);
+    Procedure BroadcastKP(ASender: TObject; AKP: Extended);
 
-    Procedure Register(AMessageClass: TIMMessageClass; ACallback: TNotifyEvent);
+    Procedure Register(ARequester: TObject; AMessageClass: TIMMessageClass;
+      ACallback: TNotifyEvent);
     Procedure Broadcast(AMessage: TIMMessage);
   End;
 
 Implementation
 
-{ TMessageController }
+Uses LazLogger;
+
+  { TMessageController }
 
 Constructor TMessageController.Create;
 Begin
@@ -67,21 +83,46 @@ Begin
 End;
 
 Procedure TMessageController.BroadcastTime(ASender: TObject; ADateTime: TDateTime);
-var
+Var
   oMessage: TIMMessageTime;
-begin
+Begin
   oMessage := TIMMessageTime.Create;
   oMessage.Sender := ASender;
-  oMessage.DateTime:=ADateTime;
+  oMessage.DateTime := ADateTime;
 
   Broadcast(oMessage);
-end;
+End;
 
-Procedure TMessageController.Register(AMessageClass: TIMMessageClass; ACallback: TNotifyEvent);
+Procedure TMessageController.BroadcastDataProviderReady(ASender: TObject;
+  ADataProvider: TDataProvider);
+Var
+  oMessage: TIMMessageDataProviderReady;
+Begin
+  oMessage := TIMMessageDataProviderReady.Create;
+  oMessage.Sender := ASender;
+  oMessage.DataProvider := ADataProvider;
+
+  Broadcast(oMessage);
+End;
+
+Procedure TMessageController.BroadcastKP(ASender: TObject; AKP: Extended);
+Var
+  oMessage: TIMMessageKP;
+Begin
+  oMessage := TIMMessageKP.Create;
+  oMessage.Sender := ASender;
+  oMessage.KP := AKP;
+
+  Broadcast(oMessage);
+End;
+
+Procedure TMessageController.Register(ARequester: TObject; AMessageClass: TIMMessageClass;
+  ACallback: TNotifyEvent);
 Var
   oRegisterItem: TRegisteredItem;
 Begin
   oRegisterItem := TRegisteredItem.Create;
+  oRegisterItem.Requester := ARequester;
   oRegisterItem.MessageClass := AMessageClass;
   oRegisterItem.Callback := ACallback;
   FRegister.Add(oRegisterItem);
@@ -92,8 +133,17 @@ Var
   oRegisterItem: TRegisteredItem;
 Begin
   For oRegisterItem In FRegister Do
-    If AMessage Is oRegisterItem.MessageClass Then
+    If (AMessage.Sender <> oRegisterItem.Requester) And (AMessage Is
+      oRegisterItem.MessageClass) Then
+    Begin
+      {$IFNDEF RELEASE}
+      DebugLn([ClassName, '.', {$I %CURRENTROUTINE%}, ' Sending ',
+        AMessage.ClassName, ' from ', AMessage.Sender.ClassName, ' to ',
+        oRegisterItem.Requester.ClassName]);
+      {$ENDIF}
+
       oRegisterItem.Callback(AMessage);
+    End;
 End;
 
 End.

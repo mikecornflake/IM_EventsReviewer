@@ -17,6 +17,13 @@ Type
     tmrSeekAfterLoadVideo: TTimer;
     Procedure tmrSeekAfterLoadVideoTimer(Sender: TObject);
   Private
+    // State
+    FLastTimeSent: TDateTime;
+    FLastBroadcastTick: QWord;
+    FPendingSeek: Boolean;
+    FPendingSeekTime: TDateTime;
+
+    // Settings
     FImageGrabFolder: String;
 
     // UI
@@ -28,9 +35,11 @@ Type
     FSeekPending: Boolean;
 
     Procedure DoPlayerGrabImage(Sender: TObject; Const AFolder: String);
-    Procedure DoReceiveTimeSeek(Sender: TObject);
+    Procedure DoReceiveTimeSeekMessage(Sender: TObject);
     Procedure DoVideoLoaded(Sender: TObject);
     Procedure SetImageGrabFolder(Const AValue: String);
+
+    Procedure DoVideoPositionChange(Sender: TObject; ADateTime: TDateTime);
   Public
     Constructor Create(TheOwner: TComponent); Override;
     Destructor Destroy; Override;
@@ -45,6 +54,9 @@ Type
     Procedure LoadSettings(oInifile: TIniFile); Override;
     Procedure SaveSettings(oInifile: TIniFile); Override;
   End;
+
+Const
+  TWO_SEC = 2 / (24 * 60 * 60);
 
 Implementation
 
@@ -65,6 +77,7 @@ Begin
   fmeVideoPlayer.Align := alClient;
   fmeVideoPlayer.Autoplay := True;
   fmeVideoPlayer.ShowLabel := True;
+  fmeVideoPlayer.OnVideoPositionChange := @DoVideoPositionChange;
 
   // Ensure the Video Player support multi channel playback
   fmeVideoPlayer.VideoEngineClass := TFrameSyncedVideo;
@@ -78,7 +91,12 @@ Begin
   fmeVideoPlayer.Autoplay := False;
   fmeSyncedVideo.OnVideoLoaded := @DoVideoLoaded;
 
-  frmStarfixReviewer.Messenger.Register(TIMMessageTime, @DoReceiveTimeSeek);
+  frmStarfixReviewer.Messenger.Register(Self, TIMMessageTime, @DoReceiveTimeSeekMessage);
+
+  FLastTimeSent := 0;
+  FPendingSeek := False;
+  FPendingSeekTime := 0;
+  FLastBroadcastTick := 0;
 End;
 
 Destructor TfmeVideo.Destroy;
@@ -115,13 +133,45 @@ Begin
   fmeVideoPlayer.ImageGrabHint := 'Selected images will be saved in ' + FImageGrabFolder;
 End;
 
+Procedure TfmeVideo.DoVideoPositionChange(Sender: TObject; ADateTime: TDateTime);
+Begin
+  // TWO_SEC filter is for meaningful video change - ROV really won't move that much
+  // within two seconds.
+
+  // Video has changed position, either due to user interaction with fmeVideoPlayer,
+  //  or due to us moving the video in response to TIMMessageTime
+  If FPendingSeek Then
+  Begin
+    If Abs(ADateTime - FPendingSeekTime) <= TWO_SEC Then
+    Begin
+      // We've reached the requested position.
+      FPendingSeek := False;
+      FPendingSeekTime := 0;
+
+      // This one is legitimate and may be broadcast.
+    End
+    Else
+      Exit;  // intermediate mpv noise, e.g. newly loaded video at 00:00
+  End;
+
+  //  Even if the video has moved a meaningful amount, only send the signal once per second
+  If (Abs(ADateTime - FLastTimeSent) > TWO_SEC) And (GetTickCount64 -
+    FLastBroadcastTick >= 1000) Then
+  Begin
+    FLastTimeSent := ADateTime;
+    FLastBroadcastTick := GetTickCount64;
+
+    frmStarfixReviewer.Messenger.BroadcastTime(Self, ADateTime);
+  End;
+End;
+
 Procedure TfmeVideo.DoPlayerGrabImage(Sender: TObject; Const AFolder: String);
 Begin
   // Let the UI decide what to do with the images
   frmStarfixReviewer.DoPlayerGrabImage(AFolder);
 End;
 
-Procedure TfmeVideo.DoReceiveTimeSeek(Sender: TObject);
+Procedure TfmeVideo.DoReceiveTimeSeekMessage(Sender: TObject);
 Var
   oMessage: TIMMessageTime;
   oVideoFiles: TVideoFiles;
@@ -130,6 +180,9 @@ Begin
     Exit;
 
   oMessage := TIMMessageTime(Sender);
+
+  FPendingSeek := True;
+  FPendingSeekTime := oMessage.DateTime;
 
   // Do I need to load new Video?
   If (fmeSyncedVideo.StartDateTime <= oMessage.DateTime) And
@@ -158,7 +211,7 @@ Begin
 End;
 
 Procedure TfmeVideo.LoadVideos(AVideoFiles: TVideoFiles; ASeekDateTime: TDateTime);
-var
+Var
   oVideoFile: TVideoFile;
   sFolder: String;
 Begin
@@ -173,6 +226,9 @@ Begin
   End
   Else
   Begin
+    FPendingSeek := True;
+    FPendingSeekTime := ASeekDateTime;
+
     frmStarfixReviewer.Busy := True;
     frmStarfixReviewer.DisableAutoSizing;
     Try

@@ -11,7 +11,7 @@ Uses
   FormMain, FrameImageViewer, FrameGrids, FrameVideo,
   // Application
   ApplicationSettings, DataProvider, MediaProvider, FrameVerticalDBGrid,
-  StarfixDatabaseProvider, EventListingProvider, NavigationController;
+  StarfixDatabaseProvider, EventListingProvider, NavigationController, FramePipelineEvents;
 
 Type
 
@@ -46,15 +46,17 @@ Type
     mnuSettings: TMenuItem;
     dlgAddImage: TOpenPictureDialog;
     pnlDetailsGrid: TPanel;
-    pnlImages: TPanel;
     pnlHidingSummary: TPanel;
     pnlAnomalies: TPanel;
+    pcBottom: TPageControl;
     pnlRight: TPanel;
     pnlVideo: TPanel;
     Separator2: TMenuItem;
     splAnomalies: TSplitter;
     splImages: TSplitter;
     splDetailsGrid: TSplitter;
+    tsImages: TTabSheet;
+    tsChart: TTabSheet;
     tmrHideSummary: TTimer;
     tbMain: TToolBar;
     btnOpenDatabase: TToolButton;
@@ -94,10 +96,11 @@ Type
     //UI
     FActivated: Boolean;
 
-    fmeVideo : TfmeVideo;
+    fmeVideo: TfmeVideo;
     fmeImageViewer: TFrameImageViewer;
     fmeData: TFrameGrid;
     fmeDetailGrid: TFrameVerticalDBGrid;
+    fmeChart: TfmePipelineEvents;
 
     Function AddAnomalyImage(Const ASourceFilename: String): Boolean;
     Procedure LoadAnomalyImages(Const AAnomalyReference: String);
@@ -105,6 +108,7 @@ Type
     Procedure DoRefreshAnomalyImages(Sender: TObject);
     Procedure DoAddNewImage(Sender: TObject);
     Procedure SetDataProvider(AProvider: TDataProvider);
+    Procedure DoReceiveTimeSeekMessage(Sender: TObject);
   Protected
     Procedure RefreshUI; Override;
 
@@ -154,18 +158,24 @@ Begin
   FAlwaysSaveSettings := True;
 
   FMessenger := TMessageController.Create;
+  FMessenger.Register(Self, TIMMessageTime, @DoReceiveTimeSeekMessage);
 
   // Settings Manager
   FSettings := TApplicationSettings.Create;
 
   // UI
   fmeImageViewer := TFrameImageViewer.Create(Self);
-  fmeImageViewer.Parent := pnlImages;
+  fmeImageViewer.Parent := tsImages;
   fmeImageViewer.Name := 'fmeImageViewer';
   fmeImageViewer.Align := alClient;
   fmeImageViewer.OnRequestAddImage := @DoAddNewImage;
   fmeImageViewer.OnRequestRefreshImages := @DoRefreshAnomalyImages;
-  fmeImageViewer.Enabled := False;;
+  fmeImageViewer.Enabled := False;
+
+  fmeChart := TfmePipelineEvents.Create(Self);
+  fmeChart.Parent := tsChart;
+  fmeChart.Name := 'fmeChart';
+  fmeChart.Align := alClient;
 
   fmeData := TFrameGrid.Create(Self);
   fmeData.Parent := pnlAnomalies;
@@ -178,7 +188,7 @@ Begin
   fmeVideo.Align := alClient;
 
   sPath := IncludeTrailingBackslash(GetAppConfigDir(False)) + 'Images' + PathDelim + '%TIMESTAMP%';
-  fmeVideo.ImageGrabFolder:=sPath;
+  fmeVideo.ImageGrabFolder := sPath;
 
   fmeDetailGrid := TFrameVerticalDBGrid.Create(Self);
   fmeDetailGrid.Parent := pnlDetailsGrid;
@@ -195,6 +205,7 @@ Begin
   dsDataDetails.Dataset := nil;
   fmeData.Dataset := nil;
   fmeDetailGrid.Dataset := nil;
+  fmeChart.Dataset := nil;
 
   // Media Provider
   FMediaProvider := TMediaProvider.Create;
@@ -208,6 +219,7 @@ Begin
 
   // Fully aware these woudl be cleared up by their owner anyway
   // My philosophy is: I create, I clean up...
+  FreeAndNil(fmeChart);
   FreeAndNil(fmeImageViewer);
   FreeAndNil(fmeData);
   FreeAndNil(fmeVideo);
@@ -278,11 +290,11 @@ Begin
   // persist TfrmStarfixReviewer settings
   pnlDetailsGrid.Height := oInifile.ReadInteger('Form', 'pnlDetailsGrid.Height',
     pnlDetailsGrid.Height);
-  pnlImages.Height := oInifile.ReadInteger('Form', 'pnlImages.Height', pnlImages.Height);
+  pcBottom.Height := oInifile.ReadInteger('Form', 'pnlImages.Height', pcBottom.Height);
   pnlAnomalies.Width := oInifile.ReadInteger('Form', 'pnlAnomalies.Width', pnlAnomalies.Width);
 
   splDetailsGrid.Top := pnlDetailsGrid.Top - splDetailsGrid.Height;
-  splImages.Top := pnlImages.Top - splImages.Height;
+  splImages.Top := pcBottom.Top - splImages.Height;
   splAnomalies.Left := pnlAnomalies.Left + splAnomalies.Width;
 End;
 
@@ -295,7 +307,7 @@ Begin
 
   // persist TfrmStarfixReviewer settings
   oInifile.WriteInteger('Form', 'pnlDetailsGrid.Height', pnlDetailsGrid.Height);
-  oInifile.WriteInteger('Form', 'pnlImages.Height', pnlImages.Height);
+  oInifile.WriteInteger('Form', 'pnlImages.Height', pcBottom.Height);
   oInifile.WriteInteger('Form', 'pnlAnomalies.Width', pnlAnomalies.Width);
 
   // Form Position
@@ -381,6 +393,7 @@ Begin
     dsDataDetails.Dataset := nil;
     fmeData.Dataset := nil;
     fmeDetailGrid.Dataset := nil;
+    fmeChart.Dataset := nil;
   End;
 
   FDataProvider := AProvider;
@@ -393,9 +406,23 @@ Begin
     dsDataDetails.Dataset := FDataProvider.Dataset;
     fmeData.Dataset := FDataProvider.Dataset;
     fmeDetailGrid.Dataset := FDataProvider.Dataset;
+    fmeChart.Dataset := FDataProvider.Dataset;
 
     FDataProvider.Open;
   End;
+End;
+
+Procedure TfrmStarfixReviewer.DoReceiveTimeSeekMessage(Sender: TObject);
+Var
+  oMessage: TIMMessageTime;
+Begin
+  If Not (Sender Is TIMMessageTime) Then
+    Exit;
+
+  oMessage := TIMMessageTime(Sender);
+
+  Caption := oMessage.Sender.ClassName + ' Seek to: ' +
+    FormatDateTime('HH:mm:ss', oMessage.DateTime);
 End;
 
 Procedure TfrmStarfixReviewer.actOpenEventListingExecute(Sender: TObject);
@@ -469,12 +496,13 @@ Begin
 
     If oDlg.ShowModal = mrOk Then
     Begin
+      // Set Provider includes the Open Call;
       SetDataProvider(FStarfixDatabaseProvider);
 
       FStarfixDatabaseProvider.ApplySettingsFrame(fmeSettingsMSSQL);
       FSettings.ApplySettingsFrame(fmeSettingsApp);
 
-      If FDataProvider.Open Then
+      If FDataProvider.Ready Then
         RefreshUI;
     End;
   Finally
@@ -571,9 +599,6 @@ Begin
   Else
     fmeImageViewer.ClearImages;
 
-  // TODO: Hack - move to correct location
-  FMessenger.BroadcastTime(Sender, ADateTime);
-
   RefreshUI;
 End;
 
@@ -629,7 +654,7 @@ Var
   i: Integer;
   oImage: TViewerImage;
 Begin
-   If Not CheckAnomalyReferenceReadiness Then
+  If Not CheckAnomalyReferenceReadiness Then
     Exit;
 
   oDlg := TDialogImageSelection.Create(Self);
