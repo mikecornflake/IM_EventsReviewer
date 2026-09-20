@@ -410,13 +410,13 @@ Begin
 End;
 
 Procedure TfrmStarfixReviewer.DoReceiveTimeSeekMessage(Sender: TObject);
-Var
-  oMessage: TIMMessageTime;
+//Var
+//  oMessage: TIMMessageTime;
 Begin
   If Not (Sender Is TIMMessageTime) Then
     Exit;
 
-  oMessage := TIMMessageTime(Sender);
+//  oMessage := TIMMessageTime(Sender);
 
   //Caption := oMessage.Sender.ClassName + ' Seek to: ' +
   //  FormatDateTime('HH:mm:ss', oMessage.DateTime);
@@ -442,12 +442,13 @@ Begin
 
     If oDlg.ShowModal = mrOk Then
     Begin
-      SetDataProvider(FEventListingProvider);
-
       FEventListingProvider.ApplySettingsFrame(fmeSettingsEventListing);
       FSettings.ApplySettingsFrame(fmeSettingsApp);
 
-      If FDataProvider.Open Then
+      // Set Provider includes the Open Call;
+      SetDataProvider(FEventListingProvider);
+
+      If FDataProvider.Ready Then
         RefreshUI;
     End;
   Finally
@@ -455,19 +456,6 @@ Begin
     fmeSettingsApp.Free;
     oDlg.Free;
   End;
-  RefreshUI;
-End;
-
-Procedure TfrmStarfixReviewer.DoApplyFilter(Sender: TObject);
-Begin
-  If actFilterAnomalies.Checked And actFilterSpans.Checked Then
-    fmeData.Filter := '(Anomaly = ''Y'') AND (Type = ''Freespan*'')'
-  Else If actFilterAnomalies.Checked Then
-    fmeData.Filter := '(Anomaly = ''Y'')'
-  Else If actFilterSpans.Checked Then
-    fmeData.Filter := '(Type = ''Freespan*'')'
-  Else
-    fmeData.Filter := '';
 End;
 
 Procedure TfrmStarfixReviewer.actDatabaseOpenClick(Sender: TObject);
@@ -507,7 +495,18 @@ Begin
     fmeSettingsApp.Free;
     oDlg.Free;
   End;
-  RefreshUI;
+End;
+
+Procedure TfrmStarfixReviewer.DoApplyFilter(Sender: TObject);
+Begin
+  If actFilterAnomalies.Checked And actFilterSpans.Checked Then
+    fmeData.Filter := '(Anomaly = ''Y'') AND (Type = ''Freespan*'')'
+  Else If actFilterAnomalies.Checked Then
+    fmeData.Filter := '(Anomaly = ''Y'')'
+  Else If actFilterSpans.Checked Then
+    fmeData.Filter := '(Type = ''Freespan*'')'
+  Else
+    fmeData.Filter := '';
 End;
 
 Procedure TfrmStarfixReviewer.actRefreshDatabaseExecute(Sender: TObject);

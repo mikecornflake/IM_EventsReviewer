@@ -93,7 +93,6 @@ Begin
     FDataset.First;
     fmePipelineView.BeginUpdate;
 
-
     While Not FDataset.EOF Do
     Begin
       sType := oType.AsString;
@@ -140,8 +139,6 @@ Begin
 End;
 
 Procedure TfmePipelineEvents.DoReceiveDataProviderReady(Sender: TObject);
-Var
-  oMessage: TIMMessageDataProviderReady;
 Begin
   If Not (Sender Is TIMMessageDataProviderReady) Then
     Exit;
