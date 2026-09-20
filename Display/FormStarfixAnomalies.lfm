@@ -82,13 +82,19 @@ inherited frmStarfixReviewer: TfrmStarfixReviewer
       Left = 455
       Top = 2
       Action = actFilterAnomalies
+      AllowAllUp = True
       AutoSize = True
+      Grouped = True
+      Style = tbsCheck
     end
     object ToolButton6: TToolButton
       Left = 569
       Top = 2
       Action = actFilterSpans
+      AllowAllUp = True
       AutoSize = True
+      Grouped = True
+      Style = tbsCheck
     end
     object ToolButton7: TToolButton
       Left = 679
@@ -168,15 +174,15 @@ inherited frmStarfixReviewer: TfrmStarfixReviewer
       Height = 256
       Top = 443
       Width = 671
-      ActivePage = tsImages
+      ActivePage = tsChart
       Align = alBottom
       TabIndex = 0
       TabOrder = 2
-      object tsImages: TTabSheet
-        Caption = 'Images'
-      end
       object tsChart: TTabSheet
         Caption = 'Chart'
+      end
+      object tsImages: TTabSheet
+        Caption = 'Images'
       end
     end
   end

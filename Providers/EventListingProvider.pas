@@ -28,6 +28,7 @@ Type
     // Dataset
     FEvents: TMemTable;
 
+    Procedure GotoNearestTime(ADateTime: TDateTime);
     Function RowIsEmpty(ARow: Integer): Boolean;
 
     Procedure CreateFields;
@@ -38,6 +39,7 @@ Type
     Function GetDataSet: TDataSet; Override;
     Function GetReady: Boolean; Override;
 
+    Procedure DoReceiveTimeSeekMessage(Sender: TObject);
   Public
     Constructor Create;
     Destructor Destroy; Override;
@@ -62,7 +64,8 @@ Type
 Implementation
 
 Uses
-  fpsTypes, SpreadsheetSupport, LazLogger, Dialogs;
+  fpsTypes, SpreadsheetSupport, LazLogger, Dialogs, NavigationController,
+  FormStarfixAnomalies, Math;
 
   { TEventListingProvider }
 
@@ -83,6 +86,9 @@ Begin
   FEvents := TMemTable.Create;
 
   FEvents.Table.AfterScroll := @DoEventsAfterScroll;
+
+  // Messages
+  frmStarfixReviewer.Messenger.Register(Self, TIMMessageTime, @DoReceiveTimeSeekMessage);
 End;
 
 
@@ -132,6 +138,9 @@ Begin
     // Let the Application know we're now ready for it
     If Assigned(FOnProviderReady) Then
       FOnProviderReady(Self);
+
+    // New fangled messaging marlarky :-)
+    frmStarfixReviewer.Messenger.BroadcastDataProviderReady(Self, Self);
 
     // We suppressed the first event being loaded, so broadcast it now manually
     DoEventsAfterScroll(FEvents.Table);
@@ -238,7 +247,11 @@ Begin
   FEvents.AddField('Start_(UTC)', ftDateTime);
   FEvents.AddField('KP', ftFloat);
   FEvents.AddField('Type', ftString, 255);
+
   FEvents.AddField('Anomaly_No', ftString, 100);
+  FEvents.AddField('Anomaly', ftString, 1);
+  FEvents.AddField('Colour_ID', ftString, 100);
+
 
   FEvents.AddField('Length_(m)', ftFloat);
   FEvents.AddField('Width_(m)', ftFloat);
@@ -271,7 +284,7 @@ Var
   dValue: Double;
 
   sType: String;
-  sSubType: String;
+  sSubType, sTemp: String;
 Begin
   FEvents.Close;
   FEvents.ClearAllRecords;
@@ -329,8 +342,20 @@ Begin
           FEvents['Type'].AsString := sSubType;
 
         // Anomaly_No = Q
-        FEvents['Anomaly_No'].AsString :=
-          CellText(FWorksheet, iRow, FStartCol + 16);
+        sTemp := Trim(CellText(FWorksheet, iRow, FStartCol + 16));
+
+        If sTemp <> '' Then
+        Begin
+          FEvents['Anomaly'].AsString := 'Y';
+          FEvents['Colour_ID'].AsString := 'Red';
+        End
+        Else
+        Begin
+          FEvents['Anomaly'].AsString := 'N';
+          FEvents['Colour_ID'].AsString := '';
+        End;
+
+        FEvents['Anomaly_No'].AsString := sTemp;
 
         // Dimensions = K, L, M
         If CellFloat(FWorksheet, iRow, FStartCol + 10, dValue) Then
@@ -378,12 +403,94 @@ Procedure TEventListingProvider.DoEventsAfterScroll(ADataSet: TDataSet);
 Var
   sAnomalyNo: String;
   dtDateTime: TDateTime;
+  dKP: Extended;
 Begin
   If Ready And Assigned(FOnDataChanged) And Not FEvents.Table.ControlsDisabled Then
   Begin
     sAnomalyNo := FEvents['Anomaly_No'].AsString;
     dtDateTime := FEvents['Start_(UTC)'].AsDateTime;
+    dKP := FEvents['KP'].AsExtended;
+
     FOnDataChanged(Self, sAnomalyNo, dtDateTime);
+
+    frmStarfixReviewer.Messenger.BroadcastTime(Self, dtDateTime);
+    frmStarfixReviewer.Messenger.BroadcastKP(Self, dKP);
+  End;
+End;
+
+Procedure TEventListingProvider.DoReceiveTimeSeekMessage(Sender: TObject);
+Var
+  oMessage: TIMMessageTime;
+Begin
+  If Not (Sender Is TIMMessageTime) Then
+    Exit;
+
+  If Ready And (FEvents.Table.Active) And (FEvents.Table.RecordCount > 0) Then
+  Begin
+    oMessage := TIMMessageTime(Sender);
+
+    GotoNearestTime(oMessage.DateTime);
+
+    {$IFNDEF RELEASE}
+    DebugLn([ClassName, '.', {$I %CURRENTROUTINE%}, ' Seek to ',
+      FormatDateTime('HH:mm:ss', oMessage.DateTime)]);
+    {$ENDIF}
+  End;
+End;
+
+Procedure TEventListingProvider.GotoNearestTime(ADateTime: TDateTime);
+Const
+  FIVE_SECONDS = 5 / SecsPerDay;
+Var
+  dtBestDiff, dtDiff: TDateTime;
+  bmOriginal, bmBest: TBookmark;
+  oStart, oKP: TField;
+  dStartKP: Extended;
+Begin
+  If (Not Ready) Or (Not FEvents.Table.Active) Or FEvents.Table.IsEmpty Then
+    Exit;
+
+  oStart := FEvents.Table.FieldByName('Start_(UTC)');
+  oKP := FEvents.Table.FieldByName('KP');
+  dStartKP := oKP.AsExtended;
+
+  bmOriginal := FEvents.Table.GetBookmark;
+  bmBest := FEvents.Table.GetBookmark;
+  dtBestDiff := MaxDouble;
+
+  FEvents.Table.DisableControls;
+  Try
+    FEvents.Table.First;
+
+    While Not FEvents.Table.EOF Do
+    Begin
+      If Not oStart.IsNull Then
+      Begin
+        dtDiff := Abs(oStart.AsDateTime - ADateTime);
+
+        If dtDiff < dtBestDiff Then
+        Begin
+          dtBestDiff := dtDiff;
+
+          FEvents.Table.FreeBookmark(bmBest);
+          bmBest := FEvents.Table.GetBookmark;
+        End;
+      End;
+
+      FEvents.Table.Next;
+    End;
+
+    If dtBestDiff <= FIVE_SECONDS Then
+      FEvents.Table.GotoBookmark(bmBest)
+    Else
+      FEvents.Table.GotoBookmark(bmOriginal);
+
+    If (Abs(dStartKP - oKP.AsExtended) > 0.001) Then
+      frmStarfixReviewer.Messenger.BroadcastKP(Self, oKP.AsExtended);
+  Finally
+    FEvents.Table.FreeBookmark(bmBest);
+    FEvents.Table.FreeBookmark(bmOriginal);
+    FEvents.Table.EnableControls;
   End;
 End;
 

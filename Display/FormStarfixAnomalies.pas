@@ -464,9 +464,9 @@ End;
 Procedure TfrmStarfixReviewer.DoApplyFilter(Sender: TObject);
 Begin
   If actFilterAnomalies.Checked And actFilterSpans.Checked Then
-    fmeData.Filter := '(Anomaly_No <> '''') OR (Type = ''Freespan*'')'
+    fmeData.Filter := '(Anomaly = ''Y'') AND (Type = ''Freespan*'')'
   Else If actFilterAnomalies.Checked Then
-    fmeData.Filter := '(Anomaly_No <> '''')'
+    fmeData.Filter := '(Anomaly = ''Y'')'
   Else If actFilterSpans.Checked Then
     fmeData.Filter := '(Type = ''Freespan*'')'
   Else

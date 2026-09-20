@@ -25,10 +25,14 @@ Type
     DateTime: TDateTime;
   End;
 
+  { TIMMessageKP }
+
   TIMMessageKP = Class(TIMMessage)
   Public
     KP: Extended;
   End;
+
+  { TIMMessageDataProviderReady }
 
   TIMMessageDataProviderReady = Class(TIMMessage)
   Public
@@ -87,10 +91,14 @@ Var
   oMessage: TIMMessageTime;
 Begin
   oMessage := TIMMessageTime.Create;
-  oMessage.Sender := ASender;
-  oMessage.DateTime := ADateTime;
+  Try
+    oMessage.Sender := ASender;
+    oMessage.DateTime := ADateTime;
 
-  Broadcast(oMessage);
+    Broadcast(oMessage);
+  Finally
+    oMessage.Free;
+  End;
 End;
 
 Procedure TMessageController.BroadcastDataProviderReady(ASender: TObject;
@@ -99,10 +107,14 @@ Var
   oMessage: TIMMessageDataProviderReady;
 Begin
   oMessage := TIMMessageDataProviderReady.Create;
-  oMessage.Sender := ASender;
-  oMessage.DataProvider := ADataProvider;
+  Try
+    oMessage.Sender := ASender;
+    oMessage.DataProvider := ADataProvider;
 
-  Broadcast(oMessage);
+    Broadcast(oMessage);
+  Finally
+    oMessage.Free;
+  End;
 End;
 
 Procedure TMessageController.BroadcastKP(ASender: TObject; AKP: Extended);
@@ -110,10 +122,14 @@ Var
   oMessage: TIMMessageKP;
 Begin
   oMessage := TIMMessageKP.Create;
-  oMessage.Sender := ASender;
-  oMessage.KP := AKP;
+  Try
+    oMessage.Sender := ASender;
+    oMessage.KP := AKP;
 
-  Broadcast(oMessage);
+    Broadcast(oMessage);
+  Finally
+    oMessage.Free;
+  End;
 End;
 
 Procedure TMessageController.Register(ARequester: TObject; AMessageClass: TIMMessageClass;
@@ -133,8 +149,8 @@ Var
   oRegisterItem: TRegisteredItem;
 Begin
   For oRegisterItem In FRegister Do
-    If (AMessage.Sender <> oRegisterItem.Requester) And (AMessage Is
-      oRegisterItem.MessageClass) Then
+    If (AMessage.Sender <> oRegisterItem.Requester) And
+      (AMessage Is oRegisterItem.MessageClass) Then
     Begin
       {$IFNDEF RELEASE}
       DebugLn([ClassName, '.', {$I %CURRENTROUTINE%}, ' Sending ',
