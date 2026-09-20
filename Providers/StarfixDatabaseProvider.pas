@@ -29,7 +29,6 @@ Type
     qryData: TSQLQuery;
     qryVideosforTime: TSQLQuery;
 
-    Procedure GotoNearestTime(ADateTime: TDateTime);
     Procedure qryDataAfterOpen(ADataSet: TDataSet);
     Procedure qryDataAfterScroll(ADataSet: TDataSet);
   Protected
@@ -63,7 +62,7 @@ Implementation
 
 Uses
   FormMain, FormStarfixAnomalies, NavigationController, ThirdPartySupport,
-  Dialogs, Controls, Forms, LazLogger, Math;
+  Dialogs, Controls, Forms, LazLogger, Math, DBSupport;
 
   { TStarfixDatabaseProvider }
 
@@ -387,10 +386,12 @@ Begin
     Result := 0;
 End;
 
-
 Procedure TStarfixDatabaseProvider.DoReceiveTimeSeekMessage(Sender: TObject);
 Var
   oMessage: TIMMessageTime;
+  oKP: TField;
+  dStartKP: Extended;
+  dtCurrent, dtThreshold: TDateTime;
 Begin
   If Not (Sender Is TIMMessageTime) Then
     Exit;
@@ -399,72 +400,21 @@ Begin
   Begin
     oMessage := TIMMessageTime(Sender);
 
-    GotoNearestTime(oMessage.DateTime);
-
-    {$IFNDEF RELEASE}
-    DebugLn([ClassName, '.', {$I %CURRENTROUTINE%}, ' Seek to ',
-      FormatDateTime('HH:mm:ss', oMessage.DateTime)]);
-    {$ENDIF}
-  End;
-End;
-
-Procedure TStarfixDatabaseProvider.GotoNearestTime(ADateTime: TDateTime);
-Const
-  FIVE_SECONDS = 5 / SecsPerDay;
-Var
-  dtBestDiff, dtDiff: TDateTime;
-  bmOriginal, bmBest: TBookmark;
-  oStart, oKP: TField;
-  dStartKP: Extended;
-Begin
-  If (Not Ready) Or (Not qryData.Active) Or qryData.IsEmpty Then
-    Exit;
-
-  oStart := qryData.FieldByName('Start_(UTC)');
-  oKP := qryData.FieldByName('KP');
-  dStartKP := oKP.AsExtended;
-
-  bmOriginal := qryData.GetBookmark;
-  bmBest := qryData.GetBookmark;
-  dtBestDiff := MaxDouble;
-
-  qryData.DisableControls;
-  Try
-    qryData.First;
-
-    While Not qryData.EOF Do
-    Begin
-      If Not oStart.IsNull Then
-      Begin
-        dtDiff := Abs(oStart.AsDateTime - ADateTime);
-
-        If dtDiff < dtBestDiff Then
-        Begin
-          dtBestDiff := dtDiff;
-
-          qryData.FreeBookmark(bmBest);
-          bmBest := qryData.GetBookmark;
-        End;
-      End;
-
-      qryData.Next;
-    End;
-
-    If dtBestDiff <= FIVE_SECONDS Then
-      qryData.GotoBookmark(bmBest)
+    // Are we being asked to jump to a potentially distant point on the video?
+    If frmStarfixReviewer.ExactTimeSeek Then
+      dtThreshold := -1
     Else
-      qryData.GotoBookmark(bmOriginal);
+      dtThreshold := 10 / SecsPerDay;
 
-    If (Abs(dStartKP - oKP.AsExtended) > 0.001) Then
+    oKP := qryData.FieldByName('KP');
+    dStartKP := oKP.AsExtended;
+
+    GotoNearestTime(qryData, 'Start_(UTC)', oMessage.DateTime, dtThreshold);
+
+    If (abs(dStartKP - oKP.AsExtended) > 0.001) Then
       frmStarfixReviewer.Messenger.BroadcastKP(Self, oKP.AsExtended);
-  Finally
-    qryData.FreeBookmark(bmBest);
-    qryData.FreeBookmark(bmOriginal);
-    qryData.EnableControls;
   End;
 End;
-
-
 
 Function TStarfixDatabaseProvider.AnomalyReference: String;
 Begin

@@ -19,7 +19,7 @@
       <UseVersionInfo Value="True"/>
       <AutoIncrementBuild Value="True"/>
       <MinorVersionNr Value="1"/>
-      <BuildNr Value="72"/>
+      <BuildNr Value="75"/>
       <Attributes pvaPreRelease="True"/>
       <StringTable Comments="Starfix Anomaly Manager" CompanyName="Inspector Mike 2.0 Pty Ltd" LegalCopyright="(c) 2026"/>
     </VersionInfo>

@@ -28,7 +28,6 @@ Type
     // Dataset
     FEvents: TMemTable;
 
-    Procedure GotoNearestTime(ADateTime: TDateTime);
     Function RowIsEmpty(ARow: Integer): Boolean;
 
     Procedure CreateFields;
@@ -421,6 +420,9 @@ End;
 Procedure TEventListingProvider.DoReceiveTimeSeekMessage(Sender: TObject);
 Var
   oMessage: TIMMessageTime;
+  oKP: TField;
+  dStartKP: Extended;
+  dtThreshold: TDateTime;
 Begin
   If Not (Sender Is TIMMessageTime) Then
     Exit;
@@ -429,68 +431,19 @@ Begin
   Begin
     oMessage := TIMMessageTime(Sender);
 
-    GotoNearestTime(oMessage.DateTime);
-
-    {$IFNDEF RELEASE}
-    DebugLn([ClassName, '.', {$I %CURRENTROUTINE%}, ' Seek to ',
-      FormatDateTime('HH:mm:ss', oMessage.DateTime)]);
-    {$ENDIF}
-  End;
-End;
-
-Procedure TEventListingProvider.GotoNearestTime(ADateTime: TDateTime);
-Const
-  FIVE_SECONDS = 5 / SecsPerDay;
-Var
-  dtBestDiff, dtDiff: TDateTime;
-  bmOriginal, bmBest: TBookmark;
-  oStart, oKP: TField;
-  dStartKP: Extended;
-Begin
-  If (Not Ready) Or (Not FEvents.Table.Active) Or FEvents.Table.IsEmpty Then
-    Exit;
-
-  oStart := FEvents.Table.FieldByName('Start_(UTC)');
-  oKP := FEvents.Table.FieldByName('KP');
-  dStartKP := oKP.AsExtended;
-
-  bmOriginal := FEvents.Table.GetBookmark;
-  bmBest := FEvents.Table.GetBookmark;
-  dtBestDiff := MaxDouble;
-
-  FEvents.Table.DisableControls;
-  Try
-    FEvents.Table.First;
-
-    While Not FEvents.Table.EOF Do
-    Begin
-      If Not oStart.IsNull Then
-      Begin
-        dtDiff := Abs(oStart.AsDateTime - ADateTime);
-
-        If dtDiff < dtBestDiff Then
-        Begin
-          dtBestDiff := dtDiff;
-
-          FEvents.Table.FreeBookmark(bmBest);
-          bmBest := FEvents.Table.GetBookmark;
-        End;
-      End;
-
-      FEvents.Table.Next;
-    End;
-
-    If dtBestDiff <= FIVE_SECONDS Then
-      FEvents.Table.GotoBookmark(bmBest)
+    // Are we being asked to jump to a potentially distant point on the video?
+    If frmStarfixReviewer.ExactTimeSeek Then
+      dtThreshold := -1
     Else
-      FEvents.Table.GotoBookmark(bmOriginal);
+      dtThreshold := 10 / SecsPerDay;
 
-    If (Abs(dStartKP - oKP.AsExtended) > 0.001) Then
+    oKP := FEvents.Table.FieldByName('KP');
+    dStartKP := oKP.AsExtended;
+
+    GotoNearestTime(FEvents.Table, 'Start_(UTC)', oMessage.DateTime, dtThreshold);
+
+    If (abs(dStartKP - oKP.AsExtended) > 0.001) Then
       frmStarfixReviewer.Messenger.BroadcastKP(Self, oKP.AsExtended);
-  Finally
-    FEvents.Table.FreeBookmark(bmBest);
-    FEvents.Table.FreeBookmark(bmOriginal);
-    FEvents.Table.EnableControls;
   End;
 End;
 

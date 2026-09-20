@@ -37,6 +37,7 @@ Type
     Procedure DoPlayerGrabImage(Sender: TObject; Const AFolder: String);
     Procedure DoReceiveTimeSeekMessage(Sender: TObject);
     Procedure DoVideoLoaded(Sender: TObject);
+    function GetVideoTrackbarSeek: Boolean;
     Procedure SetImageGrabFolder(Const AValue: String);
 
     Procedure DoVideoPositionChange(Sender: TObject; ADateTime: TDateTime);
@@ -53,6 +54,8 @@ Type
 
     Procedure LoadSettings(oInifile: TIniFile); Override;
     Procedure SaveSettings(oInifile: TIniFile); Override;
+
+    Property VideoTrackbarSeek: Boolean Read GetVideoTrackbarSeek;
   End;
 
 Const
@@ -280,6 +283,11 @@ Procedure TfmeVideo.DoVideoLoaded(Sender: TObject);
 Begin
   tmrSeekAfterLoadVideo.Enabled := True;
 End;
+
+function TfmeVideo.GetVideoTrackbarSeek: Boolean;
+begin
+  Result := fmeVideoPlayer.VideoTrackbarSeek;
+end;
 
 Procedure TfmeVideo.tmrSeekAfterLoadVideoTimer(Sender: TObject);
 Begin

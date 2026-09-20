@@ -28,7 +28,7 @@ Type
     actMain: TActionList;
     DBEdit2: TDBEdit;
     DBEdit3: TDBEdit;
-    dsDataDetails: TDataSource;
+    dsNotification: TDataSource;
     edtHeight1: TDBEdit;
     edtLength1: TDBEdit;
     edtWidth1: TDBEdit;
@@ -83,6 +83,7 @@ Type
     Procedure actSettingsClick(Sender: TObject);
     Procedure tmrHideSummaryTimer(Sender: TObject);
   Private
+    FExactTimeSeek: Boolean;
     // Settings
     FSettings: TApplicationSettings;
 
@@ -98,11 +99,12 @@ Type
 
     fmeVideo: TfmeVideo;
     fmeImageViewer: TFrameImageViewer;
-    fmeData: TFrameGrid;
-    fmeDetailGrid: TFrameVerticalDBGrid;
+    fmeDBGrid: TFrameGrid;
+    fmeVerticalDBGrid: TFrameVerticalDBGrid;
     fmeChart: TfmePipelineEvents;
 
     Function AddAnomalyImage(Const ASourceFilename: String): Boolean;
+    function GetExactTimeSeek: Boolean;
     Procedure LoadAnomalyImages(Const AAnomalyReference: String);
 
     Procedure DoRefreshAnomalyImages(Sender: TObject);
@@ -132,6 +134,8 @@ Type
     Property MediaProvider: TMediaProvider Read FMediaProvider;
     Property Settings: TApplicationSettings Read FSettings;
     Property Messenger: TMessageController Read FMessenger;
+
+    Property ExactTimeSeek: Boolean Read GetExactTimeSeek;
   End;
 
 Var
@@ -177,10 +181,10 @@ Begin
   fmeChart.Name := 'fmeChart';
   fmeChart.Align := alClient;
 
-  fmeData := TFrameGrid.Create(Self);
-  fmeData.Parent := pnlAnomalies;
-  fmeData.Name := 'fmeData';
-  fmeData.Align := alClient;
+  fmeDBGrid := TFrameGrid.Create(Self);
+  fmeDBGrid.Parent := pnlAnomalies;
+  fmeDBGrid.Name := 'fmeDBGrid';
+  fmeDBGrid.Align := alClient;
 
   fmeVideo := TfmeVideo.Create(Self);
   fmeVideo.Parent := pnlVideo;
@@ -190,10 +194,10 @@ Begin
   sPath := IncludeTrailingBackslash(GetAppConfigDir(False)) + 'Images' + PathDelim + '%TIMESTAMP%';
   fmeVideo.ImageGrabFolder := sPath;
 
-  fmeDetailGrid := TFrameVerticalDBGrid.Create(Self);
-  fmeDetailGrid.Parent := pnlDetailsGrid;
-  fmeDetailGrid.Name := 'fmeDetailGrid';
-  fmeDetailGrid.Align := alClient;
+  fmeVerticalDBGrid := TFrameVerticalDBGrid.Create(Self);
+  fmeVerticalDBGrid.Parent := pnlDetailsGrid;
+  fmeVerticalDBGrid.Name := 'fmeVerticalDBGrid';
+  fmeVerticalDBGrid.Align := alClient;
 
   // Now the UI is created, let's create the providers and bind/register
 
@@ -202,9 +206,9 @@ Begin
   FEventListingProvider := TEventListingProvider.Create;
   FDataProvider := nil;
 
-  dsDataDetails.Dataset := nil;
-  fmeData.Dataset := nil;
-  fmeDetailGrid.Dataset := nil;
+  dsNotification.Dataset := nil;
+  fmeDBGrid.Dataset := nil;
+  fmeVerticalDBGrid.Dataset := nil;
   fmeChart.Dataset := nil;
 
   // Media Provider
@@ -221,9 +225,9 @@ Begin
   // My philosophy is: I create, I clean up...
   FreeAndNil(fmeChart);
   FreeAndNil(fmeImageViewer);
-  FreeAndNil(fmeData);
+  FreeAndNil(fmeDBGrid);
   FreeAndNil(fmeVideo);
-  FreeAndNil(fmeDetailGrid);
+  FreeAndNil(fmeVerticalDBGrid);
 
   // And these definitely need freeing :-)
   FreeAndNil(FSettings);
@@ -284,7 +288,7 @@ Begin
 
   // Allow the controls to persist their own settings (data filters, volume etc)
   fmeImageViewer.LoadSettings(oInifile);
-  fmeData.LoadSettings(oInifile);
+  fmeDBGrid.LoadSettings(oInifile);
   fmeVideo.LoadSettings(oInifile);
 
   // persist TfrmStarfixReviewer settings
@@ -302,7 +306,7 @@ Procedure TfrmStarfixReviewer.SaveLocalSettings(oInifile: TIniFile);
 Begin
   // Allow the controls to persist their settings
   fmeImageViewer.SaveSettings(oInifile);
-  fmeData.SaveSettings(oInifile);
+  fmeDBGrid.SaveSettings(oInifile);
   fmeVideo.SaveSettings(oInifile);
 
   // persist TfrmStarfixReviewer settings
@@ -323,7 +327,7 @@ Begin
   actRefreshDatabase.Enabled := Assigned(FDataProvider) And FDataProvider.Ready;
 
   actSeekVideo.Enabled := Assigned(FDataProvider) And FDataProvider.Ready And
-    Assigned(dsDataDetails.Dataset) And (dsDataDetails.Dataset.Active);
+    Assigned(dsNotification.Dataset) And (dsNotification.Dataset.Active);
 
   actFilterAnomalies.Enabled := actSeekVideo.Enabled;
   actFilterSpans.Enabled := actSeekVideo.Enabled;
@@ -387,9 +391,9 @@ Begin
     FDataProvider.OnProviderReady := nil;
     FDataProvider.OnDataChanged := nil;
 
-    dsDataDetails.Dataset := nil;
-    fmeData.Dataset := nil;
-    fmeDetailGrid.Dataset := nil;
+    dsNotification.Dataset := nil;
+    fmeDBGrid.Dataset := nil;
+    fmeVerticalDBGrid.Dataset := nil;
     fmeChart.Dataset := nil;
   End;
 
@@ -400,9 +404,9 @@ Begin
     FDataProvider.OnProviderReady := @DoProviderReady;
     FDataProvider.OnDataChanged := @DoDataChanged;
 
-    dsDataDetails.Dataset := FDataProvider.Dataset;
-    fmeData.Dataset := FDataProvider.Dataset;
-    fmeDetailGrid.Dataset := FDataProvider.Dataset;
+    dsNotification.Dataset := FDataProvider.Dataset;
+    fmeDBGrid.Dataset := FDataProvider.Dataset;
+    fmeVerticalDBGrid.Dataset := FDataProvider.Dataset;
     fmeChart.Dataset := FDataProvider.Dataset;
 
     FDataProvider.Open;
@@ -500,13 +504,13 @@ End;
 Procedure TfrmStarfixReviewer.DoApplyFilter(Sender: TObject);
 Begin
   If actFilterAnomalies.Checked And actFilterSpans.Checked Then
-    fmeData.Filter := '(Anomaly = ''Y'') AND (Type = ''Freespan*'')'
+    fmeDBGrid.Filter := '(Anomaly = ''Y'') AND (Type = ''Freespan*'')'
   Else If actFilterAnomalies.Checked Then
-    fmeData.Filter := '(Anomaly = ''Y'')'
+    fmeDBGrid.Filter := '(Anomaly = ''Y'')'
   Else If actFilterSpans.Checked Then
-    fmeData.Filter := '(Type = ''Freespan*'')'
+    fmeDBGrid.Filter := '(Type = ''Freespan*'')'
   Else
-    fmeData.Filter := '';
+    fmeDBGrid.Filter := '';
 End;
 
 Procedure TfrmStarfixReviewer.actRefreshDatabaseExecute(Sender: TObject);
@@ -529,7 +533,7 @@ Begin
     FMediaProvider.ScanVideoFiles(FSettings.VideoFolder);
 
     // Resize columns etc
-    fmeData.InitialiseDBGrid(True);
+    fmeDBGrid.InitialiseDBGrid(True);
 
     Caption := Format('%s: [%s]', [Application.Title, FDataProvider.Title]);
     Status := '';
@@ -631,6 +635,11 @@ Begin
   Else
     Status := 'Unable to copy anomaly image ' + ASourceFilename;
 End;
+
+function TfrmStarfixReviewer.GetExactTimeSeek: Boolean;
+begin
+  Result := fmeVideo.VideoTrackbarSeek;
+end;
 
 Function TfrmStarfixReviewer.CheckAnomalyReferenceReadiness: Boolean;
 Begin
