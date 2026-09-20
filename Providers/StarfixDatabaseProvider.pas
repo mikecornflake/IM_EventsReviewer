@@ -6,7 +6,7 @@ Unit StarfixDatabaseProvider;
 Interface
 
 Uses
-  Classes, SysUtils, DataProvider, MediaTypes, Inifiles, mssqlconn, sqldb, dblib, DB, ExtCtrls,
+  Classes, SysUtils, DataProvider, MediaTypes, Inifiles, mssqlconn, sqldb, dblib, DB, BufDataset, ExtCtrls,
   MSSQLSupport, IMMessaging, AppMessaging;
 
 Type
@@ -26,11 +26,15 @@ Type
     // Controls
     FConnection: TMSSQLConnection;
     FTransaction: TSQLTransaction;
-    qryData: TSQLQuery;
+    FMaster: TSQLQuery;
+    FFilteredDataset: TBufDataset;
+    FUpdatingFilteredDataset: Boolean;
+
     qryVideosforTime: TSQLQuery;
 
-    Procedure qryDataAfterOpen(ADataSet: TDataSet);
-    Procedure qryDataAfterScroll(ADataSet: TDataSet);
+    Procedure DatasetAfterOpen(ADataSet: TDataSet);
+    Procedure DoMasterAfterScroll(ADataSet: TDataSet);
+    Procedure DoFilterAfterScroll(ADataSet: TDataSet);
   Protected
     Function GetDataSet: TDataSet; Override;
     Function GetReady: Boolean; Override;
@@ -80,37 +84,37 @@ Begin
 
   FConnection.Transaction := FTransaction;
 
-  qryData := TSQLQuery.Create(nil);
-  qryData.Database := FConnection;
-  qryData.Transaction := FTransaction;
-  qryData.AfterScroll := @qryDataAfterScroll;
-  qryData.AfterOpen := @qryDataAfterOpen;
-  qryData.SQL.Add('SELECT E.[UNIQUE_ID],  ');
-  qryData.SQL.Add('       DATEADD(S, E.TIMEDATE, ''1970-01-01'') As [Start_(UTC)], ');
-  qryData.SQL.Add('       E.[KP],                       ');
-  qryData.SQL.Add('       E.[Type],                     ');
-  qryData.SQL.Add('       E.Comment As [Description],   ');
-  qryData.SQL.Add('       E.[Anomaly_No],               ');
-  qryData.SQL.Add('       CASE E.Anomaly WHEN 1 THEN ''Y''   ');
-  qryData.SQL.Add('                      ELSE ''N''     ');
-  qryData.SQL.Add('       END AS [Anomaly],                  ');
-  qryData.SQL.Add('       CASE E.Anomaly WHEN 1 THEN ''Red'' ');
-  qryData.SQL.Add('                      ELSE Null      ');
-  qryData.SQL.Add('       END AS [Colour_ID],           ');
-  qryData.SQL.Add('       TRY_CONVERT(decimal(18,3), E.Length) As [Length_(m)], ');
-  qryData.SQL.Add('       TRY_CONVERT(decimal(18,3), E.Width) As [Width_(m)],   ');
-  qryData.SQL.Add('       TRY_CONVERT(decimal(18,3), E.Height) As [Height_(m)], ');
-  qryData.SQL.Add('       E.Observed_Offset As [Offset_(m)],  ');
-  qryData.SQL.Add('       E.[Clock],                    ');
-  qryData.SQL.Add('       E.East As [Easting],          ');
-  qryData.SQL.Add('       E.North As [Northing],        ');
-  qryData.SQL.Add('       E.[Depth]                     ');
-  qryData.SQL.Add('FROM dbo.Event_3 E                   ');
-  qryData.SQL.Add('INNER JOIN dbo.SESSIONS S ON (    S.START_TIME <= E.TIMEDATE    ');
-  qryData.SQL.Add('                              AND S.END_TIME   >= E.TIMEDATE    ');
-  qryData.SQL.Add('                              AND S.INPUT_FILES=''Pos Import'') ');
-  qryData.SQL.Add('WHERE (E.PROC_FLAGS & 512)<>512      ');
-  qryData.SQL.Add('ORDER BY [KP] Asc                    ');
+  FMaster := TSQLQuery.Create(nil);
+  FMaster.Database := FConnection;
+  FMaster.Transaction := FTransaction;
+  FMaster.AfterScroll := @DoMasterAfterScroll;
+  FMaster.AfterOpen := @DatasetAfterOpen;
+  FMaster.SQL.Add('SELECT E.[UNIQUE_ID],  ');
+  FMaster.SQL.Add('       DATEADD(S, E.TIMEDATE, ''1970-01-01'') As [Start_(UTC)], ');
+  FMaster.SQL.Add('       E.[KP],                       ');
+  FMaster.SQL.Add('       E.[Type],                     ');
+  FMaster.SQL.Add('       E.Comment As [Description],   ');
+  FMaster.SQL.Add('       E.[Anomaly_No],               ');
+  FMaster.SQL.Add('       CASE E.Anomaly WHEN 1 THEN ''Y''   ');
+  FMaster.SQL.Add('                      ELSE ''N''     ');
+  FMaster.SQL.Add('       END AS [Anomaly],                  ');
+  FMaster.SQL.Add('       CASE E.Anomaly WHEN 1 THEN ''Red'' ');
+  FMaster.SQL.Add('                      ELSE Null      ');
+  FMaster.SQL.Add('       END AS [Colour_ID],           ');
+  FMaster.SQL.Add('       TRY_CONVERT(decimal(18,3), E.Length) As [Length_(m)], ');
+  FMaster.SQL.Add('       TRY_CONVERT(decimal(18,3), E.Width) As [Width_(m)],   ');
+  FMaster.SQL.Add('       TRY_CONVERT(decimal(18,3), E.Height) As [Height_(m)], ');
+  FMaster.SQL.Add('       E.Observed_Offset As [Offset_(m)],  ');
+  FMaster.SQL.Add('       E.[Clock],                    ');
+  FMaster.SQL.Add('       E.East As [Easting],          ');
+  FMaster.SQL.Add('       E.North As [Northing],        ');
+  FMaster.SQL.Add('       E.[Depth]                     ');
+  FMaster.SQL.Add('FROM dbo.Event_3 E                   ');
+  FMaster.SQL.Add('INNER JOIN dbo.SESSIONS S ON (    S.START_TIME <= E.TIMEDATE    ');
+  FMaster.SQL.Add('                              AND S.END_TIME   >= E.TIMEDATE    ');
+  FMaster.SQL.Add('                              AND S.INPUT_FILES=''Pos Import'') ');
+  FMaster.SQL.Add('WHERE (E.PROC_FLAGS & 512)<>512      ');
+  FMaster.SQL.Add('ORDER BY [KP] Asc                    ');
 
   qryVideosforTime := TSQLQuery.Create(nil);
   qryVideosforTime.Database := FConnection;
@@ -128,8 +132,13 @@ Begin
   // from dataset events such as AfterScroll.
   // Without this, FreeTDS may report
   //    "adaptive server operation with results pending".
-  qryData.PacketRecords := -1;
+  FMaster.PacketRecords := -1;
   qryVideosforTime.PacketRecords := -1;
+
+  FFilteredDataset := TBufDataset.Create(nil);
+  FFilteredDataset.AfterScroll := @DoFilterAfterScroll;
+  FFilteredDataset.AfterOpen := @DatasetAfterOpen;
+  FUpdatingFilteredDataset := False;
 
   // Register the database driver
   FDriverFilename := '';
@@ -155,7 +164,7 @@ Begin
     FConnection.Connected := False;
 
   FreeAndNil(qryVideosforTime);
-  FreeAndNil(qryData);
+  FreeAndNil(FMaster);
   FreeAndNil(FTransaction);
   FreeAndNil(FConnection);
 
@@ -164,7 +173,7 @@ End;
 
 Function TStarfixDatabaseProvider.GetDataSet: TDataSet;
 Begin
-  Result := qryData;
+  Result := FMaster;
 End;
 
 Function TStarfixDatabaseProvider.GetReady: Boolean;
@@ -174,13 +183,23 @@ End;
 
 Function TStarfixDatabaseProvider.GetFilteredDataSet: TDataSet;
 begin
-  // TODO
+  Result := FFilteredDataset;
 end;
 
 Procedure TStarfixDatabaseProvider.SetFilter(Const AValue: String);
 begin
   inherited SetFilter(AValue);
-  // TODO
+
+  If Filtered Then
+  Begin
+    BuildFilteredDataset(FMaster, FFilteredDataset, AValue);
+
+    FFilteredDataset.Open;
+  End
+  Else If FFilteredDataset.Active Then
+    FFilteredDataset.Close;
+
+  frmEventsReviewer.MessageBus.BroadcastFilterChanged(Self, Self);
 end;
 
 Function TStarfixDatabaseProvider.Open: Boolean;
@@ -221,7 +240,7 @@ Begin
         FTransaction.Commit;
 
         // Retrieving results
-        qryData.Open;
+        FMaster.Open;
 
         Result := True;
         FLoaded := True;
@@ -234,7 +253,7 @@ Begin
         frmEventsReviewer.MessageBus.BroadcastDataProviderReady(Self, Self);
 
         // We suppressed the first event being loaded, so broadcast it now manually
-        qryDataAfterScroll(qryData);
+        DoMasterAfterScroll(FMaster);
       Except
         On E: Exception Do
           ShowMessage(E.Message);
@@ -251,8 +270,8 @@ Begin
 
   If Ready Then
   Begin
-    qryData.Close;
-    qryData.Open;
+    FMaster.Close;
+    FMaster.Open;
 
     Result := True;
 
@@ -266,11 +285,11 @@ Function TStarfixDatabaseProvider.Close: Boolean;
 Begin
   FLoaded := False;
 
-  If qryData.Active Then
-    qryData.Close;
+  If FMaster.Active Then
+    FMaster.Close;
 
   If qryVideosforTime.Active Then
-    qryData.Close;
+    FMaster.Close;
 
   If FConnection.Connected Then
     FConnection.Close;
@@ -307,17 +326,17 @@ Begin
     Result := 'Fugro Starfix Database: Not connected';
 End;
 
-Procedure TStarfixDatabaseProvider.qryDataAfterScroll(ADataSet: TDataSet);
+Procedure TStarfixDatabaseProvider.DoMasterAfterScroll(ADataSet: TDataSet);
 Var
   sAnomalyNo: String;
   dtDateTime: TDateTime;
   dKP: Extended;
 Begin
-  If Ready And Assigned(FOnDataChanged) And Not qryData.ControlsDisabled Then
+  If Ready And Assigned(FOnDataChanged) And Not FMaster.ControlsDisabled Then
   Begin
-    sAnomalyNo := qryData.FieldByName('Anomaly_No').AsString;
-    dtDateTime := qryData.FieldByName('Start_(UTC)').AsDateTime;
-    dKP := qryData.FieldByName('KP').AsExtended;
+    sAnomalyNo := FMaster.FieldByName('Anomaly_No').AsString;
+    dtDateTime := FMaster.FieldByName('Start_(UTC)').AsDateTime;
+    dKP := FMaster.FieldByName('KP').AsExtended;
 
     FOnDataChanged(Self, sAnomalyNo, dtDateTime);
 
@@ -326,7 +345,16 @@ Begin
   End;
 End;
 
-Procedure TStarfixDatabaseProvider.qryDataAfterOpen(ADataSet: TDataSet);
+Procedure TStarfixDatabaseProvider.DoFilterAfterScroll(ADataSet: TDataSet);
+begin
+  If FUpdatingFilteredDataset Then
+    Exit;
+
+  If Ready And FMaster.Active And FFilteredDataset.Active And Not ADataSet.ControlsDisabled Then
+    FMaster.RecNo := FFilteredDataset.FieldByName(MASTER_RECNO_FIELD).AsInteger;
+end;
+
+Procedure TStarfixDatabaseProvider.DatasetAfterOpen(ADataSet: TDataSet);
 
   Procedure TrySetDisplayFormat(AField: TField; AFormat: String);
   Begin
@@ -394,8 +422,8 @@ End;
 
 Function TStarfixDatabaseProvider.DateTime: TDateTime;
 Begin
-  If Ready And (qryData.Active) And (qryData.RecordCount > 0) Then
-    Result := qryData.FieldByName('Start_(UTC)').AsDateTime
+  If Ready And (FMaster.Active) And (FMaster.RecordCount > 0) Then
+    Result := FMaster.FieldByName('Start_(UTC)').AsDateTime
   Else
     Result := 0;
 End;
@@ -410,7 +438,7 @@ Begin
   If Not (AMessage Is TIMMessageTime) Then
     Exit;
 
-  If Ready And (qryData.Active) And (qryData.RecordCount > 0) Then
+  If Ready And (FMaster.Active) And (FMaster.RecordCount > 0) Then
   Begin
     oMessage := TIMMessageTime(AMessage);
 
@@ -420,10 +448,20 @@ Begin
     Else
       dtThreshold := 10 / SecsPerDay;
 
-    oKP := qryData.FieldByName('KP');
+    oKP := FMaster.FieldByName('KP');
     dStartKP := oKP.AsExtended;
 
-    GotoNearestTime(qryData, 'Start_(UTC)', oMessage.DateTime, dtThreshold);
+    GotoNearestTime(FMaster, 'Start_(UTC)', oMessage.DateTime, dtThreshold);
+
+    If Filtered Then
+    Begin
+      FUpdatingFilteredDataset := True;
+      Try
+        GotoNearestTime(FFilteredDataset, 'Start_(UTC)', oMessage.DateTime, dtThreshold);
+      Finally
+        FUpdatingFilteredDataset := False;
+      End;
+    end;
 
     If (abs(dStartKP - oKP.AsExtended) > 0.001) Then
       frmEventsReviewer.MessageBus.BroadcastKP(Self, oKP.AsExtended);
@@ -432,8 +470,8 @@ End;
 
 Function TStarfixDatabaseProvider.AnomalyReference: String;
 Begin
-  If (qryData.Active) And (qryData.RecordCount > 0) Then
-    Result := qryData.FieldByName('Anomaly_No').AsString
+  If (FMaster.Active) And (FMaster.RecordCount > 0) Then
+    Result := FMaster.FieldByName('Anomaly_No').AsString
   Else
     Result := '';
 End;

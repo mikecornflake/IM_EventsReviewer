@@ -103,7 +103,7 @@ Type
     fmePipelineChart: TfmePipelineEvents;
 
     Function AddAnomalyImage(Const ASourceFilename: String): Boolean;
-    Procedure DoSetDatasets;
+    Procedure DoSetDatasets(APopulate: Boolean);
     Function GetExactTimeSeek: Boolean;
     Procedure LoadAnomalyImages(Const AAnomalyReference: String);
 
@@ -384,9 +384,9 @@ Begin
   RefreshUI;
 End;
 
-Procedure TfrmEventsReviewer.DoSetDatasets;
+Procedure TfrmEventsReviewer.DoSetDatasets(APopulate: Boolean);
 Begin
-  If FDataProvider.Ready Then
+  If APopulate Then
   Begin
     dsNotification.Dataset := FDataProvider.Dataset;
     fmePipelineChart.Dataset := FDataProvider.Dataset;
@@ -421,7 +421,7 @@ Begin
     FDataProvider.OnProviderReady := nil;
     FDataProvider.OnDataChanged := nil;
 
-    DoSetDatasets;
+    DoSetDatasets(False);
   End;
 
   FDataProvider := AProvider;
@@ -431,7 +431,7 @@ Begin
     FDataProvider.OnProviderReady := @DoProviderReady;
     FDataProvider.OnDataChanged := @DoDataChanged;
 
-    DoSetDatasets;
+    DoSetDatasets(True);
 
     FDataProvider.Open;
   End;
@@ -579,7 +579,7 @@ End;
 
 Procedure TfrmEventsReviewer.DoReceiveFilterChanged(AMessage: TIMMessage);
 Begin
-  DoSetDatasets;
+  DoSetDatasets(True);
 End;
 
 Procedure TfrmEventsReviewer.LoadAnomalyImages(Const AAnomalyReference: String);
