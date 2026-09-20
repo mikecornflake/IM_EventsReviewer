@@ -6,7 +6,7 @@ Interface
 
 Uses
   Classes, SysUtils, DataProvider, MediaTypes, Inifiles, DB, ExtCtrls, DBSupport,
-  BufDataset, fpspreadsheet, xlsxOOXML, FrameEventListingSettings;
+  BufDataset, fpspreadsheet, xlsxOOXML, FrameEventListingSettings, IMMessaging, AppMessaging;
 
 Type
 
@@ -45,7 +45,7 @@ Type
     Function GetFilteredDataSet: TDataSet; Override;
     Procedure SetFilter(Const AValue: String); Override;
 
-    Procedure DoReceiveTimeSeekMessage(Sender: TObject);
+    Procedure DoReceiveTimeSeekMessage(AMessage: TIMMessage);
   Public
     Constructor Create;
     Destructor Destroy; Override;
@@ -70,8 +70,7 @@ Type
 Implementation
 
 Uses
-  fpsTypes, SpreadsheetSupport, LazLogger, Dialogs, AppMessaging,
-  FormEventsReviewer;
+  fpsTypes, SpreadsheetSupport, LazLogger, Dialogs, FormEventsReviewer;
 
   { TEventListingProvider }
 
@@ -205,11 +204,11 @@ Begin
     BuildFilteredDataset(FMaster.Table, FFilteredDataset, AValue);
 
     FFilteredDataset.Open;
-
-    // Broadcast Changed Filter
   End
   Else If FFilteredDataset.Active Then
     FFilteredDataset.Close;
+
+  frmEventsReviewer.MessageBus.BroadcastFilterChanged(Self, Self);
 End;
 
 
@@ -479,19 +478,19 @@ Begin
   TrySetDisplayFormat(ADataSet.FieldByName('Height_(m)'), '0.00');
 End;
 
-Procedure TEventListingProvider.DoReceiveTimeSeekMessage(Sender: TObject);
+Procedure TEventListingProvider.DoReceiveTimeSeekMessage(AMessage: TIMMessage);
 Var
   oMessage: TIMMessageTime;
   oKP: TField;
   dStartKP: Extended;
   dtThreshold: TDateTime;
 Begin
-  If Not (Sender Is TIMMessageTime) Then
+  If Not (AMessage Is TIMMessageTime) Then
     Exit;
 
   If Ready And (FMaster.Table.Active) And (FMaster.Table.RecordCount > 0) Then
   Begin
-    oMessage := TIMMessageTime(Sender);
+    oMessage := TIMMessageTime(AMessage);
 
     // Are we being asked to jump to a potentially distant point on the video?
     If frmEventsReviewer.ExactTimeSeek Then

@@ -11,7 +11,7 @@ Uses
   FormMain, FrameImageViewer, FrameGrids, FrameVideo,
   // Application
   ApplicationSettings, DataProvider, MediaProvider, FrameVerticalDBGrid,
-  StarfixDatabaseProvider, EventListingProvider, AppMessaging, FramePipelineEvents;
+  StarfixDatabaseProvider, EventListingProvider, IMMessaging, AppMessaging, FramePipelineEvents;
 
 Type
 
@@ -103,13 +103,11 @@ Type
     fmePipelineChart: TfmePipelineEvents;
 
     Function AddAnomalyImage(Const ASourceFilename: String): Boolean;
+    Procedure DoSetDatasets;
     Function GetExactTimeSeek: Boolean;
     Procedure LoadAnomalyImages(Const AAnomalyReference: String);
 
-    Procedure DoRefreshAnomalyImages(Sender: TObject);
-    Procedure DoAddNewImage(Sender: TObject);
     Procedure SetDataProvider(AProvider: TDataProvider);
-    Procedure DoReceiveTimeSeekMessage(Sender: TObject);
   Protected
     Procedure RefreshUI; Override;
 
@@ -122,7 +120,11 @@ Type
     Procedure SaveLocalSettings(oInifile: TIniFile); Override;
 
     // Callback events
+    Procedure DoRefreshAnomalyImages(Sender: TObject);
+    Procedure DoAddNewImage(Sender: TObject);
     Procedure DoProviderReady(Sender: TObject);
+    Procedure DoReceiveFilterChanged(AMessage: TIMMessage);
+    Procedure DoReceiveTimeSeekMessage(AMessage: TIMMessage);
     Procedure DoDataChanged(Sender: TObject; Const ANewAnomalyNo: String;
       Const ADateTime: TDateTime);
   Public
@@ -162,6 +164,7 @@ Begin
 
   FMessageBus := TAppMessageBus.Create;
   FMessageBus.Subscribe(Self, TIMMessageTime, @DoReceiveTimeSeekMessage);
+  FMessageBus.Subscribe(Self, TIMMessageFilterChanged, @DoReceiveFilterChanged);
 
   // Settings Manager
   FSettings := TApplicationSettings.Create;
@@ -381,6 +384,34 @@ Begin
   RefreshUI;
 End;
 
+Procedure TfrmEventsReviewer.DoSetDatasets;
+Begin
+  If FDataProvider.Ready Then
+  Begin
+    dsNotification.Dataset := FDataProvider.Dataset;
+    fmePipelineChart.Dataset := FDataProvider.Dataset;
+
+    If FDataProvider.Filtered Then
+    Begin
+      fmeDBGrid.Dataset := FDataProvider.FilteredDataSet;
+      fmeVerticalDBGrid.Dataset := FDataProvider.FilteredDataSet;
+    End
+    Else
+    Begin
+      fmeDBGrid.Dataset := FDataProvider.Dataset;
+      fmeVerticalDBGrid.Dataset := FDataProvider.Dataset;
+    End;
+  End
+  Else
+  Begin
+    dsNotification.Dataset := nil;
+    fmePipelineChart.Dataset := nil;
+
+    fmeDBGrid.Dataset := nil;
+    fmeVerticalDBGrid.Dataset := nil;
+  End;
+End;
+
 Procedure TfrmEventsReviewer.SetDataProvider(AProvider: TDataProvider);
 Begin
   If Assigned(FDataProvider) Then
@@ -390,11 +421,7 @@ Begin
     FDataProvider.OnProviderReady := nil;
     FDataProvider.OnDataChanged := nil;
 
-    dsNotification.Dataset := nil;
-    fmePipelineChart.Dataset := nil;
-
-    fmeDBGrid.Dataset := nil;
-    fmeVerticalDBGrid.Dataset := nil;
+    DoSetDatasets;
   End;
 
   FDataProvider := AProvider;
@@ -404,21 +431,17 @@ Begin
     FDataProvider.OnProviderReady := @DoProviderReady;
     FDataProvider.OnDataChanged := @DoDataChanged;
 
-    dsNotification.Dataset := FDataProvider.Dataset;
-    fmePipelineChart.Dataset := FDataProvider.Dataset;
-
-    fmeDBGrid.Dataset := FDataProvider.Dataset;
-    fmeVerticalDBGrid.Dataset := FDataProvider.Dataset;
+    DoSetDatasets;
 
     FDataProvider.Open;
   End;
 End;
 
-Procedure TfrmEventsReviewer.DoReceiveTimeSeekMessage(Sender: TObject);
+Procedure TfrmEventsReviewer.DoReceiveTimeSeekMessage(AMessage: TIMMessage);
 //Var
 //  oMessage: TIMMessageTime;
 Begin
-  If Not (Sender Is TIMMessageTime) Then
+  If Not (AMessage Is TIMMessageTime) Then
     Exit;
 
   //  oMessage := TIMMessageTime(Sender);
@@ -504,36 +527,20 @@ End;
 
 Procedure TfrmEventsReviewer.DoApplyFilter(Sender: TObject);
 Begin
-  // TODO FIX HACK, IMPLEMENT MESSAGING
   If actFilterAnomalies.Checked And actFilterSpans.Checked Then
   Begin
+    // Work around what appears to be a TToolbar / TActionlist issue
     actFilterAnomalies.Checked := False;
     actFilterSpans.Checked := False;
 
     FDataProvider.Filter := '';
-    fmeDBGrid.Dataset := FDataProvider.Dataset;
-    fmeVerticalDBGrid.Dataset := FDataProvider.Dataset;
   End
   Else If actFilterAnomalies.Checked Then
-  Begin
-    FDataProvider.Filter := '(Anomaly = ''Y'')';
-
-    fmeDBGrid.Dataset := FDataProvider.FilteredDataSet;
-    fmeVerticalDBGrid.Dataset := FDataProvider.FilteredDataSet;
-  End
+    FDataProvider.Filter := '(Anomaly = ''Y'')'
   Else If actFilterSpans.Checked Then
-  Begin
-    FDataProvider.Filter := '(Type = ''Freespan*'')';
-
-    fmeDBGrid.Dataset := FDataProvider.FilteredDataSet;
-    fmeVerticalDBGrid.Dataset := FDataProvider.FilteredDataSet;
-  End
+    FDataProvider.Filter := '(Type = ''Freespan*'')'
   Else
-  Begin
     FDataProvider.Filter := '';
-    fmeDBGrid.Dataset := FDataProvider.Dataset;
-    fmeVerticalDBGrid.Dataset := FDataProvider.Dataset;
-  End;
 
   // Resize columns etc
   fmeDBGrid.InitialiseDBGrid(True);
@@ -568,6 +575,11 @@ Begin
   End;
 
   RefreshUI;
+End;
+
+Procedure TfrmEventsReviewer.DoReceiveFilterChanged(AMessage: TIMMessage);
+Begin
+  DoSetDatasets;
 End;
 
 Procedure TfrmEventsReviewer.LoadAnomalyImages(Const AAnomalyReference: String);

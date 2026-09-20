@@ -7,7 +7,7 @@ Interface
 
 Uses
   Classes, SysUtils, DataProvider, MediaTypes, Inifiles, mssqlconn, sqldb, dblib, DB, ExtCtrls,
-  MSSQLSupport;
+  MSSQLSupport, IMMessaging, AppMessaging;
 
 Type
 
@@ -39,7 +39,7 @@ Type
     Procedure SetFilter(Const AValue: String); Override;
 
     // Messaging
-    Procedure DoReceiveTimeSeekMessage(Sender: TObject);
+    Procedure DoReceiveTimeSeekMessage(AMessage: TIMMessage);
   Public
     Constructor Create;
     Destructor Destroy; Override;
@@ -64,7 +64,7 @@ Type
 Implementation
 
 Uses
-  FormMain, FormEventsReviewer, AppMessaging, ThirdPartySupport,
+  FormMain, FormEventsReviewer, ThirdPartySupport,
   Dialogs, Controls, Forms, LazLogger, DBSupport;
 
   { TStarfixDatabaseProvider }
@@ -400,19 +400,19 @@ Begin
     Result := 0;
 End;
 
-Procedure TStarfixDatabaseProvider.DoReceiveTimeSeekMessage(Sender: TObject);
+Procedure TStarfixDatabaseProvider.DoReceiveTimeSeekMessage(AMessage: TIMMessage);
 Var
   oMessage: TIMMessageTime;
   oKP: TField;
   dStartKP: Extended;
   dtThreshold: TDateTime;
 Begin
-  If Not (Sender Is TIMMessageTime) Then
+  If Not (AMessage Is TIMMessageTime) Then
     Exit;
 
   If Ready And (qryData.Active) And (qryData.RecordCount > 0) Then
   Begin
-    oMessage := TIMMessageTime(Sender);
+    oMessage := TIMMessageTime(AMessage);
 
     // Are we being asked to jump to a potentially distant point on the video?
     If frmEventsReviewer.ExactTimeSeek Then

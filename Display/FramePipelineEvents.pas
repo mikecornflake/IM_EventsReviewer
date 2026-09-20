@@ -6,7 +6,7 @@ Interface
 
 Uses
   Classes, SysUtils, Forms, Controls, FrameBase, PipelineEventMap, FramePipelineView,
-  AppMessaging, DB;
+  IMMessaging, AppMessaging, DB;
 
 Type
 
@@ -18,8 +18,8 @@ Type
     fmePipelineView: TFramePipelineView;
 
     Procedure ClearData;
-    Procedure DoReceiveSeekKPMessage(Sender: TObject);
-    Procedure DoReceiveDataProviderReady(Sender: TObject);
+    Procedure DoReceiveSeekKPMessage(AMessage: TIMMessage);
+    Procedure DoReceiveDataProviderReady(AMessage: TIMMessage);
     Procedure LoadData;
     Procedure SetDataset(Const AValue: TDataset);
   Public
@@ -126,23 +126,14 @@ Begin
 End;
 
 
-Procedure TfmePipelineEvents.DoReceiveSeekKPMessage(Sender: TObject);
-Var
-  oMessage: TIMMessageKP;
+Procedure TfmePipelineEvents.DoReceiveSeekKPMessage(AMessage: TIMMessage);
 Begin
-  If Not (Sender Is TIMMessageKP) Then
-    Exit;
-
-  oMessage := TIMMessageKP(Sender);
-
-  fmePipelineView.KP := oMessage.KP;
+  If AMessage Is TIMMessageKP Then
+    fmePipelineView.KP := TIMMessageKP(AMessage).KP;
 End;
 
-Procedure TfmePipelineEvents.DoReceiveDataProviderReady(Sender: TObject);
+Procedure TfmePipelineEvents.DoReceiveDataProviderReady(AMessage: TIMMessage);
 Begin
-  If Not (Sender Is TIMMessageDataProviderReady) Then
-    Exit;
-
   LoadData;
 End;
 

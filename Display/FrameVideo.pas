@@ -7,7 +7,7 @@ Interface
 Uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, Inifiles,
   FrameBase, FrameVideoPlayer, FrameSyncedVideo, MediaTypes,
-  FrameSettingsSyncedVideo;
+  FrameSettingsSyncedVideo, IMMessaging, AppMessaging;
 
 Type
 
@@ -35,7 +35,7 @@ Type
     FSeekPending: Boolean;
 
     Procedure DoPlayerGrabImage(Sender: TObject; Const AFolder: String);
-    Procedure DoReceiveTimeSeekMessage(Sender: TObject);
+    Procedure DoReceiveTimeSeekMessage(AMessage: TIMMessage);
     Procedure DoVideoLoaded(Sender: TObject);
     function GetVideoTrackbarSeek: Boolean;
     Procedure SetImageGrabFolder(Const AValue: String);
@@ -64,7 +64,7 @@ Const
 Implementation
 
 Uses
-  FormEventsReviewer, VideoEngineFactory, AppMessaging, FrameVideoLibmpv;
+  FormEventsReviewer, VideoEngineFactory, FrameVideoLibmpv;
 
   {$R *.lfm}
 
@@ -174,15 +174,15 @@ Begin
   frmEventsReviewer.DoPlayerGrabImage(AFolder);
 End;
 
-Procedure TfmeVideo.DoReceiveTimeSeekMessage(Sender: TObject);
+Procedure TfmeVideo.DoReceiveTimeSeekMessage(AMessage: TIMMessage);
 Var
   oMessage: TIMMessageTime;
   oVideoFiles: TVideoFiles;
 Begin
-  If Not (Sender Is TIMMessageTime) Then
+  If Not (AMessage Is TIMMessageTime) Then
     Exit;
 
-  oMessage := TIMMessageTime(Sender);
+  oMessage := TIMMessageTime(AMessage);
 
   FPendingSeek := True;
   FPendingSeekTime := oMessage.DateTime;
