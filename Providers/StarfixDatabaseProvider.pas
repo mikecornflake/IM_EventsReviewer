@@ -61,8 +61,8 @@ Type
 Implementation
 
 Uses
-  FormMain, FormStarfixAnomalies, NavigationController, ThirdPartySupport,
-  Dialogs, Controls, Forms, LazLogger, Math, DBSupport;
+  FormMain, FormStarfixReviewer, NavigationController, ThirdPartySupport,
+  Dialogs, Controls, Forms, LazLogger, DBSupport;
 
   { TStarfixDatabaseProvider }
 
@@ -391,7 +391,7 @@ Var
   oMessage: TIMMessageTime;
   oKP: TField;
   dStartKP: Extended;
-  dtCurrent, dtThreshold: TDateTime;
+  dtThreshold: TDateTime;
 Begin
   If Not (Sender Is TIMMessageTime) Then
     Exit;

@@ -1,4 +1,4 @@
-Unit FormStarfixAnomalies;
+Unit FormStarfixReviewer;
 
 {$mode objfpc}{$H+}
 {$WARN 5024 off : Parameter "$1" not used}
@@ -83,7 +83,6 @@ Type
     Procedure actSettingsClick(Sender: TObject);
     Procedure tmrHideSummaryTimer(Sender: TObject);
   Private
-    FExactTimeSeek: Boolean;
     // Settings
     FSettings: TApplicationSettings;
 
@@ -682,7 +681,7 @@ Begin
   Finally
     Try
       // Delete all remaining files
-      DeleteDirectory(AFolder, False);
+      DeleteDirectory(AFolder, False, True);
     Finally
       oDlg.Free;
     End;

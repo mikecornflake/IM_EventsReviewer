@@ -64,7 +64,7 @@ Const
 Implementation
 
 Uses
-  FormStarfixAnomalies, VideoEngineFactory, NavigationController, FrameVideoLibmpv;
+  FormStarfixReviewer, VideoEngineFactory, NavigationController, FrameVideoLibmpv;
 
   {$R *.lfm}
 

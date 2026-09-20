@@ -32,7 +32,7 @@ Type
 Implementation
 
 Uses
-  FormStarfixAnomalies, LazLogger;
+  FormStarfixReviewer, LazLogger;
 
   {$R *.lfm}
 

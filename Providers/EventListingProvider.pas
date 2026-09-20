@@ -64,7 +64,7 @@ Implementation
 
 Uses
   fpsTypes, SpreadsheetSupport, LazLogger, Dialogs, NavigationController,
-  FormStarfixAnomalies, Math;
+  FormStarfixReviewer;
 
   { TEventListingProvider }
 
