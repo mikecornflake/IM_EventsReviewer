@@ -501,7 +501,11 @@ Begin
     oKP := FMaster.Table.FieldByName('KP');
     dStartKP := oKP.AsExtended;
 
-    GotoNearestTime(FMaster.Table, 'Start_(UTC)', oMessage.DateTime, dtThreshold);
+    If GotoNearestTime(FMaster.Table, 'Start_(UTC)', oMessage.DateTime, dtThreshold) Then
+    Begin
+      // The above suppressed OnAfterScroll, so we need to manually raise
+      DoEventsAfterScroll(FMaster.Table);
+    End;
 
     If Filtered Then
     Begin

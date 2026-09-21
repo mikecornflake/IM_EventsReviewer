@@ -46,7 +46,7 @@ Type
     mnuSettings: TMenuItem;
     dlgAddImage: TOpenPictureDialog;
     pnlDetailsGrid: TPanel;
-    pnlHidingSummary: TPanel;
+    pnlNotification: TPanel;
     pnlAnomalies: TPanel;
     pcBottom: TPageControl;
     pnlRight: TPanel;
@@ -57,7 +57,7 @@ Type
     splDetailsGrid: TSplitter;
     tsImages: TTabSheet;
     tsChart: TTabSheet;
-    tmrHideSummary: TTimer;
+    tmrNotification: TTimer;
     tbMain: TToolBar;
     btnOpenDatabase: TToolButton;
     btnSettings: TToolButton;
@@ -81,7 +81,7 @@ Type
     Procedure actDatabaseOpenClick(Sender: TObject);
     Procedure mnuExitClick(Sender: TObject);
     Procedure actSettingsClick(Sender: TObject);
-    Procedure tmrHideSummaryTimer(Sender: TObject);
+    Procedure tmrNotificationTimer(Sender: TObject);
   Private
     // Settings
     FSettings: TApplicationSettings;
@@ -252,9 +252,9 @@ Procedure TfrmEventsReviewer.FormShow(Sender: TObject);
 Begin
   If Not FActivated Then
   Begin
-    RoundControl(pnlHidingSummary, 10);
+    RoundControl(pnlNotification, 10);
     // Visible quickly at startup, but prevents a bad drawing issue on first show
-    pnlHidingSummary.Visible := False;
+    pnlNotification.Visible := False;
 
     FActivated := True;
   End;
@@ -335,10 +335,10 @@ Begin
   actFilterSpans.Enabled := actSeekVideo.Enabled;
 End;
 
-Procedure TfrmEventsReviewer.tmrHideSummaryTimer(Sender: TObject);
+Procedure TfrmEventsReviewer.tmrNotificationTimer(Sender: TObject);
 Begin
-  tmrHideSummary.Enabled := False;
-  pnlHidingSummary.Visible := False;
+  tmrNotification.Enabled := False;
+  pnlNotification.Visible := False;
 End;
 
 Procedure TfrmEventsReviewer.actSeekVideoExecute(Sender: TObject);
@@ -548,7 +548,10 @@ End;
 
 Procedure TfrmEventsReviewer.actRefreshDatabaseExecute(Sender: TObject);
 Begin
-  FDataProvider.Refresh;
+  FMediaProvider.ScanVideoFiles(FSettings.VideoFolder);
+  If Assigned(Sender) Then
+    FDataProvider.Refresh;
+  fmeImageViewer.RefreshImages;
 
   RefreshUI;
 End;
@@ -563,7 +566,7 @@ Begin
   // We're now either connected to database, or have the offline data available
   If FDataProvider.Ready Then
   Begin
-    FMediaProvider.ScanVideoFiles(FSettings.VideoFolder);
+    actRefreshDatabaseExecute(nil);
 
     // Resize columns etc
     fmeDBGrid.InitialiseDBGrid(True);
@@ -629,8 +632,14 @@ End;
 Procedure TfrmEventsReviewer.DoDataChanged(Sender: TObject; Const ANewAnomalyNo: String;
   Const ADateTime: TDateTime);
 Begin
-  tmrHideSummary.Enabled := True;
-  pnlHidingSummary.Visible := True;
+  tmrNotification.Enabled := True;
+
+  If Trim(ANewAnomalyNo) = '' Then
+    pnlNotification.Color := TColor($00B0FFFF) // Yellow
+  Else
+    pnlNotification.Color := TColor($008080FF);  // Red
+
+  pnlNotification.Visible := True;
 
   If DirectoryExists(FSettings.ImageFolder) Then
     LoadAnomalyImages(ANewAnomalyNo)

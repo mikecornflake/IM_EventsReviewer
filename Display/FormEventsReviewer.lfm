@@ -186,7 +186,7 @@ inherited frmEventsReviewer: TfrmEventsReviewer
       end
     end
   end
-  object pnlHidingSummary: TPanel[6]
+  object pnlNotification: TPanel[6]
     AnchorSideLeft.Control = pnlRight
     AnchorSideLeft.Side = asrCenter
     AnchorSideTop.Control = pnlRight
@@ -594,10 +594,10 @@ inherited frmEventsReviewer: TfrmEventsReviewer
     Left = 784
     Top = 224
   end
-  object tmrHideSummary: TTimer[10]
+  object tmrNotification: TTimer[10]
     Enabled = False
     Interval = 3000
-    OnTimer = tmrHideSummaryTimer
+    OnTimer = tmrNotificationTimer
     Left = 764
     Top = 86
   end

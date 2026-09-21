@@ -13,12 +13,16 @@ Type
 
   TMediaProvider = Class
   Private
+    FFolder: String;
+
     // Video File list
     FVideos: TVideoFiles;
 
   Public
     Constructor Create; Virtual;
     Destructor Destroy; Override;
+
+    Procedure Refresh;
 
     Procedure ScanVideoFiles(AFolder: String);
     Function LookupFolder(AVideoFilename: String): String;
@@ -40,6 +44,8 @@ Begin
   // Video Filename/Folder lookup...
   FVideos := TVideoFiles.Create(True);
   FVideos.InferInfoFromFilename := True;
+
+  FFolder := '';
 End;
 
 Destructor TMediaProvider.Destroy;
@@ -49,11 +55,19 @@ Begin
   Inherited Destroy;
 End;
 
+Procedure TMediaProvider.Refresh;
+Begin
+  ScanVideoFiles(FFolder);
+End;
+
 Procedure TMediaProvider.ScanVideoFiles(AFolder: String);
 Begin
   // Populate VideoFilenames
-  If DirectoryExists(AFolder) Then
+  If (AFolder <> '') And DirectoryExists(AFolder) Then
+  Begin
+    FFolder := AFolder;
     FVideos.ScanFolder(AFolder);
+  End;
 End;
 
 Function TMediaProvider.LookupFolder(AVideoFilename: String): String;
