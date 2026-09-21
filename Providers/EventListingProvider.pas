@@ -150,7 +150,8 @@ Begin
     If Assigned(FOnProviderReady) Then
       FOnProviderReady(Self);
 
-    // New fangled messaging marlarky :-)
+    // Everything that must happen before the rest of the application
+    // sees the provider as ready has now happened.
     frmEventsReviewer.MessageBus.BroadcastDataProviderReady(Self, Self);
 
     // We suppressed the first event being loaded, so broadcast it now manually
