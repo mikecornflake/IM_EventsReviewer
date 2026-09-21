@@ -37,7 +37,7 @@ Type
     Procedure DoPlayerGrabImage(Sender: TObject; Const AFolder: String);
     Procedure DoReceiveTimeSeekMessage(AMessage: TIMMessage);
     Procedure DoVideoLoaded(Sender: TObject);
-    function GetVideoTrackbarSeek: Boolean;
+    Function GetVideoTrackbarSeek: Boolean;
     Procedure SetImageGrabFolder(Const AValue: String);
 
     Procedure DoVideoPositionChange(Sender: TObject; ADateTime: TDateTime);
@@ -284,10 +284,10 @@ Begin
   tmrSeekAfterLoadVideo.Enabled := True;
 End;
 
-function TfmeVideo.GetVideoTrackbarSeek: Boolean;
-begin
+Function TfmeVideo.GetVideoTrackbarSeek: Boolean;
+Begin
   Result := fmeVideoPlayer.VideoTrackbarSeek;
-end;
+End;
 
 Procedure TfmeVideo.tmrSeekAfterLoadVideoTimer(Sender: TObject);
 Begin

@@ -6,7 +6,8 @@ Unit StarfixDatabaseProvider;
 Interface
 
 Uses
-  Classes, SysUtils, DataProvider, MediaTypes, Inifiles, mssqlconn, sqldb, dblib, DB, BufDataset, ExtCtrls,
+  Classes, SysUtils, DataProvider, MediaTypes, Inifiles, mssqlconn, sqldb,
+  dblib, DB, BufDataset, ExtCtrls,
   MSSQLSupport, IMMessaging, AppMessaging;
 
 Type
@@ -182,13 +183,13 @@ Begin
 End;
 
 Function TStarfixDatabaseProvider.GetFilteredDataSet: TDataSet;
-begin
+Begin
   Result := FFilteredDataset;
-end;
+End;
 
 Procedure TStarfixDatabaseProvider.SetFilter(Const AValue: String);
-begin
-  inherited SetFilter(AValue);
+Begin
+  Inherited SetFilter(AValue);
 
   If Filtered Then
   Begin
@@ -200,7 +201,7 @@ begin
     FFilteredDataset.Close;
 
   frmEventsReviewer.MessageBus.BroadcastFilterChanged(Self, Self);
-end;
+End;
 
 Function TStarfixDatabaseProvider.Open: Boolean;
 Begin
@@ -346,13 +347,13 @@ Begin
 End;
 
 Procedure TStarfixDatabaseProvider.DoFilterAfterScroll(ADataSet: TDataSet);
-begin
+Begin
   If FUpdatingFilteredDataset Then
     Exit;
 
   If Ready And FMaster.Active And FFilteredDataset.Active And Not ADataSet.ControlsDisabled Then
     FMaster.RecNo := FFilteredDataset.FieldByName(MASTER_RECNO_FIELD).AsInteger;
-end;
+End;
 
 Procedure TStarfixDatabaseProvider.DatasetAfterOpen(ADataSet: TDataSet);
 
@@ -461,7 +462,7 @@ Begin
       Finally
         FUpdatingFilteredDataset := False;
       End;
-    end;
+    End;
 
     If (abs(dStartKP - oKP.AsExtended) > 0.001) Then
       frmEventsReviewer.MessageBus.BroadcastKP(Self, oKP.AsExtended);

@@ -107,7 +107,7 @@ Begin
         sType := 'Fieldjoint';
 
       If Not sType.Contains(' End') Then
-        fmePipelineView.AddData(sType, dKP, dLen,(oAnom.AsString='Y'));
+        fmePipelineView.AddData(sType, dKP, dLen, (oAnom.AsString = 'Y'));
 
       FDataset.Next;
     End;

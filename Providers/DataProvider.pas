@@ -118,19 +118,19 @@ Implementation
 { TDataProvider }
 
 Function TDataProvider.GetFiltered: Boolean;
-begin
-  Result := Trim(FFilter)<>'';
-end;
+Begin
+  Result := Trim(FFilter) <> '';
+End;
 
 Procedure TDataProvider.SetFilter(Const AValue: String);
-begin
+Begin
   FFilter := AValue;
-end;
+End;
 
 Function TDataProvider.GetFilter: String;
-begin
+Begin
   Result := FFilter;
-end;
+End;
 
 Procedure TDataProvider.DoProviderReady;
 Begin

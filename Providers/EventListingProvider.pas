@@ -511,7 +511,7 @@ Begin
       Finally
         FUpdatingFilteredDataset := False;
       End;
-    end;
+    End;
 
     If (abs(dStartKP - oKP.AsExtended) > 0.001) Then
       frmEventsReviewer.MessageBus.BroadcastKP(Self, oKP.AsExtended);
