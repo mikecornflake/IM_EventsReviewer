@@ -29,6 +29,7 @@ Type
     FMaster: TMemTable;
     FFilteredDataset: TBufDataset;
     FUpdatingFilteredDataset: Boolean;
+    FUpdatingMasterDataset: Boolean;
 
     Procedure DatasetAfterOpen(ADataSet: TDataSet);
     Function RowIsEmpty(ARow: Integer): Boolean;
@@ -36,7 +37,7 @@ Type
     Procedure CreateFields;
     Procedure LoadEvents;
 
-    Procedure DoEventsAfterScroll(ADataSet: TDataSet);
+    Procedure DoMasterAfterScroll(ADataSet: TDataSet);
     Procedure DoFilterAfterScroll(ADataSet: TDataSet);
   Protected
     Function GetDataSet: TDataSet; Override;
@@ -89,13 +90,15 @@ Begin
   FUTCOffset := 1;
 
   FMaster := TMemTable.Create;
-  FMaster.Table.AfterScroll := @DoEventsAfterScroll;
+  FMaster.Table.AfterScroll := @DoMasterAfterScroll;
   FMaster.Table.AfterOpen := @DatasetAfterOpen;
+  FUpdatingMasterDataset := False;
 
   FFilteredDataset := TBufDataset.Create(nil);
   FFilteredDataset.AfterScroll := @DoFilterAfterScroll;
   FFilteredDataset.AfterOpen := @DatasetAfterOpen;
   FUpdatingFilteredDataset := False;
+
 
   // Messages
   frmEventsReviewer.MessageBus.Subscribe(Self, TIMMessageTime, @DoReceiveTimeSeekMessage);
@@ -155,7 +158,7 @@ Begin
     frmEventsReviewer.MessageBus.BroadcastDataProviderReady(Self, Self);
 
     // We suppressed the first event being loaded, so broadcast it now manually
-    DoEventsAfterScroll(FMaster.Table);
+    DoMasterAfterScroll(FMaster.Table);
   Except
     FreeAndNil(FSpreadsheet);
     FWorksheet := nil;
@@ -431,7 +434,7 @@ Begin
   FMaster.Table.First;
 End;
 
-Procedure TEventListingProvider.DoEventsAfterScroll(ADataSet: TDataSet);
+Procedure TEventListingProvider.DoMasterAfterScroll(ADataSet: TDataSet);
 Var
   sAnomalyNo: String;
   dtDateTime: TDateTime;
@@ -445,7 +448,9 @@ Begin
 
     FOnDataChanged(Self, sAnomalyNo, dtDateTime);
 
-    frmEventsReviewer.MessageBus.BroadcastTime(Self, dtDateTime);
+    If Not FUpdatingMasterDataset Then
+      frmEventsReviewer.MessageBus.BroadcastTime(Self, dtDateTime);
+
     frmEventsReviewer.MessageBus.BroadcastKP(Self, dKP);
   End;
 End;
@@ -502,10 +507,15 @@ Begin
     oKP := FMaster.Table.FieldByName('KP');
     dStartKP := oKP.AsExtended;
 
-    If GotoNearestTime(FMaster.Table, 'Start_(UTC)', oMessage.DateTime, dtThreshold) Then
-    Begin
-      // The above suppressed OnAfterScroll, so we need to manually raise
-      DoEventsAfterScroll(FMaster.Table);
+    FUpdatingMasterDataset := True;
+    Try
+      If GotoNearestTime(FMaster.Table, 'Start_(UTC)', oMessage.DateTime, dtThreshold) Then
+      Begin
+        // The above suppressed OnAfterScroll, so we need to manually raise
+        DoMasterAfterScroll(FMaster.Table);
+      End;
+    Finally
+      FUpdatingMasterDataset := False;
     End;
 
     If Filtered Then

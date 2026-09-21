@@ -30,6 +30,7 @@ Type
     FMaster: TSQLQuery;
     FFilteredDataset: TBufDataset;
     FUpdatingFilteredDataset: Boolean;
+    FUpdatingMasterDataset: Boolean;
 
     qryVideosforTime: TSQLQuery;
 
@@ -90,6 +91,8 @@ Begin
   FMaster.Transaction := FTransaction;
   FMaster.AfterScroll := @DoMasterAfterScroll;
   FMaster.AfterOpen := @DatasetAfterOpen;
+  FUpdatingMasterDataset := False;
+
   FMaster.SQL.Add('SELECT E.[UNIQUE_ID],  ');
   FMaster.SQL.Add('       DATEADD(S, E.TIMEDATE, ''1970-01-01'') As [Start_(UTC)], ');
   FMaster.SQL.Add('       E.[KP],                       ');
@@ -342,7 +345,9 @@ Begin
 
     FOnDataChanged(Self, sAnomalyNo, dtDateTime);
 
-    frmEventsReviewer.MessageBus.BroadcastTime(Self, dtDateTime);
+    If Not FUpdatingMasterDataset Then
+      frmEventsReviewer.MessageBus.BroadcastTime(Self, dtDateTime);
+
     frmEventsReviewer.MessageBus.BroadcastKP(Self, dKP);
   End;
 End;
@@ -453,10 +458,15 @@ Begin
     oKP := FMaster.FieldByName('KP');
     dStartKP := oKP.AsExtended;
 
-    If GotoNearestTime(FMaster, 'Start_(UTC)', oMessage.DateTime, dtThreshold) Then
-    Begin
-      // The above suppressed OnAfterScroll, so we need to manually raise
-      DoMasterAfterScroll(FMaster);
+    FUpdatingMasterDataset := True;
+    Try
+      If GotoNearestTime(FMaster, 'Start_(UTC)', oMessage.DateTime, dtThreshold) Then
+      Begin
+        // The above suppressed OnAfterScroll, so we need to manually raise
+        DoMasterAfterScroll(FMaster);
+      End;
+    Finally
+      FUpdatingMasterDataset := False;
     End;
 
     If Filtered Then
