@@ -14,11 +14,13 @@ Type
 
   TFrameApplicationSettings = Class(TFrameBase)
     Bevel2: TBevel;
+    edtEventImageFolder: TDirectoryEdit;
     edtVessel: TEdit;
-    edtImageFolder: TDirectoryEdit;
+    edtAnomalyImageFolder: TDirectoryEdit;
     edtROV: TEdit;
     edtVideoFolder: TDirectoryEdit;
     Label1: TLabel;
+    Label2: TLabel;
     Label3: TLabel;
     Label4: TLabel;
     Label5: TLabel;
@@ -26,18 +28,21 @@ Type
     edtMaxVideoDuration: TSpinEdit;
     Procedure FormCreate(Sender: TObject);
   Private
-    Function GetImageFolder: String;
+    Function GetAnomalyImageFolder: String;
+    function GetEventImageFolder: String;
     Function GetMaxVideoDuration: Integer;
     Function GetROV: String;
     Function GetVessel: String;
     Function GetVideoFolder: String;
-    Procedure SetImageFolder(Const AValue: String);
+    procedure SetAnomalyImageFolder(const AValue: String);
+    procedure SetEventImageFolder(const AValue: String);
     Procedure SetMaxVideoDuration(Const AValue: Integer);
     Procedure SetROV(Const AValue: String);
     Procedure SetVessel(Const AValue: String);
     Procedure SetVideoFolder(Const AValue: String);
   Public
-    Property ImageFolder: String Read GetImageFolder Write SetImageFolder;
+    Property AnomalyImageFolder: String Read GetAnomalyImageFolder Write SetAnomalyImageFolder;
+    Property EventImageFolder: String Read GetEventImageFolder Write SetEventImageFolder;
     Property VideoFolder: String Read GetVideoFolder Write SetVideoFolder;
     Property Vessel: String Read GetVessel Write SetVessel;
     Property ROV: String Read GetROV Write SetROV;
@@ -52,16 +57,21 @@ Implementation
 
 Procedure TFrameApplicationSettings.FormCreate(Sender: TObject);
 Begin
-  edtImageFolder.Text := '';
+  edtAnomalyImageFolder.Text := '';
   edtVideoFolder.Text := '';
   edtROV.Text := '';
   edtVessel.Text := '';
 End;
 
-Function TFrameApplicationSettings.GetImageFolder: String;
+Function TFrameApplicationSettings.GetAnomalyImageFolder: String;
 Begin
-  Result := edtImageFolder.Text;
+  Result := edtAnomalyImageFolder.Text;
 End;
+
+function TFrameApplicationSettings.GetEventImageFolder: String;
+begin
+  Result := edtEventImageFolder.Text;
+end;
 
 Function TFrameApplicationSettings.GetMaxVideoDuration: Integer;
 Begin
@@ -83,10 +93,15 @@ Begin
   Result := edtVideoFolder.Text;
 End;
 
-Procedure TFrameApplicationSettings.SetImageFolder(Const AValue: String);
+procedure TFrameApplicationSettings.SetAnomalyImageFolder(const AValue: String);
 Begin
-  edtImageFolder.Text := AValue;
+  edtAnomalyImageFolder.Text := AValue;
 End;
+
+procedure TFrameApplicationSettings.SetEventImageFolder(const AValue: String);
+begin
+  edtEventImageFolder.Text := AValue;
+end;
 
 Procedure TFrameApplicationSettings.SetMaxVideoDuration(Const AValue: Integer);
 Begin

@@ -17,13 +17,15 @@ Type
   TApplicationSettings = Class(TObject)
   Private
     // Settings
-    FImageFolder: String;
+    FAnomalyImageFolder: String;
+    FEventImageFolder: String;
     FVideoFolder: String;
     FVessel: String;
     FROV: String;
     FMaxVideoDuration: Integer;
 
-    Function GetImageFolder: String;
+    Function GetAnomalyImageFolder: String;
+    Function GetEventImageFolder: String;
     Function GetMaxVideoDuration: Integer;
     Function GetROV: String;
     Function GetVessel: String;
@@ -37,7 +39,8 @@ Type
 
     Property Vessel: String Read GetVessel;
     Property ROV: String Read GetROV;
-    Property ImageFolder: String Read GetImageFolder;
+    Property AnomalyImageFolder: String Read GetAnomalyImageFolder;
+    Property EventImageFolder: String Read GetEventImageFolder;
     Property VideoFolder: String Read GetVideoFolder;
     Property MaxVideoDuration: Integer Read GetMaxVideoDuration;
   End;
@@ -49,9 +52,14 @@ Uses
 
   { TApplicationSettings }
 
-Function TApplicationSettings.GetImageFolder: String;
+Function TApplicationSettings.GetAnomalyImageFolder: String;
 Begin
-  Result := FImageFolder;
+  Result := FAnomalyImageFolder;
+End;
+
+Function TApplicationSettings.GetEventImageFolder: String;
+Begin
+  Result := FEventImageFolder;
 End;
 
 Function TApplicationSettings.GetMaxVideoDuration: Integer;
@@ -78,14 +86,16 @@ Procedure TApplicationSettings.ApplySettingsFrame(AFrame: TFrameApplicationSetti
 Begin
   FVessel := AFrame.Vessel;
   FROV := AFrame.ROV;
-  FImageFolder := AFrame.ImageFolder;
+  FAnomalyImageFolder := AFrame.AnomalyImageFolder;
+  FEventImageFolder := AFrame.EventImageFolder;
   FVideoFolder := AFrame.VideoFolder;
   FMaxVideoDuration := AFrame.MaxVideoDuration;
 End;
 
 Procedure TApplicationSettings.PopulateSettingsFrame(AFrame: TFrameApplicationSettings);
 Begin
-  AFrame.ImageFolder := FImageFolder;
+  AFrame.AnomalyImageFolder := FAnomalyImageFolder;
+  AFrame.EventImageFolder := FEventImageFolder;
   AFrame.VideoFolder := FVideoFolder;
   AFrame.Vessel := FVessel;
   AFrame.ROV := FROV;
@@ -95,7 +105,8 @@ End;
 Procedure TApplicationSettings.LoadSettings(oInifile: TIniFile);
 Begin
   // User Settings
-  FImageFolder := oInifile.ReadString('Settings', 'ImageFolder', '');
+  FAnomalyImageFolder := oInifile.ReadString('Settings', 'AnomalyImageFolder', '');
+  FEventImageFolder := oInifile.ReadString('Settings', 'EventImageFolder', '');
   FVideoFolder := oInifile.ReadString('Settings', 'VideoFolder', '');
   FVessel := oInifile.ReadString('Settings', 'Vessel', '');
   FROV := oInifile.ReadString('Settings', 'ROV', '');
@@ -105,7 +116,8 @@ End;
 Procedure TApplicationSettings.SaveSettings(oInifile: TIniFile);
 Begin
   // User Settings
-  oInifile.WriteString('Settings', 'ImageFolder', FImageFolder);
+  oInifile.WriteString('Settings', 'AnomalyImageFolder', FAnomalyImageFolder);
+  oInifile.WriteString('Settings', 'EventImageFolder', FEventImageFolder);
   oInifile.WriteString('Settings', 'VideoFolder', FVideoFolder);
   oInifile.WriteString('Settings', 'Vessel', FVessel);
   oInifile.WriteString('Settings', 'ROV', FROV);

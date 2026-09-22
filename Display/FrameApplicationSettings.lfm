@@ -1,37 +1,35 @@
 inherited FrameApplicationSettings: TFrameApplicationSettings
-  Height = 278
+  Height = 327
   Width = 435
   Anchors = [akTop, akLeft, akRight]
-  ClientHeight = 278
+  ClientHeight = 327
   ClientWidth = 435
   LCLVersion = '4.99.0.0'
   object Label1: TLabel[0]
     Left = 8
     Height = 15
-    Top = 8
-    Width = 73
-    Caption = 'Image Folder'
+    Top = 56
+    Width = 124
+    Caption = 'Anomaly Image Folder'
     Font.Style = [fsBold]
     ParentFont = False
   end
-  object edtImageFolder: TDirectoryEdit[1]
+  object edtAnomalyImageFolder: TDirectoryEdit[1]
     Left = 8
     Height = 23
-    Top = 25
+    Top = 73
     Width = 413
-    Directory = 'edtImageFolder'
     ShowHidden = False
     ButtonWidth = 23
     NumGlyphs = 1
     Anchors = [akTop, akLeft, akRight]
     MaxLength = 0
     TabOrder = 2
-    Text = 'edtImageFolder'
   end
   object Label3: TLabel[2]
     Left = 8
     Height = 15
-    Top = 56
+    Top = 104
     Width = 99
     Caption = 'Video Base Folder'
     Font.Style = [fsBold]
@@ -40,7 +38,7 @@ inherited FrameApplicationSettings: TFrameApplicationSettings
   object edtVideoFolder: TDirectoryEdit[3]
     Left = 8
     Height = 23
-    Top = 73
+    Top = 121
     Width = 413
     Directory = 'edtVideoFolder'
     ShowHidden = False
@@ -54,14 +52,14 @@ inherited FrameApplicationSettings: TFrameApplicationSettings
   object Bevel2: TBevel[4]
     Left = 0
     Height = 2
-    Top = 168
+    Top = 216
     Width = 435
     Anchors = [akTop, akLeft, akRight]
   end
   object Label5: TLabel[5]
     Left = 8
     Height = 15
-    Top = 187
+    Top = 235
     Width = 34
     Caption = 'Vessel'
     Font.Style = [fsBold]
@@ -70,7 +68,7 @@ inherited FrameApplicationSettings: TFrameApplicationSettings
   object edtVessel: TEdit[6]
     Left = 8
     Height = 23
-    Top = 202
+    Top = 250
     Width = 413
     Anchors = [akTop, akLeft, akRight]
     TabOrder = 0
@@ -79,7 +77,7 @@ inherited FrameApplicationSettings: TFrameApplicationSettings
   object Label6: TLabel[7]
     Left = 8
     Height = 15
-    Top = 231
+    Top = 279
     Width = 25
     Caption = 'ROV'
     Font.Style = [fsBold]
@@ -88,7 +86,7 @@ inherited FrameApplicationSettings: TFrameApplicationSettings
   object edtROV: TEdit[8]
     Left = 8
     Height = 23
-    Top = 245
+    Top = 293
     Width = 413
     Anchors = [akTop, akLeft, akRight]
     TabOrder = 1
@@ -97,7 +95,7 @@ inherited FrameApplicationSettings: TFrameApplicationSettings
   object Label4: TLabel[9]
     Left = 8
     Height = 15
-    Top = 106
+    Top = 154
     Width = 167
     Caption = 'Max Video Duration (minutes)'
     Font.Style = [fsBold]
@@ -106,11 +104,32 @@ inherited FrameApplicationSettings: TFrameApplicationSettings
   object edtMaxVideoDuration: TSpinEdit[10]
     Left = 8
     Height = 23
-    Top = 123
+    Top = 171
     Width = 413
     MaxValue = 120
     MinValue = 5
     TabOrder = 4
     Value = 15
+  end
+  object Label2: TLabel[11]
+    Left = 8
+    Height = 15
+    Top = 8
+    Width = 155
+    Caption = 'Event/Default Image Folder'
+    Font.Style = [fsBold]
+    ParentFont = False
+  end
+  object edtEventImageFolder: TDirectoryEdit[12]
+    Left = 8
+    Height = 23
+    Top = 25
+    Width = 413
+    ShowHidden = False
+    ButtonWidth = 23
+    NumGlyphs = 1
+    Anchors = [akTop, akLeft, akRight]
+    MaxLength = 0
+    TabOrder = 5
   end
 end

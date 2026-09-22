@@ -102,10 +102,13 @@ Type
     fmeVerticalDBGrid: TFrameVerticalDBGrid;
     fmePipelineChart: TfmePipelineEvents;
 
-    Function AddAnomalyImage(Const ASourceFilename: String): Boolean;
+    // Flags
+    FLastImageFolder: String;
+
+    Function AddImage(Const ASourceFilename: String): Boolean;
     Procedure DoSetDatasets(APopulate: Boolean);
     Function GetExactTimeSeek: Boolean;
-    Procedure LoadAnomalyImages(Const AAnomalyReference: String);
+    Procedure LoadImages(Const AAnomalyReference: String);
 
     Procedure SetDataProvider(AProvider: TDataProvider);
   Protected
@@ -120,12 +123,12 @@ Type
     Procedure SaveLocalSettings(oInifile: TIniFile); Override;
 
     // Callback events
-    Procedure DoRefreshAnomalyImages(Sender: TObject);
+    Procedure DoRefreshImages(Sender: TObject);
     Procedure DoAddNewImage(Sender: TObject);
     Procedure DoProviderReady(Sender: TObject);
     Procedure DoReceiveFilterChanged(AMessage: TIMMessage);
     Procedure DoReceiveTimeSeekMessage(AMessage: TIMMessage);
-    Procedure DoDataChanged(Sender: TObject; Const ANewAnomalyNo: String;
+    Procedure DoDataChanged(Sender: TObject; Const AAnomalyReference: String;
       Const ADateTime: TDateTime);
   Public
     Procedure DoPlayerGrabImage(Const AFolder: String);
@@ -160,6 +163,7 @@ Var
 Begin
   // This isn't going to be app that only an Admin can change settings...
   FAlwaysSaveSettings := True;
+  FLastImageFolder := '';
 
   FMessageBus := TAppMessageBus.Create;
   FMessageBus.Subscribe(Self, TIMMessageTime, @DoReceiveTimeSeekMessage);
@@ -174,7 +178,7 @@ Begin
   fmeImageViewer.Name := 'fmeImageViewer';
   fmeImageViewer.Align := alClient;
   fmeImageViewer.OnRequestAddImage := @DoAddNewImage;
-  fmeImageViewer.OnRequestRefreshImages := @DoRefreshAnomalyImages;
+  fmeImageViewer.OnRequestRefreshImages := @DoRefreshImages;
   fmeImageViewer.Enabled := False;
 
   fmePipelineChart := TfmePipelineEvents.Create(Self);
@@ -581,10 +585,10 @@ Begin
   DoSetDatasets(True);
 End;
 
-Procedure TfrmEventsReviewer.LoadAnomalyImages(Const AAnomalyReference: String);
+Procedure TfrmEventsReviewer.LoadImages(Const AAnomalyReference: String);
 Var
   slImages: TStringList;
-  sImageFile: String;
+  sImageFile, sFolder, sExt: String;
 
   Function Caption(ABaseFolder: String; AFilename: String): String;
   Begin
@@ -596,87 +600,122 @@ Begin
   DebugLn([ClassName, '.', {$I %CURRENTROUTINE%}, ' ', AAnomalyReference]);
   {$ENDIF}
 
-  // Load Anomaly Images
+  If Trim(AAnomalyReference) = '' Then
+    sFolder := FSettings.EventImageFolder
+  Else
+    sFolder := FSettings.AnomalyImageFolder;
+
+  If sFolder=FLastImageFolder Then
+    Exit;
+
+  FLastImageFolder := sFolder;
+
   fmeImageViewer.ClearImages;
 
-  If Trim(AAnomalyReference) = '' Then
+  If Not DirectoryExists(FSettings.AnomalyImageFolder) Then
     Exit;
+
+  Status := 'Loading images from '+sFolder;
 
   slImages := TStringList.Create;
   Try
-    FindAllFiles(slImages, FSettings.ImageFolder, AAnomalyReference + '*.*', True);
+    FindAllFiles(slImages, sFolder, AAnomalyReference + '*.*', False);
 
     For sImageFile In slImages Do
-      fmeImageViewer.AddImage(sImageFile, Caption(FSettings.ImageFolder, sImageFile));
+    Begin
+      sExt := ExtractFileExt(sImageFile);
+
+      If IsImage(sExt) Then
+        fmeImageViewer.AddImage(sImageFile, Caption(sFolder, sImageFile));
+    End;
   Finally
     slImages.Free;
   End;
+
+  Status := 'Finished loading images';
+  Status := '';
 End;
 
-Procedure TfrmEventsReviewer.DoRefreshAnomalyImages(Sender: TObject);
+Procedure TfrmEventsReviewer.DoRefreshImages(Sender: TObject);
 Var
   sAnomalyRef: String;
 Begin
   If FDataProvider.Ready Then
   Begin
     sAnomalyRef := FDataProvider.AnomalyReference;
-    LoadAnomalyImages(sAnomalyRef);
+    FLastImageFolder:='';
+    LoadImages(sAnomalyRef);
   End;
 End;
 
 // Data has just loaded or User has scrolled to the next anomaly in the list
-Procedure TfrmEventsReviewer.DoDataChanged(Sender: TObject; Const ANewAnomalyNo: String;
+Procedure TfrmEventsReviewer.DoDataChanged(Sender: TObject; Const AAnomalyReference: String;
   Const ADateTime: TDateTime);
 Begin
   tmrNotification.Enabled := True;
 
-  If Trim(ANewAnomalyNo) = '' Then
+  If Trim(AAnomalyReference) = '' Then
     pnlNotification.Color := TColor($00B0FFFF) // Yellow
   Else
     pnlNotification.Color := TColor($008080FF);  // Red
 
   pnlNotification.Visible := True;
 
-  If DirectoryExists(FSettings.ImageFolder) Then
-    LoadAnomalyImages(ANewAnomalyNo)
-  Else
-    fmeImageViewer.ClearImages;
+  LoadImages(AAnomalyReference);
 
   RefreshUI;
 End;
 
-Function TfrmEventsReviewer.AddAnomalyImage(Const ASourceFilename: String): Boolean;
+Function TfrmEventsReviewer.AddImage(Const ASourceFilename: String): Boolean;
 Var
   iFileSuffix: Integer;
-  sFilename, sAnomalyRef, sDir, sExt: String;
+  sFilename, sPrefix, sDir, sExt: String;
 Begin
   Result := False;
 
-  sAnomalyRef := FDataProvider.AnomalyReference;
-  sDir := IncludeTrailingBackslash(FSettings.ImageFolder);
-  sExt := ExtractFileExt(ASourceFilename);
-
-  iFileSuffix := 0;
-
-  Repeat
-    sFilename := Format('%s%s_%s%s', [sDir, sAnomalyRef, Chr(Ord('a') + iFileSuffix), sExt]);
-
-    Inc(iFileSuffix);
-  Until Not FileExists(sFilename) Or (iFileSuffix = 26);
-
-  // We exhausted a-z
-  If FileExists(sFilename) Then
+  sPrefix := Trim(FDataProvider.AnomalyReference);
+  If sPrefix <> '' Then
   Begin
-    Status := 'Unable to add anomaly image - no free filename';
-    Exit;
+    // If this is an anomaly image, rename to the Anomaly Reference
+    sDir := IncludeTrailingBackslash(FSettings.AnomalyImageFolder);
+
+    sExt := ExtractFileExt(ASourceFilename);
+
+    iFileSuffix := 0;
+
+    Repeat
+      sFilename := Format('%s%s_%s%s', [sDir, sPrefix, Chr(Ord('a') + iFileSuffix), sExt]);
+
+      Inc(iFileSuffix);
+    Until Not FileExists(sFilename) Or (iFileSuffix = 26);
+
+    // We exhausted a-z
+    If FileExists(sFilename) Then
+    Begin
+      Status := 'Unable to add image - no free filename';
+      Exit;
+    End;
+  end
+  Else
+  Begin
+    // If this is an event image, keep original name, but change folder
+    sDir := IncludeTrailingPathDelimiter(FSettings.EventImageFolder);
+
+    sFilename := sDir + ExtractFilename(ASourceFilename);
   End;
 
+  // Copy the file to the destination
   Result := FileUtil.CopyFile(ASourceFilename, sFilename);
 
   If Result Then
-    Status := 'Successfully added anomaly image ' + sFilename
+  BEgin
+    Status := 'Successfully added image ' + sFilename;
+
+    // Force a refres
+    FLastImageFolder:='';
+  end
   Else
-    Status := 'Unable to copy anomaly image ' + ASourceFilename;
+    Status := 'Unable to copy image ' + ASourceFilename;
 End;
 
 Function TfrmEventsReviewer.GetExactTimeSeek: Boolean;
@@ -703,10 +742,10 @@ Begin
         oImage := oDlg.Image[i];
 
         If oImage.Selected Then
-          AddAnomalyImage(oImage.Filename);
+          AddImage(oImage.Filename);
       End;
 
-      LoadAnomalyImages(FDataProvider.AnomalyReference);
+      LoadImages(FDataProvider.AnomalyReference);
     End;
   Finally
     Try
@@ -724,8 +763,8 @@ Begin
 
   If dlgAddImage.Execute Then
   Begin
-    If AddAnomalyImage(dlgAddImage.Filename) Then
-      LoadAnomalyImages(FDataProvider.AnomalyReference);
+    If AddImage(dlgAddImage.Filename) Then
+      LoadImages(FDataProvider.AnomalyReference);
   End;
 End;
 

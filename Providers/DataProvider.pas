@@ -167,10 +167,12 @@ begin
         dLen := oLen.AsFloat / 1000;
 
       // Starfix Database processing only...
+      // Merge all fieldjoint types into a single line
       If sType.Contains(' Joint') Then
         sType := 'Fieldjoint';
 
       // Starfix Database processing only...
+      // Merge Start/End events into a single line each (assumes Length correctly set)
       If sType.EndsWith(' Start') Then
         sType.Replace(' Start', '');
 
@@ -186,6 +188,7 @@ begin
     Dataset.EnableControls;
     APipelineView.EndUpdate;
 
+    frmEventsReviewer.Status := 'Finished loading chart';
     frmEventsReviewer.Status := '';
   End;
 end;
