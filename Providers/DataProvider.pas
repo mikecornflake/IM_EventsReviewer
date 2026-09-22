@@ -270,6 +270,8 @@ Begin
     oMessage := TIMMessageTime(AMessage);
 
     // Are we being asked to jump to a potentially distant point on the video?
+    // If yes - ensure UI syncs to nearest event
+    // otherwise - only sync to next event if we're now within 10 seconds
     If frmEventsReviewer.ExactTimeSeek Then
       dtThreshold := -1
     Else
@@ -278,6 +280,9 @@ Begin
     oKP := DataSet.FieldByName(FFieldStartKP);
     dStartKP := oKP.AsExtended;
 
+    // Check FUpdatingMasterDataset when responding to subsequence seektime requests
+    // if FUpdatingMasterDataset is true, then we know we made the call and don't need
+    // to respond
     FUpdatingMasterDataset := True;
     Try
       If GotoNearestTime(DataSet, FFieldStartTime, oMessage.DateTime, dtThreshold) Then
@@ -291,6 +296,9 @@ Begin
 
     If Filtered Then
     Begin
+      // Check FUpdatingFilteredDataset when responding to subsequence seektime requests
+      // if FUpdatingFilteredDataset is true, then we know we made the call and don't need
+      // to respond
       FUpdatingFilteredDataset := True;
       Try
         GotoNearestTime(FFilteredDataset, FFieldStartTime, oMessage.DateTime, dtThreshold);
