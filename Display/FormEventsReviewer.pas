@@ -605,7 +605,7 @@ Begin
   Else
     sFolder := FSettings.AnomalyImageFolder;
 
-  If sFolder=FLastImageFolder Then
+  If *AAnomalyReference='') And (sFolder=FLastImageFolder) Then
     Exit;
 
   FLastImageFolder := sFolder;
