@@ -1,2 +1,2 @@
 # IM_EventsReviewer
-Starfix Anomaly Management
+Offshore Inspection Events/Anomaly review tool
