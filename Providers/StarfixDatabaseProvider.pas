@@ -28,26 +28,13 @@ Type
     FConnection: TMSSQLConnection;
     FTransaction: TSQLTransaction;
     FMaster: TSQLQuery;
-    FFilteredDataset: TBufDataset;
-    FUpdatingFilteredDataset: Boolean;
-    FUpdatingMasterDataset: Boolean;
 
     qryVideosforTime: TSQLQuery;
-
-    Procedure DatasetAfterOpen(ADataSet: TDataSet);
-    Procedure DoMasterAfterScroll(ADataSet: TDataSet);
-    Procedure DoFilterAfterScroll(ADataSet: TDataSet);
   Protected
     Function GetDataSet: TDataSet; Override;
     Function GetReady: Boolean; Override;
-
-    Function GetFilteredDataSet: TDataSet; Override;
-    Procedure SetFilter(Const AValue: String); Override;
-
-    // Messaging
-    Procedure DoReceiveTimeSeekMessage(AMessage: TIMMessage);
   Public
-    Constructor Create;
+    Constructor Create; Override;
     Destructor Destroy; Override;
 
     Function Open: Boolean; Override;
@@ -60,8 +47,6 @@ Type
     Procedure PopulateSettingsFrame(AFrame: TFrameMSSQLConnection);
 
     Function GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles; Override;
-    Function DateTime: TDateTime; Override;
-    Function AnomalyReference: String; Override;
 
     Procedure LoadSettings(AInifile: TIniFile); Override;
     Procedure SaveSettings(AInifile: TIniFile); Override;
@@ -90,17 +75,17 @@ Begin
   FMaster.Database := FConnection;
   FMaster.Transaction := FTransaction;
   FMaster.AfterScroll := @DoMasterAfterScroll;
-  FMaster.AfterOpen := @DatasetAfterOpen;
+  FMaster.AfterOpen := @DoDatasetAfterOpen;
   FUpdatingMasterDataset := False;
 
   FMaster.SQL.Add('SELECT E.[UNIQUE_ID],  ');
-  FMaster.SQL.Add('       DATEADD(S, E.TIMEDATE, ''1970-01-01'') As [Start_(UTC)], ');
-  FMaster.SQL.Add('       E.[KP],                       ');
+  FMaster.SQL.Add('       DATEADD(S, E.TIMEDATE, ''1970-01-01'') As [' + FFieldStartTime + '], ');
+  FMaster.SQL.Add('       E.KP As [' + FFieldStartKP + '], ');
   FMaster.SQL.Add('       E.[Type],                     ');
   FMaster.SQL.Add('       E.Comment As [Description],   ');
-  FMaster.SQL.Add('       E.[Anomaly_No],               ');
+  FMaster.SQL.Add('       E.Anomaly_No As [' + FFieldAnomalyReference + '], ');
   FMaster.SQL.Add('       CASE E.Anomaly WHEN 1 THEN ''Y''   ');
-  FMaster.SQL.Add('                      ELSE ''N''     ');
+  FMaster.SQL.Add('                      ELSE ''N''          ');
   FMaster.SQL.Add('       END AS [Anomaly],                  ');
   FMaster.SQL.Add('       CASE E.Anomaly WHEN 1 THEN ''Red'' ');
   FMaster.SQL.Add('                      ELSE Null      ');
@@ -139,11 +124,6 @@ Begin
   FMaster.PacketRecords := -1;
   qryVideosforTime.PacketRecords := -1;
 
-  FFilteredDataset := TBufDataset.Create(nil);
-  FFilteredDataset.AfterScroll := @DoFilterAfterScroll;
-  FFilteredDataset.AfterOpen := @DatasetAfterOpen;
-  FUpdatingFilteredDataset := False;
-
   // Register the database driver
   FDriverFilename := '';
 
@@ -157,9 +137,6 @@ Begin
   // Events
   FOnProviderReady := nil;
   FOnDataChanged := nil;
-
-  // Messages
-  frmEventsReviewer.MessageBus.Subscribe(Self, TIMMessageTime, @DoReceiveTimeSeekMessage);
 End;
 
 Destructor TStarfixDatabaseProvider.Destroy;
@@ -169,7 +146,6 @@ Begin
 
   FreeAndNil(qryVideosforTime);
   FreeAndNil(FMaster);
-  FreeAndNil(FFilteredDataset);
   FreeAndNil(FTransaction);
   FreeAndNil(FConnection);
 
@@ -225,7 +201,7 @@ Begin
 
         // Everything that must happen before the rest of the application
         // sees the provider as ready has now happened.
-        frmEventsReviewer.MessageBus.BroadcastDataProviderReady(Self, Self);
+        frmEventsReviewer.MessageBus.Broadcast(Self, TIMMessageDataProviderReady);
 
         // We suppressed the first event being loaded, so broadcast it now manually
         DoMasterAfterScroll(FMaster);
@@ -264,7 +240,7 @@ Begin
     FMaster.Close;
 
   If qryVideosforTime.Active Then
-    FMaster.Close;
+    qryVideosforTime.Close;
 
   If FConnection.Connected Then
     FConnection.Close;
@@ -280,43 +256,6 @@ End;
 Function TStarfixDatabaseProvider.GetReady: Boolean;
 Begin
   Result := FLoaded And FConnection.Connected;
-End;
-
-Function TStarfixDatabaseProvider.GetFilteredDataSet: TDataSet;
-Begin
-  Result := FFilteredDataset;
-End;
-
-Procedure TStarfixDatabaseProvider.SetFilter(Const AValue: String);
-Begin
-  Inherited SetFilter(AValue);
-
-  If Filtered Then
-  Begin
-    BuildFilteredDataset(FMaster, FFilteredDataset, AValue);
-
-    FFilteredDataset.Open;
-  End
-  Else If FFilteredDataset.Active Then
-    FFilteredDataset.Close;
-
-  frmEventsReviewer.MessageBus.BroadcastFilterChanged(Self, Self);
-End;
-
-Function TStarfixDatabaseProvider.DateTime: TDateTime;
-Begin
-  If Ready And (FMaster.Active) And (FMaster.RecordCount > 0) Then
-    Result := FMaster.FieldByName('Start_(UTC)').AsDateTime
-  Else
-    Result := 0;
-End;
-
-Function TStarfixDatabaseProvider.AnomalyReference: String;
-Begin
-  If (FMaster.Active) And (FMaster.RecordCount > 0) Then
-    Result := FMaster.FieldByName('Anomaly_No').AsString
-  Else
-    Result := '';
 End;
 
 Procedure TStarfixDatabaseProvider.ApplySettingsFrame(AFrame: TFrameMSSQLConnection);
@@ -345,55 +284,6 @@ Begin
     Result := 'Fugro Starfix Database: Connected to ' + FDatabaseName
   Else
     Result := 'Fugro Starfix Database: Not connected';
-End;
-
-Procedure TStarfixDatabaseProvider.DoMasterAfterScroll(ADataSet: TDataSet);
-Var
-  sAnomalyNo: String;
-  dtDateTime: TDateTime;
-  dKP: Extended;
-Begin
-  If Ready And Assigned(FOnDataChanged) And Not FMaster.ControlsDisabled Then
-  Begin
-    sAnomalyNo := FMaster.FieldByName('Anomaly_No').AsString;
-    dtDateTime := FMaster.FieldByName('Start_(UTC)').AsDateTime;
-    dKP := FMaster.FieldByName('KP').AsExtended;
-
-    FOnDataChanged(Self, sAnomalyNo, dtDateTime);
-
-    If Not FUpdatingMasterDataset Then
-      frmEventsReviewer.MessageBus.BroadcastTime(Self, dtDateTime);
-
-    frmEventsReviewer.MessageBus.BroadcastKP(Self, dKP);
-  End;
-End;
-
-Procedure TStarfixDatabaseProvider.DoFilterAfterScroll(ADataSet: TDataSet);
-Begin
-  If FUpdatingFilteredDataset Then
-    Exit;
-
-  If Ready And FMaster.Active And FFilteredDataset.Active And Not ADataSet.ControlsDisabled Then
-    FMaster.RecNo := FFilteredDataset.FieldByName(MASTER_RECNO_FIELD).AsInteger;
-End;
-
-Procedure TStarfixDatabaseProvider.DatasetAfterOpen(ADataSet: TDataSet);
-
-  Procedure TrySetDisplayFormat(AField: TField; AFormat: String);
-  Begin
-    If AField Is TFloatField Then
-      TFloatField(AField).DisplayFormat := AFormat;
-  End;
-
-Begin
-  TrySetDisplayFormat(ADataSet.FieldByName('KP'), '0.000');
-  TrySetDisplayFormat(ADataSet.FieldByName('Easting'), '0.00');
-  TrySetDisplayFormat(ADataSet.FieldByName('Northing'), '0.00');
-  TrySetDisplayFormat(ADataSet.FieldByName('Depth'), '0.00');
-  TrySetDisplayFormat(ADataSet.FieldByName('Offset_(m)'), '0.00');
-  TrySetDisplayFormat(ADataSet.FieldByName('Length_(m)'), '0.00');
-  TrySetDisplayFormat(ADataSet.FieldByName('Width_(m)'), '0.00');
-  TrySetDisplayFormat(ADataSet.FieldByName('Height_(m)'), '0.00');
 End;
 
 Function TStarfixDatabaseProvider.GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles;
@@ -443,54 +333,6 @@ Begin
   End;
 End;
 
-Procedure TStarfixDatabaseProvider.DoReceiveTimeSeekMessage(AMessage: TIMMessage);
-Var
-  oMessage: TIMMessageTime;
-  oKP: TField;
-  dStartKP: Extended;
-  dtThreshold: TDateTime;
-Begin
-  If Not (AMessage Is TIMMessageTime) Then
-    Exit;
-
-  If Ready And (FMaster.Active) And (FMaster.RecordCount > 0) Then
-  Begin
-    oMessage := TIMMessageTime(AMessage);
-
-    // Are we being asked to jump to a potentially distant point on the video?
-    If frmEventsReviewer.ExactTimeSeek Then
-      dtThreshold := -1
-    Else
-      dtThreshold := 10 / SecsPerDay;
-
-    oKP := FMaster.FieldByName('KP');
-    dStartKP := oKP.AsExtended;
-
-    FUpdatingMasterDataset := True;
-    Try
-      If GotoNearestTime(FMaster, 'Start_(UTC)', oMessage.DateTime, dtThreshold) Then
-      Begin
-        // The above suppressed OnAfterScroll, so we need to manually raise
-        DoMasterAfterScroll(FMaster);
-      End;
-    Finally
-      FUpdatingMasterDataset := False;
-    End;
-
-    If Filtered Then
-    Begin
-      FUpdatingFilteredDataset := True;
-      Try
-        GotoNearestTime(FFilteredDataset, 'Start_(UTC)', oMessage.DateTime, dtThreshold);
-      Finally
-        FUpdatingFilteredDataset := False;
-      End;
-    End;
-
-    If (abs(dStartKP - oKP.AsExtended) > 0.001) Then
-      frmEventsReviewer.MessageBus.BroadcastKP(Self, oKP.AsExtended);
-  End;
-End;
 Procedure TStarfixDatabaseProvider.LoadSettings(AInifile: TIniFile);
 Begin
   // Connection

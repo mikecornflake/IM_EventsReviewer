@@ -5,7 +5,7 @@ Unit AppMessaging;
 Interface
 
 Uses
-  Classes, SysUtils, IMMessaging, DataProvider;
+  Classes, SysUtils, IMMessaging;
 
 Type
   { TIMMessageTime }
@@ -22,19 +22,8 @@ Type
     KP: Extended;
   End;
 
-  { TIMMessageDataProviderReady }
-
-  TIMMessageDataProviderReady = Class(TIMMessage)
-  Public
-    DataProvider: TDataProvider;
-  End;
-
-  { TIMMessageFilterChanged }
-
-  TIMMessageFilterChanged = Class(TIMMessage)
-  Public
-    DataProvider: TDataProvider;
-  End;
+  TIMMessageDataProviderReady = Class(TIMMessage);
+  TIMMessageFilterChanged = Class(TIMMessage);
 
   { TMessageController }
 
@@ -44,8 +33,6 @@ Type
   Public
     Procedure BroadcastTime(ASender: TObject; ADateTime: TDateTime);
     Procedure BroadcastKP(ASender: TObject; AKP: Extended);
-    Procedure BroadcastDataProviderReady(ASender: TObject; ADataProvider: TDataProvider);
-    Procedure BroadcastFilterChanged(ASender: TObject; ADataProvider: TDataProvider);
   End;
 
 Implementation
@@ -58,37 +45,6 @@ Begin
   Try
     oMessage.Sender := ASender;
     oMessage.DateTime := ADateTime;
-
-    Broadcast(oMessage);
-  Finally
-    oMessage.Free;
-  End;
-End;
-
-Procedure TAppMessageBus.BroadcastDataProviderReady(ASender: TObject;
-  ADataProvider: TDataProvider);
-Var
-  oMessage: TIMMessageDataProviderReady;
-Begin
-  oMessage := TIMMessageDataProviderReady.Create;
-  Try
-    oMessage.Sender := ASender;
-    oMessage.DataProvider := ADataProvider;
-
-    Broadcast(oMessage);
-  Finally
-    oMessage.Free;
-  End;
-End;
-
-Procedure TAppMessageBus.BroadcastFilterChanged(ASender: TObject; ADataProvider: TDataProvider);
-Var
-  oMessage: TIMMessageFilterChanged;
-Begin
-  oMessage := TIMMessageFilterChanged.Create;
-  Try
-    oMessage.Sender := ASender;
-    oMessage.DataProvider := ADataProvider;
 
     Broadcast(oMessage);
   Finally
@@ -110,5 +66,6 @@ Begin
     oMessage.Free;
   End;
 End;
+
 
 End.

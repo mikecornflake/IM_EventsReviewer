@@ -6,10 +6,11 @@ Unit DataProvider;
 Interface
 
 Uses
-  Classes, SysUtils, MediaTypes, DB, Inifiles;
+  Classes, SysUtils, MediaTypes, DB, BufDataset, Inifiles,
+  IMMessaging, AppMessaging;
 
 Type
-  TDataChangedEvent = Procedure(Sender: TObject; Const AAnomalyNo: String;
+  TDataChangedEvent = Procedure(Sender: TObject; Const AAnomalyReference: String;
     Const ADateTime: TDateTime) Of Object;
 
   { IIM_Persistent }
@@ -18,64 +19,33 @@ Type
     Procedure SaveSettings(AInifile: TIniFile);
   End;
 
-  { IDataProvider }
-  IDataProvider = Interface
-    Function GetFiltered: Boolean;
-
-    Procedure SetFilter(Const AValue: String);
-    Function GetFilter: String;
-
-    Function GetOnProviderReady: TNotifyEvent;
-    Procedure SetOnProviderReady(AValue: TNotifyEvent);
-
-    Function GetOnDataChanged: TDataChangedEvent;
-    Procedure SetOnDataChanged(AValue: TDataChangedEvent);
-    Function GetReady: Boolean;
-
-    Function GetDataSet: TDataSet;
-    Function GetFilteredDataSet: TDataSet;
-
-    Function GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles;
-    Function DateTime: TDateTime;
-
-    Function Open: Boolean;
-    Function Refresh: Boolean;
-    Function Close: Boolean;
-
-    Function Title: String;
-
-    Property Ready: Boolean Read GetReady;
-
-    Property DataSet: TDataSet Read GetDataSet;
-
-    Property FilteredDataSet: TDataSet Read GetFilteredDataSet;
-    Property Filtered: Boolean Read GetFiltered;
-    Property Filter: String Read GetFilter Write SetFilter;
-
-    // Events
-    Property OnProviderReady: TNotifyEvent Read GetOnProviderReady Write SetOnProviderReady;
-    Property OnDataChanged: TDataChangedEvent Read GetOnDataChanged Write SetOnDataChanged;
-  End;
-
   { TDataProvider }
-  TDataProvider = Class(TObject, IDataProvider, IIM_Persistent)
+  TDataProvider = Class(TObject, IIM_Persistent)
+  private
   Protected
+    // FIELDNAMES
+    FFieldStartKP, FFieldStartTime, FFieldAnomalyReference: String;
+
     // State
     FLoaded: Boolean;
     FFilter: String;
+
+    // While the Master Events dataset will vary between implementations
+    // the Filtered dataset will always be a TBufDataset
+    FFilteredDataset: TBufDataset;
+    FUpdatingFilteredDataset: Boolean;
+    FUpdatingMasterDataset: Boolean;
 
     FOnProviderReady: TNotifyEvent;
     FOnDataChanged: TDataChangedEvent;
 
     Function GetDataSet: TDataSet; Virtual; Abstract;
-    Function GetFilteredDataSet: TDataSet; Virtual; Abstract;
 
     Function GetFiltered: Boolean;
-    Procedure SetFilter(Const AValue: String); Virtual;
+    Procedure SetFilter(Const AValue: String);
     Function GetFilter: String; Virtual;
 
     Procedure DoProviderReady;
-    Procedure DoAnomalyChanged(Const AAnomalyNo: String; Const ADateTime: TDateTime);
 
     Function GetReady: Boolean; Virtual; Abstract;
 
@@ -84,7 +54,20 @@ Type
 
     Function GetOnDataChanged: TDataChangedEvent;
     Procedure SetOnDataChanged(AValue: TDataChangedEvent);
+
+    Procedure DoReceiveTimeSeekMessage(AMessage: TIMMessage);
+
+    Procedure DoMasterChanged(Const AAnomalyReference: String; Const ADateTime: TDateTime);
+    Procedure DoMasterAfterScroll(ADataSet: TDataSet);
+    Procedure DoFilterAfterScroll(ADataSet: TDataSet);
+
+    // For both Filtered and Master datasets
+    Procedure DoDatasetAfterOpen(ADataSet: TDataSet);
+    Procedure DoDatasetApplyFormats(ADataset: TDataset); Virtual;
   Public
+    Constructor Create; Virtual;
+    Destructor Destroy; Override;
+
     Function Open: Boolean; Virtual; Abstract;
     Function Refresh: Boolean; Virtual; Abstract;
     Function Close: Boolean; Virtual; Abstract;
@@ -93,8 +76,8 @@ Type
 
     Function GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles; Virtual; Abstract;
 
-    Function DateTime: TDateTime; Virtual; Abstract;
-    Function AnomalyReference: String; Virtual; Abstract;
+    Function DateTime: TDateTime;
+    Function AnomalyReference: String;
 
     Procedure LoadSettings(AInifile: TIniFile); Virtual; Abstract;
     Procedure SaveSettings(AInifile: TIniFile); Virtual; Abstract;
@@ -104,7 +87,7 @@ Type
 
     Property DataSet: TDataSet Read GetDataSet;
 
-    Property FilteredDataSet: TDataSet Read GetFilteredDataSet;
+    Property FilteredDataSet: TBufDataset Read FFilteredDataset;
     Property Filtered: Boolean Read GetFiltered;
     Property Filter: String Read FFilter Write SetFilter;
 
@@ -115,7 +98,35 @@ Type
 
 Implementation
 
-{ TDataProvider }
+Uses
+  FormEventsReviewer, DBSupport;
+
+  { TDataProvider }
+
+Constructor TDataProvider.Create;
+Begin
+  // Default fieldnames
+  FFieldStartKP := 'KP';
+  FFieldStartTime := 'Start_(UTC)';
+  FFieldAnomalyReference := 'Anomaly_No';
+
+  // Dataset and dataset management
+  FFilteredDataset := TBufDataset.Create(nil);
+  FFilteredDataset.AfterScroll := @DoFilterAfterScroll;
+  FFilteredDataset.AfterOpen := @DoDatasetAfterOpen;
+  FUpdatingFilteredDataset := False;
+  FUpdatingMasterDataset := False;
+
+  // Messages
+  frmEventsReviewer.MessageBus.Subscribe(Self, TIMMessageTime, @DoReceiveTimeSeekMessage);
+End;
+
+Destructor TDataProvider.Destroy;
+Begin
+  FreeAndNil(FFilteredDataset);
+
+  Inherited Destroy;
+End;
 
 Function TDataProvider.GetFiltered: Boolean;
 Begin
@@ -125,6 +136,17 @@ End;
 Procedure TDataProvider.SetFilter(Const AValue: String);
 Begin
   FFilter := AValue;
+
+  If Filtered Then
+  Begin
+    BuildFilteredDataset(DataSet, FFilteredDataset, AValue);
+
+    FFilteredDataset.Open;
+  End
+  Else If FFilteredDataset.Active Then
+    FFilteredDataset.Close;
+
+  frmEventsReviewer.MessageBus.Broadcast(Self, TIMMessageFilterChanged);
 End;
 
 Function TDataProvider.GetFilter: String;
@@ -136,12 +158,6 @@ Procedure TDataProvider.DoProviderReady;
 Begin
   If Assigned(FOnProviderReady) Then
     FOnProviderReady(Self);
-End;
-
-Procedure TDataProvider.DoAnomalyChanged(Const AAnomalyNo: String; Const ADateTime: TDateTime);
-Begin
-  If Assigned(FOnDataChanged) Then
-    FOnDataChanged(Self, AAnomalyNo, ADateTime);
 End;
 
 Function TDataProvider.GetOnProviderReady: TNotifyEvent;
@@ -162,6 +178,130 @@ End;
 Procedure TDataProvider.SetOnDataChanged(AValue: TDataChangedEvent);
 Begin
   FOnDataChanged := AValue;
+End;
+
+Function TDataProvider.DateTime: TDateTime;
+Begin
+  If Ready And Assigned(DataSet) And (DataSet.Active) And (DataSet.RecordCount > 0) Then
+    Result := DataSet.FieldByName(FFieldStartTime).AsDateTime
+  Else
+    Result := 0;
+End;
+
+Function TDataProvider.AnomalyReference: String;
+Begin
+  If Ready And Assigned(DataSet) And (DataSet.Active) And (DataSet.RecordCount > 0) Then
+    Result := DataSet.FieldByName(FFieldAnomalyReference).AsString
+  Else
+    Result := '';
+End;
+
+// AAnomalyNo (aka Anomaly Reference) is not guaranteed to be set
+Procedure TDataProvider.DoMasterChanged(Const AAnomalyReference: String;
+  Const ADateTime: TDateTime);
+Begin
+  If Assigned(FOnDataChanged) Then
+    FOnDataChanged(Self, AAnomalyReference, ADateTime);
+End;
+
+Procedure TDataProvider.DoMasterAfterScroll(ADataSet: TDataSet);
+Var
+  sAnomalyNo: String;
+  dtDateTime: TDateTime;
+  dKP: Extended;
+Begin
+  If Ready And Assigned(FOnDataChanged) And Not ADataSet.ControlsDisabled Then
+  Begin
+    sAnomalyNo := ADataSet.FieldByName(FFieldAnomalyReference).AsString;
+    dtDateTime := ADataSet.FieldByName(FFieldStartTime).AsDateTime;
+    dKP := ADataSet.FieldByName(FFieldStartKP).AsExtended;
+
+    DoMasterChanged(sAnomalyNo, dtDateTime);
+
+    If Not FUpdatingMasterDataset Then
+      frmEventsReviewer.MessageBus.BroadcastTime(Self, dtDateTime);
+
+    frmEventsReviewer.MessageBus.BroadcastKP(Self, dKP);
+  End;
+End;
+
+// Keep the Master Events synchronised with the filtered dataset
+Procedure TDataProvider.DoFilterAfterScroll(ADataSet: TDataSet);
+Begin
+  If FUpdatingFilteredDataset Then
+    Exit;
+
+  If Not ADataSet.ControlsDisabled And Ready And DataSet.Active And FFilteredDataset.Active Then
+    DataSet.RecNo := FFilteredDataset.FieldByName(MASTER_RECNO_FIELD).AsInteger;
+End;
+
+// If supported, set known fields to valid formats
+Procedure TDataProvider.DoDatasetAfterOpen(ADataSet: TDataSet);
+Begin
+  DoDatasetApplyFormats(ADataset);
+End;
+
+Procedure TDataProvider.DoDatasetApplyFormats(ADataset: TDataset);
+Var
+  oField: TField;
+Begin
+  For oField In ADataSet.Fields Do
+    If (oField Is TFloatField) Then
+    Begin
+      If (oField.FieldName = FFieldStartKP) Then
+        TFloatField(oField).DisplayFormat := '0.000'
+      Else
+        TFloatField(oField).DisplayFormat := '0.00';
+    End;
+End;
+
+Procedure TDataProvider.DoReceiveTimeSeekMessage(AMessage: TIMMessage);
+Var
+  oMessage: TIMMessageTime;
+  oKP: TField;
+  dStartKP: Extended;
+  dtThreshold: TDateTime;
+Begin
+  If Not (AMessage Is TIMMessageTime) Then
+    Exit;
+
+  If Ready And (DataSet.Active) And (DataSet.RecordCount > 0) Then
+  Begin
+    oMessage := TIMMessageTime(AMessage);
+
+    // Are we being asked to jump to a potentially distant point on the video?
+    If frmEventsReviewer.ExactTimeSeek Then
+      dtThreshold := -1
+    Else
+      dtThreshold := 10 / SecsPerDay;
+
+    oKP := DataSet.FieldByName(FFieldStartKP);
+    dStartKP := oKP.AsExtended;
+
+    FUpdatingMasterDataset := True;
+    Try
+      If GotoNearestTime(DataSet, FFieldStartTime, oMessage.DateTime, dtThreshold) Then
+      Begin
+        // The above suppressed OnAfterScroll, so we need to manually raise
+        DoMasterAfterScroll(DataSet);
+      End;
+    Finally
+      FUpdatingMasterDataset := False;
+    End;
+
+    If Filtered Then
+    Begin
+      FUpdatingFilteredDataset := True;
+      Try
+        GotoNearestTime(FFilteredDataset, FFieldStartTime, oMessage.DateTime, dtThreshold);
+      Finally
+        FUpdatingFilteredDataset := False;
+      End;
+    End;
+
+    If (abs(dStartKP - oKP.AsExtended) > 0.001) Then
+      frmEventsReviewer.MessageBus.BroadcastKP(Self, oKP.AsExtended);
+  End;
 End;
 
 End.
