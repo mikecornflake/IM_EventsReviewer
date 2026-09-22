@@ -7,7 +7,7 @@ Interface
 
 Uses
   Classes, SysUtils, MediaTypes, DB, BufDataset, Inifiles,
-  IMMessaging, AppMessaging;
+  IMMessaging, AppMessaging, FramePipelineView;
 
 Type
   TDataChangedEvent = Procedure(Sender: TObject; Const AAnomalyReference: String;
@@ -76,6 +76,8 @@ Type
 
     Function GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles; Virtual; Abstract;
 
+    Function PopulatePipelineView(APipelineView: TFramePipelineView): Boolean;  Virtual;
+
     Function DateTime: TDateTime;
     Function AnomalyReference: String;
 
@@ -127,6 +129,66 @@ Begin
 
   Inherited Destroy;
 End;
+
+Function TDataProvider.PopulatePipelineView(APipelineView: TFramePipelineView): Boolean;
+Var
+  bmOriginal: TBookMark;
+  oKP, oLen, oType, oAnom: TField;
+  sType: String;
+  dKP, dLen: Extended;
+begin
+  Result := False;
+
+  APipelineView.Clear;
+
+  If Not Dataset.Active Then
+    Exit;
+
+  frmEventsReviewer.Status := 'Loading chart';
+
+  oKP := Dataset.FieldByName(FFieldStartKP);
+  oLen := Dataset.FieldByName('Length_(m)');
+  oType := Dataset.FieldByName('Type');
+  oAnom := Dataset.FieldByName('Anomaly');
+
+  Dataset.DisableControls;
+  bmOriginal := Dataset.GetBookmark;
+  Try
+    Dataset.First;
+    APipelineView.BeginUpdate;
+
+    While Not Dataset.EOF Do
+    Begin
+      sType := oType.AsString;
+      dKP := oKP.AsExtended;
+      If (oLen.IsNull) Or (oLen.AsFloat <= 1) Then
+        dLen := 0.001
+      Else
+        dLen := oLen.AsFloat / 1000;
+
+      // Starfix Database processing only...
+      If sType.Contains(' Joint') Then
+        sType := 'Fieldjoint';
+
+      // Starfix Database processing only...
+      If sType.EndsWith(' Start') Then
+        sType.Replace(' Start', '');
+
+      // Starfix Database processing only...
+      If Not sType.Contains(' End') Then
+        APipelineView.AddData(sType, dKP, dLen, (oAnom.AsString = 'Y'));
+
+      Dataset.Next;
+    End;
+    Dataset.GotoBookmark(bmOriginal);
+  Finally
+    Dataset.FreeBookmark(bmOriginal);
+    Dataset.EnableControls;
+    APipelineView.EndUpdate;
+
+    frmEventsReviewer.Status := '';
+  End;
+end;
 
 Function TDataProvider.GetFiltered: Boolean;
 Begin

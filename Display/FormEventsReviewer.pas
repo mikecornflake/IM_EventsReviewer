@@ -129,7 +129,6 @@ Type
       Const ADateTime: TDateTime);
   Public
     Procedure DoPlayerGrabImage(Const AFolder: String);
-    Function CheckAnomalyReferenceReadiness: Boolean;
 
     Property DataProvider: TDataProvider Read FDataProvider;
     Property MediaProvider: TMediaProvider Read FMediaProvider;
@@ -211,7 +210,6 @@ Begin
   dsNotification.Dataset := nil;
   fmeDBGrid.Dataset := nil;
   fmeVerticalDBGrid.Dataset := nil;
-  fmePipelineChart.Dataset := nil;
 
   // Media Provider
   FMediaProvider := TMediaProvider.Create;
@@ -389,7 +387,6 @@ Begin
   If APopulate Then
   Begin
     dsNotification.Dataset := FDataProvider.Dataset;
-    fmePipelineChart.Dataset := FDataProvider.Dataset;
 
     If FDataProvider.Filtered Then
     Begin
@@ -405,7 +402,6 @@ Begin
   Else
   Begin
     dsNotification.Dataset := nil;
-    fmePipelineChart.Dataset := nil;
 
     fmeDBGrid.Dataset := nil;
     fmeVerticalDBGrid.Dataset := nil;
@@ -688,27 +684,13 @@ Begin
   Result := fmeVideo.VideoTrackbarSeek;
 End;
 
-Function TfrmEventsReviewer.CheckAnomalyReferenceReadiness: Boolean;
-Begin
-  Result := False;
-
-  If FDataProvider.Ready Then
-    If Trim(FDataProvider.AnomalyReference) = '' Then
-      ShowMessage('The current anomaly does not have an Anomaly Reference assigned.' +
-        LineEnding + 'This needs to be resolved using Starfix.Edit first.')
-    Else
-      Result := True;
-End;
-
 Procedure TfrmEventsReviewer.DoPlayerGrabImage(Const AFolder: String);
 Var
   oDlg: TDialogImageSelection;
   i: Integer;
   oImage: TViewerImage;
 Begin
-  If Not CheckAnomalyReferenceReadiness Then
-    Exit;
-
+  // TODO: Different folders for Anomaly & Event images.
   oDlg := TDialogImageSelection.Create(Self);
   Try
     oDlg.LoadFromFolder(AFolder);
@@ -738,9 +720,6 @@ End;
 
 Procedure TfrmEventsReviewer.DoAddNewImage(Sender: TObject);
 Begin
-  If Not CheckAnomalyReferenceReadiness Then
-    Exit;
-
   dlgAddImage.Options := dlgAddImage.Options - [ofAutoPreview];
 
   If dlgAddImage.Execute Then
