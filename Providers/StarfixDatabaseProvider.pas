@@ -169,41 +169,11 @@ Begin
 
   FreeAndNil(qryVideosforTime);
   FreeAndNil(FMaster);
+  FreeAndNil(FFilteredDataset);
   FreeAndNil(FTransaction);
   FreeAndNil(FConnection);
 
   Inherited Destroy;
-End;
-
-Function TStarfixDatabaseProvider.GetDataSet: TDataSet;
-Begin
-  Result := FMaster;
-End;
-
-Function TStarfixDatabaseProvider.GetReady: Boolean;
-Begin
-  Result := FLoaded And FConnection.Connected;
-End;
-
-Function TStarfixDatabaseProvider.GetFilteredDataSet: TDataSet;
-Begin
-  Result := FFilteredDataset;
-End;
-
-Procedure TStarfixDatabaseProvider.SetFilter(Const AValue: String);
-Begin
-  Inherited SetFilter(AValue);
-
-  If Filtered Then
-  Begin
-    BuildFilteredDataset(FMaster, FFilteredDataset, AValue);
-
-    FFilteredDataset.Open;
-  End
-  Else If FFilteredDataset.Active Then
-    FFilteredDataset.Close;
-
-  frmEventsReviewer.MessageBus.BroadcastFilterChanged(Self, Self);
 End;
 
 Function TStarfixDatabaseProvider.Open: Boolean;
@@ -302,14 +272,51 @@ Begin
   Result := True;
 End;
 
-Procedure TStarfixDatabaseProvider.PopulateSettingsFrame(AFrame: TFrameMSSQLConnection);
+Function TStarfixDatabaseProvider.GetDataSet: TDataSet;
 Begin
-  // Define Connection
-  AFrame.Database := FDatabaseName;
-  AFrame.Server := FServer;
-  AFrame.Port := FPort;
-  AFrame.Username := FUsername;
-  AFrame.Password := FPassword;
+  Result := FMaster;
+End;
+
+Function TStarfixDatabaseProvider.GetReady: Boolean;
+Begin
+  Result := FLoaded And FConnection.Connected;
+End;
+
+Function TStarfixDatabaseProvider.GetFilteredDataSet: TDataSet;
+Begin
+  Result := FFilteredDataset;
+End;
+
+Procedure TStarfixDatabaseProvider.SetFilter(Const AValue: String);
+Begin
+  Inherited SetFilter(AValue);
+
+  If Filtered Then
+  Begin
+    BuildFilteredDataset(FMaster, FFilteredDataset, AValue);
+
+    FFilteredDataset.Open;
+  End
+  Else If FFilteredDataset.Active Then
+    FFilteredDataset.Close;
+
+  frmEventsReviewer.MessageBus.BroadcastFilterChanged(Self, Self);
+End;
+
+Function TStarfixDatabaseProvider.DateTime: TDateTime;
+Begin
+  If Ready And (FMaster.Active) And (FMaster.RecordCount > 0) Then
+    Result := FMaster.FieldByName('Start_(UTC)').AsDateTime
+  Else
+    Result := 0;
+End;
+
+Function TStarfixDatabaseProvider.AnomalyReference: String;
+Begin
+  If (FMaster.Active) And (FMaster.RecordCount > 0) Then
+    Result := FMaster.FieldByName('Anomaly_No').AsString
+  Else
+    Result := '';
 End;
 
 Procedure TStarfixDatabaseProvider.ApplySettingsFrame(AFrame: TFrameMSSQLConnection);
@@ -322,6 +329,15 @@ Begin
   FPassword := AFrame.Password;
 End;
 
+Procedure TStarfixDatabaseProvider.PopulateSettingsFrame(AFrame: TFrameMSSQLConnection);
+Begin
+  // Define Connection
+  AFrame.Database := FDatabaseName;
+  AFrame.Server := FServer;
+  AFrame.Port := FPort;
+  AFrame.Username := FUsername;
+  AFrame.Password := FPassword;
+End;
 
 Function TStarfixDatabaseProvider.Title: String;
 Begin
@@ -427,14 +443,6 @@ Begin
   End;
 End;
 
-Function TStarfixDatabaseProvider.DateTime: TDateTime;
-Begin
-  If Ready And (FMaster.Active) And (FMaster.RecordCount > 0) Then
-    Result := FMaster.FieldByName('Start_(UTC)').AsDateTime
-  Else
-    Result := 0;
-End;
-
 Procedure TStarfixDatabaseProvider.DoReceiveTimeSeekMessage(AMessage: TIMMessage);
 Var
   oMessage: TIMMessageTime;
@@ -483,15 +491,6 @@ Begin
       frmEventsReviewer.MessageBus.BroadcastKP(Self, oKP.AsExtended);
   End;
 End;
-
-Function TStarfixDatabaseProvider.AnomalyReference: String;
-Begin
-  If (FMaster.Active) And (FMaster.RecordCount > 0) Then
-    Result := FMaster.FieldByName('Anomaly_No').AsString
-  Else
-    Result := '';
-End;
-
 Procedure TStarfixDatabaseProvider.LoadSettings(AInifile: TIniFile);
 Begin
   // Connection

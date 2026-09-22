@@ -57,12 +57,12 @@ Type
 
     Function Title: String; Override;
 
+    Procedure ApplySettingsFrame(AFrame: TFrameEventListingSettings);
+    Procedure PopulateSettingsFrame(AFrame: TFrameEventListingSettings);
+
     Function GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles; Override;
     Function DateTime: TDateTime; Override;
     Function AnomalyReference: String; Override;
-
-    Procedure ApplySettingsFrame(AFrame: TFrameEventListingSettings);
-    Procedure PopulateSettingsFrame(AFrame: TFrameEventListingSettings);
 
     Procedure LoadSettings(AIniFile: TIniFile); Override;
     Procedure SaveSettings(AIniFile: TIniFile); Override;
@@ -215,12 +215,10 @@ Begin
   frmEventsReviewer.MessageBus.BroadcastFilterChanged(Self, Self);
 End;
 
-
 Function TEventListingProvider.DateTime: TDateTime;
 Begin
   Result := FMaster['Start_(UTC)'].AsDateTime;
 End;
-
 
 Function TEventListingProvider.AnomalyReference: String;
 Begin
@@ -245,35 +243,12 @@ Begin
   AFrame.UTC_Offset := FUTCOffset;
 End;
 
-Procedure TEventListingProvider.LoadSettings(AIniFile: TIniFile);
-Begin
-  FFileName := AIniFile.ReadString('EventListing', 'Filename', '');
-  FWorksheetName := AIniFile.ReadString('EventListing', 'Worksheet', '');
-  FStartCol := AIniFile.ReadInteger('EventListing', 'StartCol', 0);
-  FStartRow := AIniFile.ReadInteger('EventListing', 'StartRow', 0);
-  FUTCOffset := AIniFile.ReadFloat('EventListing', 'UTCOffset', 1);
-End;
-
-Procedure TEventListingProvider.SaveSettings(AIniFile: TIniFile);
-Begin
-  AIniFile.WriteString('EventListing', 'Filename', FFileName);
-  AIniFile.WriteString('EventListing', 'Worksheet', FWorksheetName);
-  AIniFile.WriteInteger('EventListing', 'StartCol', FStartCol);
-  AIniFile.WriteInteger('EventListing', 'StartRow', FStartRow);
-  AIniFile.WriteFloat('EventListing', 'UTCOffset', FUTCOffset);
-End;
-
 Function TEventListingProvider.Title: String;
 Begin
   Result := 'Fugro Event Listing';
 
   If Ready And (FFileName <> '') Then
     Result += ': ' + ExtractFilename(FFileName);
-End;
-
-Function TEventListingProvider.GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles;
-Begin
-  Result := nil;
 End;
 
 Procedure TEventListingProvider.CreateFields;
@@ -484,6 +459,11 @@ Begin
   TrySetDisplayFormat(ADataSet.FieldByName('Height_(m)'), '0.00');
 End;
 
+Function TEventListingProvider.GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles;
+Begin
+  Result := nil;
+End;
+
 Procedure TEventListingProvider.DoReceiveTimeSeekMessage(AMessage: TIMMessage);
 Var
   oMessage: TIMMessageTime;
@@ -531,6 +511,24 @@ Begin
     If (abs(dStartKP - oKP.AsExtended) > 0.001) Then
       frmEventsReviewer.MessageBus.BroadcastKP(Self, oKP.AsExtended);
   End;
+End;
+
+Procedure TEventListingProvider.LoadSettings(AIniFile: TIniFile);
+Begin
+  FFileName := AIniFile.ReadString('EventListing', 'Filename', '');
+  FWorksheetName := AIniFile.ReadString('EventListing', 'Worksheet', '');
+  FStartCol := AIniFile.ReadInteger('EventListing', 'StartCol', 0);
+  FStartRow := AIniFile.ReadInteger('EventListing', 'StartRow', 0);
+  FUTCOffset := AIniFile.ReadFloat('EventListing', 'UTCOffset', 1);
+End;
+
+Procedure TEventListingProvider.SaveSettings(AIniFile: TIniFile);
+Begin
+  AIniFile.WriteString('EventListing', 'Filename', FFileName);
+  AIniFile.WriteString('EventListing', 'Worksheet', FWorksheetName);
+  AIniFile.WriteInteger('EventListing', 'StartCol', FStartCol);
+  AIniFile.WriteInteger('EventListing', 'StartRow', FStartRow);
+  AIniFile.WriteFloat('EventListing', 'UTCOffset', FUTCOffset);
 End;
 
 End.
