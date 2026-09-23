@@ -37,17 +37,19 @@ Type
     Procedure DoPlayerGrabImage(Sender: TObject; Const AFolder: String);
     Procedure DoReceiveTimeSeekMessage(AMessage: TIMMessage);
     Procedure DoVideoLoaded(Sender: TObject);
+    Function GetGrabImageBtnEnabled: Boolean;
+    Function GetImageGrabHint: String;
     Function GetVideoTrackbarSeek: Boolean;
+    Procedure SetGrabImageBtnEnabled(Const AValue: Boolean);
     Procedure SetImageGrabFolder(Const AValue: String);
 
     Procedure DoVideoPositionChange(Sender: TObject; ADateTime: TDateTime);
+    Procedure SetImageGrabHint(Const AValue: String);
   Public
     Constructor Create(TheOwner: TComponent); Override;
     Destructor Destroy; Override;
 
     Procedure LoadVideos(AVideoFiles: TVideoFiles; ASeekDateTime: TDateTime);
-
-    Property ImageGrabFolder: String Read FImageGrabFolder Write SetImageGrabFolder;
 
     Procedure PopulateSettingsFrame(AFrame: TFrameSettingsSyncedVideo);
     Procedure ApplySettingsFrame(AFrame: TFrameSettingsSyncedVideo);
@@ -56,6 +58,11 @@ Type
     Procedure SaveSettings(oInifile: TIniFile); Override;
 
     Property VideoTrackbarSeek: Boolean Read GetVideoTrackbarSeek;
+
+    Property ImageGrabHint: String Read GetImageGrabHint Write SetImageGrabHint;
+    Property ImageGrabFolder: String Read FImageGrabFolder Write SetImageGrabFolder;
+    Property GrabImageBtnEnabled: Boolean Read GetGrabImageBtnEnabled
+      Write SetGrabImageBtnEnabled;
   End;
 
 Const
@@ -166,6 +173,11 @@ Begin
 
     frmEventsReviewer.MessageBus.BroadcastTime(Self, ADateTime);
   End;
+End;
+
+Procedure TfmeVideo.SetImageGrabHint(Const AValue: String);
+Begin
+  fmeVideoPlayer.ImageGrabHint := AValue;
 End;
 
 Procedure TfmeVideo.DoPlayerGrabImage(Sender: TObject; Const AFolder: String);
@@ -284,9 +296,24 @@ Begin
   tmrSeekAfterLoadVideo.Enabled := True;
 End;
 
+Function TfmeVideo.GetGrabImageBtnEnabled: Boolean;
+Begin
+  Result := fmeVideoPlayer.GrabImageBtnEnabled;
+End;
+
+Function TfmeVideo.GetImageGrabHint: String;
+Begin
+  Result := fmeVideoPlayer.ImageGrabHint;
+End;
+
 Function TfmeVideo.GetVideoTrackbarSeek: Boolean;
 Begin
   Result := fmeVideoPlayer.VideoTrackbarSeek;
+End;
+
+Procedure TfmeVideo.SetGrabImageBtnEnabled(Const AValue: Boolean);
+Begin
+  fmeVideoPlayer.GrabImageBtnEnabled := AValue;
 End;
 
 Procedure TfmeVideo.tmrSeekAfterLoadVideoTimer(Sender: TObject);

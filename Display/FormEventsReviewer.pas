@@ -130,6 +130,8 @@ Type
     Procedure DoReceiveTimeSeekMessage(AMessage: TIMMessage);
     Procedure DoDataChanged(Sender: TObject; Const AAnomalyReference: String;
       Const ADateTime: TDateTime);
+
+    Function CheckFolder(Const ACaption, AFolder: String): Boolean;
   Public
     Procedure DoPlayerGrabImage(Const AFolder: String);
 
@@ -605,17 +607,24 @@ Begin
   Else
     sFolder := FSettings.AnomalyImageFolder;
 
-  If (AAnomalyReference='') And (sFolder=FLastImageFolder) Then
+  fmeVideo.GrabImageBtnEnabled := DirectoryExists(sFolder);
+
+  If Not fmeVideo.GrabImageBtnEnabled Then
+    fmeVideo.ImageGrabHint := 'Check Settings: Image Folder does not exist.'
+  Else
+    fmeVideo.ImageGrabHint := 'Selected images will be saved in ' + sFolder;
+
+  If (AAnomalyReference = '') And (sFolder = FLastImageFolder) Then
     Exit;
 
   FLastImageFolder := sFolder;
 
   fmeImageViewer.ClearImages;
 
-  If Not DirectoryExists(FSettings.AnomalyImageFolder) Then
+  If Not fmeVideo.GrabImageBtnEnabled Then
     Exit;
 
-  Status := 'Loading images from '+sFolder;
+  Status := 'Loading images from ' + sFolder;
 
   slImages := TStringList.Create;
   Try
@@ -645,7 +654,7 @@ Begin
   If FDataProvider.Ready Then
   Begin
     sAnomalyRef := FDataProvider.AnomalyReference;
-    FLastImageFolder:='';
+    FLastImageFolder := '';
     LoadImages(sAnomalyRef);
   End;
 End;
@@ -666,6 +675,14 @@ Begin
   LoadImages(AAnomalyReference);
 
   RefreshUI;
+End;
+
+Function TfrmEventsReviewer.CheckFolder(Const ACaption, AFolder: String): Boolean;
+Begin
+  Result := DirectoryExists(AFolder);
+  If Not Result Then
+    ShowMessage(ACaption + ' Folder does not exist.' + LineEnding +
+      'Please check Settings and try again');
 End;
 
 Function TfrmEventsReviewer.AddImage(Const ASourceFilename: String): Boolean;
@@ -697,7 +714,7 @@ Begin
       Status := 'Unable to add image - no free filename';
       Exit;
     End;
-  end
+  End
   Else
   Begin
     // If this is an event image, keep original name, but change folder
@@ -710,12 +727,12 @@ Begin
   Result := FileUtil.CopyFile(ASourceFilename, sFilename);
 
   If Result Then
-  BEgin
+  Begin
     Status := 'Successfully added image ' + sFilename;
 
     // Force a refres
-    FLastImageFolder:='';
-  end
+    FLastImageFolder := '';
+  End
   Else
     Status := 'Unable to copy image ' + ASourceFilename;
 End;
@@ -730,32 +747,41 @@ Var
   oDlg: TDialogImageSelection;
   i: Integer;
   oImage: TViewerImage;
+  sAnomalyReference: String;
+  bContinue: Boolean;
 Begin
-  oDlg := TDialogImageSelection.Create(Self);
-  Try
-    oDlg.LoadFromFolder(AFolder);
+  sAnomalyReference := Trim(FDataProvider.AnomalyReference);
+  If sAnomalyReference = '' Then
+    bContinue := CheckFolder('Anomaly Image', FSettings.AnomalyImageFolder)
+  Else
+    bContinue := CheckFolder('Event Image', FSettings.EventImageFolder);
 
-    If oDlg.ShowModal = mrOk Then
-    Begin
-      // Move and rename
-      For i := 0 To oDlg.ImageCount - 1 Do
-      Begin
-        oImage := oDlg.Image[i];
-
-        If oImage.Selected Then
-          AddImage(oImage.Filename);
-      End;
-
-      LoadImages(FDataProvider.AnomalyReference);
-    End;
-  Finally
+  If bContinue Then
+  Begin
+    oDlg := TDialogImageSelection.Create(Self);
     Try
-      // Delete all remaining files
-      DeleteDirectory(AFolder, False, True);
+      oDlg.LoadFromFolder(AFolder);
+
+      If oDlg.ShowModal = mrOk Then
+      Begin
+        // Move and rename
+        For i := 0 To oDlg.ImageCount - 1 Do
+        Begin
+          oImage := oDlg.Image[i];
+
+          If oImage.Selected Then
+            AddImage(oImage.Filename);
+        End;
+
+        LoadImages(FDataProvider.AnomalyReference);
+      End;
     Finally
       oDlg.Free;
     End;
   End;
+
+  // Delete all remaining files
+  DeleteDirectory(AFolder, False, True);
 End;
 
 Procedure TfrmEventsReviewer.DoAddNewImage(Sender: TObject);
