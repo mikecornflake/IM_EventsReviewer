@@ -621,6 +621,8 @@ Begin
   Try
     FindAllFiles(slImages, sFolder, AAnomalyReference + '*.*', False);
 
+    slImages.Sorted := True;
+
     For sImageFile In slImages Do
     Begin
       sExt := ExtractFileExt(sImageFile);
@@ -729,7 +731,6 @@ Var
   i: Integer;
   oImage: TViewerImage;
 Begin
-  // TODO: Different folders for Anomaly & Event images.
   oDlg := TDialogImageSelection.Create(Self);
   Try
     oDlg.LoadFromFolder(AFolder);
