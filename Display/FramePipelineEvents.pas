@@ -18,6 +18,8 @@ Type
 
     Procedure DoReceiveSeekKPMessage(AMessage: TIMMessage);
     Procedure DoReceiveDataProviderReady(AMessage: TIMMessage);
+
+    Procedure DoOnRangeClick(Sender: TObject; ARange: TPipelineEventRange; ATitle: String);
   Public
     Constructor Create(TheOwner: TComponent); Override;
     Destructor Destroy; Override;
@@ -41,6 +43,8 @@ Begin
   fmePipelineView.Align := alClient;
   fmePipelineView.GraphMode := pdStartLength;
 
+  fmePipelineView.OnRangeClick := @DoOnRangeClick;
+
   frmEventsReviewer.MessageBus.Subscribe(self, TIMMessageKP, @DoReceiveSeekKPMessage);
   frmEventsReviewer.MessageBus.Subscribe(self, TIMMessageDataProviderReady,
     @DoReceiveDataProviderReady);
@@ -61,7 +65,12 @@ End;
 
 Procedure TfmePipelineEvents.DoReceiveDataProviderReady(AMessage: TIMMessage);
 Begin
-   frmEventsReviewer.DataProvider.PopulatePipelineView(fmePipelineView);
+  frmEventsReviewer.DataProvider.PopulatePipelineView(fmePipelineView);
 End;
+
+Procedure TfmePipelineEvents.DoOnRangeClick(Sender: TObject; ARange: TPipelineEventRange; ATitle: String);
+begin
+  frmEventsReviewer.MessageBus.BroadcastKP(Self, ARange.StartKP);
+end;
 
 End.

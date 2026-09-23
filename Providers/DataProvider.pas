@@ -55,7 +55,8 @@ Type
     Function GetOnDataChanged: TDataChangedEvent;
     Procedure SetOnDataChanged(AValue: TDataChangedEvent);
 
-    Procedure DoReceiveTimeSeekMessage(AMessage: TIMMessage);
+    Procedure DoReceiveSeekTimeMessage(AMessage: TIMMessage);
+    Procedure DoReceiveSeekKPMessage(AMessage: TIMMessage);
 
     Procedure DoMasterChanged(Const AAnomalyReference: String; Const ADateTime: TDateTime);
     Procedure DoMasterAfterScroll(ADataSet: TDataSet);
@@ -120,7 +121,8 @@ Begin
   FUpdatingMasterDataset := False;
 
   // Messages
-  frmEventsReviewer.MessageBus.Subscribe(Self, TIMMessageTime, @DoReceiveTimeSeekMessage);
+  frmEventsReviewer.MessageBus.Subscribe(Self, TIMMessageTime, @DoReceiveSeekTimeMessage);
+  frmEventsReviewer.MessageBus.Subscribe(Self, TIMMessageKP, @DoReceiveSeekKPMessage);
 End;
 
 Destructor TDataProvider.Destroy;
@@ -320,7 +322,7 @@ Begin
     End;
 End;
 
-Procedure TDataProvider.DoReceiveTimeSeekMessage(AMessage: TIMMessage);
+Procedure TDataProvider.DoReceiveSeekTimeMessage(AMessage: TIMMessage);
 Var
   oMessage: TIMMessageTime;
   oKP: TField;
@@ -350,7 +352,7 @@ Begin
     // to respond
     FUpdatingMasterDataset := True;
     Try
-      If GotoNearestTime(DataSet, FFieldStartTime, oMessage.DateTime, dtThreshold) Then
+      If GotoNearestValue(DataSet, FFieldStartTime, oMessage.DateTime, dtThreshold) Then
       Begin
         // The above suppressed OnAfterScroll, so we need to manually raise
         DoMasterAfterScroll(DataSet);
@@ -366,7 +368,7 @@ Begin
       // to respond
       FUpdatingFilteredDataset := True;
       Try
-        GotoNearestTime(FFilteredDataset, FFieldStartTime, oMessage.DateTime, dtThreshold);
+        GotoNearestValue(FFilteredDataset, FFieldStartTime, oMessage.DateTime, dtThreshold);
       Finally
         FUpdatingFilteredDataset := False;
       End;
@@ -376,5 +378,56 @@ Begin
       frmEventsReviewer.MessageBus.BroadcastKP(Self, oKP.AsExtended);
   End;
 End;
+
+Procedure TDataProvider.DoReceiveSeekKPMessage(AMessage: TIMMessage);
+var
+  oMessage: TIMMessageKP;
+  oTime: TField;
+  dtTime: TDateTime;
+  dtThreshold: Extended;
+begin
+  If Not (AMessage Is TIMMessageKP) Then
+    Exit;
+
+  If Ready And (DataSet.Active) And (DataSet.RecordCount > 0) Then
+  Begin
+    oMessage := TIMMessageKP(AMessage);
+
+    oTime := DataSet.FieldByName(FFieldStartTime);
+    dtTime := oTime.AsDateTime;
+    dtThreshold := 0.001; // Nearest m
+
+    // Check FUpdatingMasterDataset when responding to subsequence seektime requests
+    // if FUpdatingMasterDataset is true, then we know we made the call and don't need
+    // to respond
+    FUpdatingMasterDataset := True;
+    Try
+      If GotoNearestValue(DataSet, FFieldStartKP, oMessage.KP, dtThreshold) Then
+      Begin
+        // The above suppressed OnAfterScroll, so we need to manually raise
+        DoMasterAfterScroll(DataSet);
+      End;
+    Finally
+      FUpdatingMasterDataset := False;
+    End;
+
+    If Filtered Then
+    Begin
+      // Check FUpdatingFilteredDataset when responding to subsequence seektime requests
+      // if FUpdatingFilteredDataset is true, then we know we made the call and don't need
+      // to respond
+      FUpdatingFilteredDataset := True;
+      Try
+        GotoNearestValue(FFilteredDataset, FFieldStartKP, oMessage.KP, dtThreshold);
+      Finally
+        FUpdatingFilteredDataset := False;
+      End;
+    End;
+
+    //
+    If (abs(dtTime - oTime.AsDateTime) > (1 / SecsPerDay)) Then
+      frmEventsReviewer.MessageBus.BroadcastTime(Self, oTime.AsDateTime);
+  End;
+end;
 
 End.
