@@ -177,10 +177,19 @@ Begin
 
   If MSSQL.Available Then
   Begin
-    // Try to connect to database
+    // Close any existing connection
     If FConnection.Connected Then
-      FConnection.Connected := False;
+    Begin
+      // Clear any set Filter
+      Filter := '';
 
+      // Unload any filtered records
+      FFilteredDataset.Clear;
+
+      FConnection.Connected := False;
+    End;
+
+    // Try to connect to database
     If (Pos('\', FServer) > 0) Or (Pos(':', FServer) > 0) Then
       FConnection.Hostname := FServer
     Else
@@ -252,6 +261,13 @@ Begin
     // Remember State
     dtCurrent := DateTime;
 
+    // Clear any set Filter on Refresh;
+    Filter := '';
+
+    // Unload any filtered records
+    FFilteredDataset.Clear;
+
+    // Now refresh the Master records
     FMaster.Close;
     FMaster.Open;
 
@@ -269,6 +285,12 @@ End;
 Function TStarfixDatabaseProvider.Close: Boolean;
 Begin
   FLoaded := False;
+
+  // Clear any set Filter
+  Filter := '';
+
+  // Unload any filtered records
+  FFilteredDataset.Clear;
 
   If FMaster.Active Then
     FMaster.Close;

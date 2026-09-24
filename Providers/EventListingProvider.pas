@@ -158,6 +158,12 @@ Begin
   // Remember State
   dtCurrent := DateTime;
 
+  // Clear any set Filter on Refresh;
+  Filter := '';
+
+  // Unload any filtered records
+  FFilteredDataset.Clear;
+
   Result := Open;
 
   // Try to restore State
@@ -171,7 +177,15 @@ Begin
   FreeAndNil(FSpreadsheet);
   FWorksheet := nil;
 
-  FMaster.Close;
+  // Clear any set Filter
+  Filter := '';
+
+  // Unload any filtered records
+  FFilteredDataset.Clear;
+
+  // Close and clear the master records
+  If FMaster.Active Then
+    FMaster.Close;
   FMaster.ClearAllRecords;
 
   Result := True;
@@ -258,6 +272,12 @@ Var
   sType: String;
   sSubType, sTemp: String;
 Begin
+  // Clear any set Filter on Refresh;
+  Filter := '';
+
+  // Unload any filtered records
+  FFilteredDataset.Clear;
+
   FMaster.Close;
   FMaster.ClearAllRecords;
   CreateFields;

@@ -236,8 +236,10 @@ End;
 Procedure TDataProvider.SetFilter(Const AValue: String);
 Var
   dtCurrent: TDateTime;
+  bChange: Boolean;
 Begin
   FFilter := AValue;
+  bChange := False;
 
   dtCurrent := DateTime;
 
@@ -246,14 +248,21 @@ Begin
     BuildFilteredDataset(DataSet, FFilteredDataset, AValue);
 
     FFilteredDataset.Open;
+    bChange := True;
   End
   Else If FFilteredDataset.Active Then
+  Begin
     FFilteredDataset.Close;
+    bChange := True;
+  End;
 
-  frmEventsReviewer.MessageBus.Broadcast(Self, TIMMessageFilterChanged);
+  If bChange Then
+  Begin
+    frmEventsReviewer.MessageBus.Broadcast(Self, TIMMessageFilterChanged);
 
-  // -1 means "closest"
-  GotoNearestValue(FFieldStartTime, dtCurrent, -1);
+    // -1 means "closest"
+    GotoNearestValue(FFieldStartTime, dtCurrent, -1);
+  End;
 End;
 
 Procedure TDataProvider.GotoNearestValue(AFieldname: String; AValue: Double; AThreshold: Double);
