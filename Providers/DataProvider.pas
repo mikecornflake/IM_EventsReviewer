@@ -245,19 +245,22 @@ Begin
 End;
 
 Procedure TDataProvider.GotoNearestValue(AFieldname: String; AValue: Double; AThreshold: Double);
+Var
+  bMoved: Boolean;
 Begin
   If Filtered Then
   Begin
     FUpdatingFilteredDataset := True;
     Try
-      DBSupport.GotoNearestValue(FFilteredDataset, AFieldname, AValue, AThreshold);
+      bMoved := DBSupport.GotoNearestValue(FFilteredDataset, AFieldname, AValue, AThreshold);
     Finally
       FUpdatingFilteredDataset := False;
     End;
 
     // This was suppressed by the above and by FUpdatingFilteredDataset,
     //  This call is sufficent to keep the Master scrolled to correct record
-    DoFilterAfterScroll(FFilteredDataset);
+    If bMoved Then
+      DoFilterAfterScroll(FFilteredDataset);
   End
   Else
   Begin

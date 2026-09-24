@@ -29,7 +29,11 @@ Type
     FTransaction: TSQLTransaction;
     FMaster: TSQLQuery;
 
+    // Dynamic SQL
+    FMasterSQLSelect, FMasterSQLWhere, FMasterSQLOrder: String;
+
     qryVideosforTime: TSQLQuery;
+    Function GetSessionSelectionFilter: String;
   Protected
     Function ProcessEventnameForReport(Var AType: String): Boolean; Override;
 
@@ -58,7 +62,7 @@ Implementation
 
 Uses
   FormMain, FormEventsReviewer, ThirdPartySupport,
-  Dialogs, Controls, Forms, LazLogger, DBSupport, DataFilters;
+  Dialogs, Controls, Forms, LazLogger, DBSupport, DataFilters, DialogFrameHost, FrameGridSelection;
 
   { TStarfixDatabaseProvider }
 
@@ -80,32 +84,34 @@ Begin
   FMaster.AfterOpen := @DoDatasetAfterOpen;
   FUpdatingMasterDataset := False;
 
-  FMaster.SQL.Add('SELECT E.[UNIQUE_ID],  ');
-  FMaster.SQL.Add('       DATEADD(S, E.TIMEDATE, ''1970-01-01'') As [' + FFieldStartTime + '], ');
-  FMaster.SQL.Add('       E.KP As [' + FFieldStartKP + '], ');
-  FMaster.SQL.Add('       E.[Type],                     ');
-  FMaster.SQL.Add('       E.Comment As [Description],   ');
-  FMaster.SQL.Add('       E.Anomaly_No As [' + FFieldAnomalyReference + '], ');
-  FMaster.SQL.Add('       CASE E.Anomaly WHEN 1 THEN ''Y''   ');
-  FMaster.SQL.Add('                      ELSE ''N''          ');
-  FMaster.SQL.Add('       END AS [Anomaly],                  ');
-  FMaster.SQL.Add('       CASE E.Anomaly WHEN 1 THEN ''Red'' ');
-  FMaster.SQL.Add('                      ELSE Null      ');
-  FMaster.SQL.Add('       END AS [Colour_ID],           ');
-  FMaster.SQL.Add('       TRY_CONVERT(decimal(18,3), E.Length) As [Length_(m)], ');
-  FMaster.SQL.Add('       TRY_CONVERT(decimal(18,3), E.Width) As [Width_(m)],   ');
-  FMaster.SQL.Add('       TRY_CONVERT(decimal(18,3), E.Height) As [Height_(m)], ');
-  FMaster.SQL.Add('       E.Observed_Offset As [Offset_(m)],  ');
-  FMaster.SQL.Add('       E.[Clock],                    ');
-  FMaster.SQL.Add('       E.East As [Easting],          ');
-  FMaster.SQL.Add('       E.North As [Northing],        ');
-  FMaster.SQL.Add('       E.[Depth]                     ');
-  FMaster.SQL.Add('FROM dbo.Event_3 E                   ');
-  FMaster.SQL.Add('INNER JOIN dbo.SESSIONS S ON (    S.START_TIME <= E.TIMEDATE    ');
-  FMaster.SQL.Add('                              AND S.END_TIME   >= E.TIMEDATE    ');
-  FMaster.SQL.Add('                              AND S.INPUT_FILES=''Pos Import'') ');
-  FMaster.SQL.Add('WHERE (E.PROC_FLAGS & 512)<>512      ');
-  FMaster.SQL.Add('ORDER BY [KP] Asc                    ');
+  FMasterSQLSelect := 'SELECT E.[UNIQUE_ID], ';
+  FMasterSQLSelect += '       DATEADD(S, E.TIMEDATE, ''1970-01-01'') AS [' + FFieldStartTime + '], ';
+  FMasterSQLSelect += '       E.KP AS [' + FFieldStartKP + '], ';
+  FMasterSQLSelect += '       E.[Type], ';
+  FMasterSQLSelect += '       E.Comment AS [Description], ';
+  FMasterSQLSelect += '       E.Anomaly_No AS [' + FFieldAnomalyReference + '], ';
+  FMasterSQLSelect += '       CASE E.Anomaly ';
+  FMasterSQLSelect += '           WHEN 1 THEN ''Y'' ';
+  FMasterSQLSelect += '           ELSE ''N'' ';
+  FMasterSQLSelect += '       END AS [Anomaly], ';
+  FMasterSQLSelect += '       CASE E.Anomaly ';
+  FMasterSQLSelect += '           WHEN 1 THEN ''Red'' ';
+  FMasterSQLSelect += '           ELSE NULL ';
+  FMasterSQLSelect += '       END AS [Colour_ID], ';
+  FMasterSQLSelect += '       TRY_CONVERT(decimal(18,3), E.Length) AS [Length_(m)], ';
+  FMasterSQLSelect += '       TRY_CONVERT(decimal(18,3), E.Width) AS [Width_(m)], ';
+  FMasterSQLSelect += '       TRY_CONVERT(decimal(18,3), E.Height) AS [Height_(m)], ';
+  FMasterSQLSelect += '       E.Observed_Offset AS [Offset_(m)], ';
+  FMasterSQLSelect += '       E.[Clock], ';
+  FMasterSQLSelect += '       E.East AS [Easting], ';
+  FMasterSQLSelect += '       E.North AS [Northing], ';
+  FMasterSQLSelect += '       E.[Depth] ';
+  FMasterSQLSelect += 'FROM dbo.Event_3 E ';
+  FMasterSQLSelect += 'INNER JOIN dbo.SESSIONS S ON (S.START_TIME <= E.TIMEDATE ';
+  FMasterSQLSelect += '                              AND S.END_TIME >= E.TIMEDATE ';
+  FMasterSQLSelect += '                              AND S.INPUT_FILES = ''Pos Import'') ';
+  FMasterSQLWhere := 'WHERE (E.PROC_FLAGS & 512) <> 512 ';
+  FMasterSQLOrder := 'ORDER BY [KP] ASC ';
 
   qryVideosforTime := TSQLQuery.Create(nil);
   qryVideosforTime.Database := FConnection;
@@ -140,9 +146,11 @@ Begin
   FOnProviderReady := nil;
   FOnDataChanged := nil;
 
-    // Filters
+  // Filters
   FDataFilters.Add(TDataFilter.Create(11, 'Anomalies', '(Anomaly = ''Y'')', @DoDataFilterExecute));
-  FDataFilters.Add(TDataFilter.Create(14, 'Freespans', '(Type = ''Freespan*'')', @DoDataFilterExecute));
+  FDataFilters.Add(TDataFilter.Create(14, 'Freespans', '(Type = ''Freespan*'')',
+    @DoDataFilterExecute));
+  FDataFilters.Add(TDataFilter.Create(17, 'Exclude Fieldjoints', '(NOT (Type = ''*Joint*''))', @DoDataFilterExecute));
 End;
 
 Destructor TStarfixDatabaseProvider.Destroy;
@@ -159,6 +167,8 @@ Begin
 End;
 
 Function TStarfixDatabaseProvider.Open: Boolean;
+Var
+  sSessionFilter: String;
 Begin
   Result := False;
   FLoaded := False;
@@ -195,7 +205,15 @@ Begin
         FConnection.ExecuteDirect('SET ANSI_NULLS ON');
         FTransaction.Commit;
 
+        MainForm.Busy := False;
+        Try
+          sSessionFilter := Trim(GetSessionSelectionFilter);
+        Finally
+          MainForm.Busy := True;
+        End;
+
         // Retrieving results
+        FMaster.SQL.Text := FMasterSQLSelect + FMasterSQLWhere + sSessionFilter + FMasterSQLOrder;
         FMaster.Open;
 
         Result := True;
@@ -360,6 +378,84 @@ Begin
     Result.Add(oVideoFile);
 
     qryVideosforTime.Next;
+  End;
+End;
+
+Function TStarfixDatabaseProvider.GetSessionSelectionFilter: String;
+Var
+  sQuery, sIDs: String;
+  oQuery: TSQLQuery;
+  oDlg: TDialogFrameHost;
+  fmeSelection: TfmeGridSelection;
+  iRecord: Integer;
+Begin
+  Result := '';
+
+  sQuery := 'SELECT S.NAME AS [Session], ';
+  sQuery += '       CASE S.START_KP ';
+  sQuery += '           WHEN -999999 THEN NULL ';
+  sQuery += '           ELSE S.START_KP ';
+  sQuery += '       END AS [Start_KP], ';
+  sQuery += '       CASE S.END_KP ';
+  sQuery += '           WHEN -999999 THEN NULL ';
+  sQuery += '           ELSE S.END_KP ';
+  sQuery += '       END AS [End_KP], ';
+  sQuery += '       DATEADD(S, S.START_TIME, ''1970-01-01'') AS [Start_Time], ';
+  sQuery += '       DATEADD(S, S.END_TIME, ''1970-01-01'') AS [End_Time], ';
+  sQuery += '       S.[SESSION_ID] ';
+  sQuery += 'FROM DBO.SESSIONS S ';
+  sQuery += 'ORDER BY S.SESSION_ID ';
+
+  oQuery := TSQLQuery.Create(nil);
+  Try
+    oQuery.Database := FConnection;
+    oQuery.Transaction := FTransaction;
+
+    oQuery.SQL.Text := sQuery;
+    oQuery.Open;
+
+    oDlg := TDialogFrameHost.Create(frmEventsReviewer);
+    fmeSelection := TfmeGridSelection.Create(oDlg);
+    Try
+      oDlg.Caption := 'Choose working sessions';
+      oDlg.RegisterFrame(fmeSelection, 'Sessions');
+      oDlg.ButtonPanel.OKButton.Caption := 'Select sessions';
+      oDlg.ButtonPanel.CancelButton.Caption := 'Load all sessions';
+      oDlg.ButtonPanel.ShowGlyphs:=[];
+
+      fmeSelection.Dataset := oQuery;
+
+      If oDlg.ShowModal = mrOk Then
+      Begin
+        sIDs := '';
+        iRecord := 0;
+
+        oQuery.First;
+
+        While Not oQuery.EOF Do
+        Begin
+          If fmeSelection.Selected[iRecord] Then
+          Begin
+            If sIDs <> '' Then
+              sIDs += ',';
+
+            sIDs += oQuery.FieldByName('SESSION_ID').AsString;
+          End;
+
+          Inc(iRecord);
+          oQuery.Next;
+        End;
+
+        If sIDs <> '' Then
+          Result := 'AND S.SESSION_ID IN (' + sIDs + ') ';
+      End;
+    Finally
+      fmeSelection.Free;
+      oDlg.Free;
+    End;
+  Finally
+    oQuery.Close;
+    oQuery.Free;
   End;
 End;
 

@@ -11,7 +11,7 @@ Uses
   {$ENDIF}
   Interfaces, // this includes the LCL widgetset
   Forms,
-  FormEventsReviewer, DataFilters, FrameEditor;
+  FormEventsReviewer;
 
   {$R *.res}
 

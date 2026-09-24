@@ -1,0 +1,18 @@
+inherited fmeGridSelection: TfmeGridSelection
+  Height = 599
+  Width = 612
+  ClientHeight = 599
+  ClientWidth = 612
+  object grdSelection: TStringGrid[0]
+    Left = 0
+    Height = 599
+    Top = 0
+    Width = 612
+    Align = alClient
+    Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRowSelect, goSmoothScroll]
+    TabOrder = 0
+    OnGetCellHint = grdSelectionGetCellHint
+    OnMouseDown = grdSelectionMouseDown
+    OnPrepareCanvas = grdSelectionPrepareCanvas
+  end
+end

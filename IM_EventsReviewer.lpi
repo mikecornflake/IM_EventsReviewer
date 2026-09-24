@@ -221,7 +221,15 @@
       <Unit>
         <Filename Value="Display\FrameEditor.pas"/>
         <IsPartOfProject Value="True"/>
-        <ComponentName Value="Frame1"/>
+        <ComponentName Value="FrameEditorBase"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Frame"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Display\FrameGridSelection.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="fmeGridSelection"/>
+        <HasResources Value="True"/>
         <ResourceBaseClass Value="Frame"/>
       </Unit>
     </Units>
