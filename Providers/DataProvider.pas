@@ -72,7 +72,6 @@ Type
     Procedure DoDatasetAfterOpen(ADataSet: TDataSet);
     Procedure DoDatasetApplyFormats(ADataSet: TDataSet); Virtual;
 
-    // State Management
     Procedure GotoNearestValue(AFieldname: String; AValue: Double; AThreshold: Double);
   Public
     Constructor Create; Virtual;
@@ -87,6 +86,9 @@ Type
     Function GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles; Virtual; Abstract;
 
     Function PopulatePipelineView(APipelineView: TFramePipelineView): Boolean; Virtual;
+
+    Procedure GotoKP(AKP: Double);
+    Procedure GotoDateTime(ADateTime: TDateTime);
 
     // Filters are options presented to the user interface.
     // If the user wants to apply a filter, it's up to the UI to pass the correct filter
@@ -206,9 +208,19 @@ Begin
   End;
 End;
 
+Procedure TDataProvider.GotoKP(AKP: Double);
+Begin
+  GotoNearestValue(FFieldStartKP, AKP, -1);
+End;
+
+Procedure TDataProvider.GotoDateTime(ADateTime: TDateTime);
+Begin
+  GotoNearestValue(FFieldStartTime, ADateTime, -1);
+End;
+
 Procedure TDataProvider.ApplyDataFilter(ADataFilter: TDataFilter);
 Begin
-
+  // TODO (don't have a complex TDataFilter yet
 End;
 
 Function TDataProvider.ProcessEventnameForReport(Var AType: String): Boolean;

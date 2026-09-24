@@ -119,6 +119,12 @@
     </RunParams>
     <RequiredPackages>
       <Item>
+        <PackageName Value="DateTimeCtrlsDsgn"/>
+      </Item>
+      <Item>
+        <PackageName Value="DateTimeCtrls"/>
+      </Item>
+      <Item>
         <PackageName Value="laz_fpspreadsheet"/>
       </Item>
       <Item>
@@ -229,6 +235,13 @@
         <Filename Value="Display\FrameGridSelection.pas"/>
         <IsPartOfProject Value="True"/>
         <ComponentName Value="fmeGridSelection"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Frame"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Display\FrameDateTimeSelection.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="fmeDateTimeSelection"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Frame"/>
       </Unit>

@@ -1,0 +1,35 @@
+inherited fmeDateTimeSelection: TfmeDateTimeSelection
+  Height = 44
+  Width = 234
+  ClientHeight = 44
+  ClientWidth = 234
+  object edtDate: TDateEdit[0]
+    Left = 6
+    Height = 23
+    Top = 12
+    Width = 103
+    CalendarDisplaySettings = [dsShowHeadings, dsShowDayNames]
+    DateOrder = doNone
+    ButtonWidth = 23
+    NumGlyphs = 1
+    MaxLength = 0
+    TabOrder = 0
+    Text = 'edtDate'
+  end
+  object edtTime: TTimeEdit[1]
+    Left = 126
+    Height = 23
+    Top = 12
+    Width = 103
+    ButtonWidth = 23
+    NumGlyphs = 1
+    MaxLength = 0
+    SimpleLayout = False
+    TabOrder = 1
+    TimeAMString = 'HH:mm:ss'
+    TimeFormat = 'HH:mm:ss'
+    TimeSeparator = ':'
+    TimePMString = 'HH:mm:ss'
+    Text = '00:00:00'
+  end
+end

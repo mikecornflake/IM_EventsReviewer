@@ -20,6 +20,8 @@ Type
   TfrmEventsReviewer = Class(TFormMain)
     actFilterAnomalies: TAction;
     actFilterSpans: TAction;
+    actGotoKP: TAction;
+    actGotoTime: TAction;
     actOpenEventListing: TAction;
     actRefreshDatabase: TAction;
     actSeekVideo: TAction;
@@ -37,6 +39,9 @@ Type
     lblHeight1: TLabel;
     lblLength1: TLabel;
     lblWidth1: TLabel;
+    mnuGotoKP: TMenuItem;
+    mnuGotoTime: TMenuItem;
+    mnuGotoEventTime: TMenuItem;
     mnuOpenEventListing: TMenuItem;
     mnuDatabase: TMenuItem;
     mnuDatabaseOpen: TMenuItem;
@@ -52,25 +57,28 @@ Type
     pnlRight: TPanel;
     pnlVideo: TPanel;
     pmFilters: TPopupMenu;
+    pmGoto: TPopupMenu;
     Separator2: TMenuItem;
     splAnomalies: TSplitter;
     splImages: TSplitter;
     splDetailsGrid: TSplitter;
     btnFilter: TToolButton;
     btnClearFilter: TToolButton;
+    btnGoto: TToolButton;
     tsImages: TTabSheet;
     tsChart: TTabSheet;
     tmrNotification: TTimer;
     tbMain: TToolBar;
     btnOpenDatabase: TToolButton;
     btnSettings: TToolButton;
-    btnSyncVideo: TToolButton;
     btnRefreshDatabase: TToolButton;
     btnOpenEventListing: TToolButton;
     ToolButton2: TToolButton;
     ToolButton3: TToolButton;
     ToolButton4: TToolButton;
     ToolButton7: TToolButton;
+    Procedure actGotoKPExecute(Sender: TObject);
+    Procedure actGotoTimeExecute(Sender: TObject);
     Procedure btnClearFilterClick(Sender: TObject);
     Procedure actOpenEventListingExecute(Sender: TObject);
     Procedure actRefreshDatabaseExecute(Sender: TObject);
@@ -114,6 +122,8 @@ Type
 
     Procedure SetDataProvider(AProvider: TDataProvider);
   Protected
+    Procedure RefreshUI; Override;
+
     // Stored in ini file with exe - what folders to load etc
     Procedure LoadGlobalSettings(oInifile: TIniFile); Override;
     Procedure SaveGlobalSettings(oInifile: TIniFile); Override;
@@ -133,8 +143,6 @@ Type
 
     Function CheckFolder(Const ACaption, AFolder: String): Boolean;
   Public
-    Procedure RefreshUI; Override;
-
     Procedure DoPlayerGrabImage(Const AFolder: String);
 
     Property DataProvider: TDataProvider Read FDataProvider;
@@ -155,7 +163,7 @@ Uses
   Windows, DBGrids, VideoEngineFactory,
   FrameApplicationSettings, FrameSettingsSyncedVideo, DialogFrameHost,
   FileSupport, LazLogger, FrameVideoLibmpv,
-  FrameEventListingSettings, DialogImageSelection;
+  FrameEventListingSettings, DialogImageSelection, FrameDateTimeSelection;
 
   {$R *.lfm}
 
@@ -327,20 +335,27 @@ Begin
 End;
 
 Procedure TfrmEventsReviewer.RefreshUI;
+Var
+  bEventsReady, bProviderReady: Boolean;
 Begin
   Inherited RefreshUI;
 
+  bProviderReady := Assigned(FDataProvider) And FDataProvider.Ready;
+  bEventsReady := bProviderReady And Assigned(dsNotification.Dataset) And
+    (dsNotification.Dataset.Active);
+
   actOpenDatabase.Enabled := MSSQL.Available;
   actOpenEventListing.Enabled := True;
-  actRefreshDatabase.Enabled := Assigned(FDataProvider) And FDataProvider.Ready;
+  actRefreshDatabase.Enabled := bProviderReady;
 
-  actSeekVideo.Enabled := Assigned(FDataProvider) And FDataProvider.Ready And
-    Assigned(dsNotification.Dataset) And (dsNotification.Dataset.Active);
+  actSeekVideo.Enabled := bEventsReady;
+  actGotoKP.Enabled := bEventsReady;
+  actGotoTime.Enabled := bEventsReady;
+  actFilterAnomalies.Enabled := bEventsReady;
+  actFilterSpans.Enabled := bEventsReady;
 
-  actFilterAnomalies.Enabled := actSeekVideo.Enabled;
-  actFilterSpans.Enabled := actSeekVideo.Enabled;
-
-  btnFilter.Enabled := Assigned(FDataProvider) And FDataProvider.Ready;
+  btnGoto.Enabled := bProviderReady;
+  btnFilter.Enabled := bProviderReady;;
   btnClearFilter.Enabled := btnFilter.Enabled And FDataProvider.Filtered;
 End;
 
@@ -560,6 +575,38 @@ Procedure TfrmEventsReviewer.btnClearFilterClick(Sender: TObject);
 Begin
   If Assigned(FDataProvider) Then
     FDataProvider.Filter := '';
+End;
+
+Procedure TfrmEventsReviewer.actGotoKPExecute(Sender: TObject);
+Var
+  dKP: Double;
+  sNewKP: String;
+Begin
+  dKP := fmePipelineChart.KP;
+  sNewKP := FormatFloat('0.000', dKP);
+
+  If Not InputQuery('Goto KP', 'Please enter new KP', sNewKP) Then
+    Exit;
+
+  If Not TryStrToFloat(sNewKP, dKP) Then
+  Begin
+    ShowMessage('Invalid KP entered: ' + sNewKP);
+    Exit;
+  End;
+
+  FDataProvider.GotoKP(dKP);
+End;
+
+Procedure TfrmEventsReviewer.actGotoTimeExecute(Sender: TObject);
+Var
+  dtDateTime: TDateTime;
+Begin
+  dtDateTime := FDataProvider.DateTime;
+
+  If Not InputQueryDateTime('Please enter new time', dtDateTime) Then
+    Exit;
+
+  FDataProvider.GotoDateTime(dtDateTime);
 End;
 
 Procedure TfrmEventsReviewer.actRefreshDatabaseExecute(Sender: TObject);

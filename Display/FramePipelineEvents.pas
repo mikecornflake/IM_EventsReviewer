@@ -20,9 +20,12 @@ Type
     Procedure DoReceiveDataProviderReady(AMessage: TIMMessage);
 
     Procedure DoOnRangeClick(Sender: TObject; ARange: TPipelineEventRange; ATitle: String);
+    Function GetKP: Double;
   Public
     Constructor Create(TheOwner: TComponent); Override;
     Destructor Destroy; Override;
+
+    Property KP: Double Read GetKP;
   End;
 
 Implementation
@@ -68,9 +71,15 @@ Begin
   frmEventsReviewer.DataProvider.PopulatePipelineView(fmePipelineView);
 End;
 
-Procedure TfmePipelineEvents.DoOnRangeClick(Sender: TObject; ARange: TPipelineEventRange; ATitle: String);
-begin
-  frmEventsReviewer.MessageBus.BroadcastKP(Self, ARange.StartKP);
-end;
+Procedure TfmePipelineEvents.DoOnRangeClick(Sender: TObject; ARange: TPipelineEventRange;
+  ATitle: String);
+Begin
+  frmEventsReviewer.MessageBus.BroadcastKP(self, ARange.StartKP);
+End;
+
+Function TfmePipelineEvents.GetKP: Double;
+Begin
+  Result := fmePipelineView.KP;
+End;
 
 End.

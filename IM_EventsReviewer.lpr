@@ -10,8 +10,8 @@ Uses
   athreads,
   {$ENDIF}
   Interfaces, // this includes the LCL widgetset
-  Forms,
-  FormEventsReviewer;
+  Forms, datetimectrls,
+  FormEventsReviewer, FrameDateTimeSelection;
 
   {$R *.res}
 
