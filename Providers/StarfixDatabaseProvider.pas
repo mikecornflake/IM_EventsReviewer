@@ -58,7 +58,7 @@ Implementation
 
 Uses
   FormMain, FormEventsReviewer, ThirdPartySupport,
-  Dialogs, Controls, Forms, LazLogger, DBSupport;
+  Dialogs, Controls, Forms, LazLogger, DBSupport, DataFilters;
 
   { TStarfixDatabaseProvider }
 
@@ -139,6 +139,10 @@ Begin
   // Events
   FOnProviderReady := nil;
   FOnDataChanged := nil;
+
+    // Filters
+  FDataFilters.Add(TDataFilter.Create(11, 'Anomalies', '(Anomaly = ''Y'')', @DoDataFilterExecute));
+  FDataFilters.Add(TDataFilter.Create(14, 'Freespans', '(Type = ''Freespan*'')', @DoDataFilterExecute));
 End;
 
 Destructor TStarfixDatabaseProvider.Destroy;

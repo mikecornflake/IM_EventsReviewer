@@ -10,8 +10,8 @@ Uses
   // Library
   FormMain, FrameImageViewer, FrameGrids, FrameVideo,
   // Application
-  ApplicationSettings, DataProvider, MediaProvider, FrameVerticalDBGrid,
-  StarfixDatabaseProvider, EventListingProvider, IMMessaging, AppMessaging, FramePipelineEvents;
+  ApplicationSettings, DataProvider, MediaProvider, FrameVerticalDBGrid, StarfixDatabaseProvider,
+  EventListingProvider, IMMessaging, AppMessaging, DataFilters, FramePipelineEvents;
 
 Type
 
@@ -51,10 +51,13 @@ Type
     pcBottom: TPageControl;
     pnlRight: TPanel;
     pnlVideo: TPanel;
+    pmFilters: TPopupMenu;
     Separator2: TMenuItem;
     splAnomalies: TSplitter;
     splImages: TSplitter;
     splDetailsGrid: TSplitter;
+    btnFilter: TToolButton;
+    btnClearFilter: TToolButton;
     tsImages: TTabSheet;
     tsChart: TTabSheet;
     tmrNotification: TTimer;
@@ -67,10 +70,8 @@ Type
     ToolButton2: TToolButton;
     ToolButton3: TToolButton;
     ToolButton4: TToolButton;
-    ToolButton5: TToolButton;
-    ToolButton6: TToolButton;
     ToolButton7: TToolButton;
-    Procedure DoApplyFilter(Sender: TObject);
+    procedure btnClearFilterClick(Sender: TObject);
     Procedure actOpenEventListingExecute(Sender: TObject);
     Procedure actRefreshDatabaseExecute(Sender: TObject);
     Procedure actSeekVideoExecute(Sender: TObject);
@@ -81,6 +82,7 @@ Type
     Procedure actDatabaseOpenClick(Sender: TObject);
     Procedure mnuExitClick(Sender: TObject);
     Procedure actSettingsClick(Sender: TObject);
+    Procedure pmFiltersPopup(Sender: TObject);
     Procedure tmrNotificationTimer(Sender: TObject);
   Private
     // Settings
@@ -112,8 +114,6 @@ Type
 
     Procedure SetDataProvider(AProvider: TDataProvider);
   Protected
-    Procedure RefreshUI; Override;
-
     // Stored in ini file with exe - what folders to load etc
     Procedure LoadGlobalSettings(oInifile: TIniFile); Override;
     Procedure SaveGlobalSettings(oInifile: TIniFile); Override;
@@ -133,6 +133,8 @@ Type
 
     Function CheckFolder(Const ACaption, AFolder: String): Boolean;
   Public
+    Procedure RefreshUI; Override;
+
     Procedure DoPlayerGrabImage(Const AFolder: String);
 
     Property DataProvider: TDataProvider Read FDataProvider;
@@ -337,6 +339,9 @@ Begin
 
   actFilterAnomalies.Enabled := actSeekVideo.Enabled;
   actFilterSpans.Enabled := actSeekVideo.Enabled;
+
+  btnFilter.Enabled :=  Assigned(FDataProvider) And FDataProvider.Ready;
+  btnClearFilter.ENabled := btnFilter.Enabled And FDataProvider.Filtered;
 End;
 
 Procedure TfrmEventsReviewer.tmrNotificationTimer(Sender: TObject);
@@ -386,6 +391,30 @@ Begin
   End;
 
   RefreshUI;
+End;
+
+Procedure TfrmEventsReviewer.pmFiltersPopup(Sender: TObject);
+Var
+  oFilter: TDataFilter;
+  oMenu: TMenuItem;
+Begin
+  pmFilters.Items.Clear;
+
+  If Not Assigned(FDataProvider) Then
+    Exit;
+
+  For oFilter In FDataProvider.DataFilters Do
+  Begin
+    oMenu := TMenuItem.Create(pmFilters);
+
+    oMenu.Caption := oFilter.Caption;
+    oMenu.ImageIndex := oFilter.ImageIndex;
+    oMenu.OnClick := oFilter.OnExecute;
+
+    oMenu.Tag := PtrInt(oFilter);
+
+    pmFilters.Items.Add(oMenu);
+  End;
 End;
 
 Procedure TfrmEventsReviewer.DoSetDatasets(APopulate: Boolean);
@@ -527,23 +556,11 @@ Begin
   End;
 End;
 
-Procedure TfrmEventsReviewer.DoApplyFilter(Sender: TObject);
-Begin
-  If actFilterAnomalies.Checked And actFilterSpans.Checked Then
-  Begin
-    // Work around what appears to be a TToolbar / TActionlist issue
-    actFilterAnomalies.Checked := False;
-    actFilterSpans.Checked := False;
-
-    FDataProvider.Filter := '';
-  End
-  Else If actFilterAnomalies.Checked Then
-    FDataProvider.Filter := '(Anomaly = ''Y'')'
-  Else If actFilterSpans.Checked Then
-    FDataProvider.Filter := '(Type = ''Freespan*'')'
-  Else
-    FDataProvider.Filter := '';
-End;
+procedure TfrmEventsReviewer.btnClearFilterClick(Sender: TObject);
+begin
+  If Assigned(FDataProvider) Then
+  FDataProvider.Filter := '';
+end;
 
 Procedure TfrmEventsReviewer.actRefreshDatabaseExecute(Sender: TObject);
 Begin
@@ -585,6 +602,8 @@ Begin
 
   // Resize columns etc
   fmeDBGrid.InitialiseDBGrid(True);
+
+  RefreshUI;
 End;
 
 Procedure TfrmEventsReviewer.LoadImages(Const AAnomalyReference: String);

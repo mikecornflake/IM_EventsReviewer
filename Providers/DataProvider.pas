@@ -21,15 +21,16 @@ Type
 
   { TDataProvider }
   TDataProvider = Class(TObject, IIM_Persistent)
-  Private
-    FDataFilters: TDataFilters;
   Protected
     // FIELDNAMES
     FFieldStartKP, FFieldStartTime, FFieldAnomalyReference: String;
 
     // State
     FLoaded: Boolean;
+
+    // Filters
     FFilter: String;
+    FDataFilters: TDataFilters;
 
     // While the Master Events dataset will vary between implementations
     // the Filtered dataset will always be a TBufDataset
@@ -47,6 +48,8 @@ Type
     Function GetFiltered: Boolean;
     Procedure SetFilter(Const AValue: String);
     Function GetFilter: String; Virtual;
+
+    Procedure DoDataFilterExecute(Sender: TObject); Virtual;
 
     Procedure DoProviderReady;
 
@@ -117,7 +120,7 @@ Type
 Implementation
 
 Uses
-  FormEventsReviewer, DBSupport;
+  FormEventsReviewer, DBSupport, Menus;
 
   { TDataProvider }
 
@@ -275,6 +278,18 @@ End;
 Function TDataProvider.GetFilter: String;
 Begin
   Result := FFilter;
+End;
+
+Procedure TDataProvider.DoDataFilterExecute(Sender: TObject);
+Var
+  oFilter: TDataFilter;
+Begin
+  If Not (Sender Is TMenuItem) Then
+    Exit;
+
+  oFilter := TDataFilter(TMenuItem(Sender).Tag);
+
+  Filter := oFilter.Filter;
 End;
 
 Procedure TDataProvider.DoProviderReady;

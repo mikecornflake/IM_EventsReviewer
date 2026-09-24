@@ -59,7 +59,7 @@ Type
 Implementation
 
 Uses
-  fpsTypes, SpreadsheetSupport, LazLogger, Dialogs, FormEventsReviewer;
+  fpsTypes, SpreadsheetSupport, LazLogger, Dialogs, FormEventsReviewer, DataFilters;
 
   { TEventListingProvider }
 
@@ -81,6 +81,10 @@ Begin
   FMaster.Table.AfterScroll := @DoMasterAfterScroll;
   FMaster.Table.AfterOpen := @DoDatasetAfterOpen;
   FUpdatingMasterDataset := False;
+
+  // Filters
+  FDataFilters.Add(TDataFilter.Create(11, 'Anomalies', '(Anomaly = ''Y'')', @DoDataFilterExecute));
+  FDataFilters.Add(TDataFilter.Create(14, 'Freespans', '(Type = ''Freespan*'')', @DoDataFilterExecute));
 End;
 
 
