@@ -126,7 +126,7 @@ Begin
     FWorksheet := FSpreadsheet.GetWorksheetByName(FWorksheetName);
 
     If FWorksheet = nil Then
-      Raise Exception.Create('Worksheet "'+FWorksheetName+'" was not found in:' +
+      Raise Exception.Create('Worksheet "' + FWorksheetName + '" was not found in:' +
         LineEnding + FFileName);
 
     LoadEvents;
