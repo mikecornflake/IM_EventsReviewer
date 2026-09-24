@@ -84,8 +84,10 @@ Begin
 
   // Filters
   FDataFilters.Add(TDataFilter.Create(11, 'Anomalies', '(Anomaly = ''Y'')', @DoDataFilterExecute));
-  FDataFilters.Add(TDataFilter.Create(14, 'Freespans', '(Type = ''Freespan*'')', @DoDataFilterExecute));
-  FDataFilters.Add(TDataFilter.Create(17, 'Exclude Fieldjoints', '(NOT (Type = ''*Joint*''))', @DoDataFilterExecute));
+  FDataFilters.Add(TDataFilter.Create(14, 'Freespans', '(Type = ''Freespan*'')',
+    @DoDataFilterExecute));
+  FDataFilters.Add(TDataFilter.Create(17, 'Exclude Fieldjoints',
+    '(NOT (Type = ''*Joint*''))', @DoDataFilterExecute));
 End;
 
 

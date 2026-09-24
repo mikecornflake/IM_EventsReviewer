@@ -85,7 +85,8 @@ Begin
   FUpdatingMasterDataset := False;
 
   FMasterSQLSelect := 'SELECT E.[UNIQUE_ID], ';
-  FMasterSQLSelect += '       DATEADD(S, E.TIMEDATE, ''1970-01-01'') AS [' + FFieldStartTime + '], ';
+  FMasterSQLSelect += '       DATEADD(S, E.TIMEDATE, ''1970-01-01'') AS [' +
+    FFieldStartTime + '], ';
   FMasterSQLSelect += '       E.KP AS [' + FFieldStartKP + '], ';
   FMasterSQLSelect += '       E.[Type], ';
   FMasterSQLSelect += '       E.Comment AS [Description], ';
@@ -150,7 +151,8 @@ Begin
   FDataFilters.Add(TDataFilter.Create(11, 'Anomalies', '(Anomaly = ''Y'')', @DoDataFilterExecute));
   FDataFilters.Add(TDataFilter.Create(14, 'Freespans', '(Type = ''Freespan*'')',
     @DoDataFilterExecute));
-  FDataFilters.Add(TDataFilter.Create(17, 'Exclude Fieldjoints', '(NOT (Type = ''*Joint*''))', @DoDataFilterExecute));
+  FDataFilters.Add(TDataFilter.Create(17, 'Exclude Fieldjoints',
+    '(NOT (Type = ''*Joint*''))', @DoDataFilterExecute));
 End;
 
 Destructor TStarfixDatabaseProvider.Destroy;
@@ -421,7 +423,7 @@ Begin
       oDlg.RegisterFrame(fmeSelection, 'Sessions');
       oDlg.ButtonPanel.OKButton.Caption := 'Select sessions';
       oDlg.ButtonPanel.CancelButton.Caption := 'Load all sessions';
-      oDlg.ButtonPanel.ShowGlyphs:=[];
+      oDlg.ButtonPanel.ShowGlyphs := [];
 
       fmeSelection.Dataset := oQuery;
 

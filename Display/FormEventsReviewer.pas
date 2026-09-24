@@ -71,7 +71,7 @@ Type
     ToolButton3: TToolButton;
     ToolButton4: TToolButton;
     ToolButton7: TToolButton;
-    procedure btnClearFilterClick(Sender: TObject);
+    Procedure btnClearFilterClick(Sender: TObject);
     Procedure actOpenEventListingExecute(Sender: TObject);
     Procedure actRefreshDatabaseExecute(Sender: TObject);
     Procedure actSeekVideoExecute(Sender: TObject);
@@ -340,8 +340,8 @@ Begin
   actFilterAnomalies.Enabled := actSeekVideo.Enabled;
   actFilterSpans.Enabled := actSeekVideo.Enabled;
 
-  btnFilter.Enabled :=  Assigned(FDataProvider) And FDataProvider.Ready;
-  btnClearFilter.ENabled := btnFilter.Enabled And FDataProvider.Filtered;
+  btnFilter.Enabled := Assigned(FDataProvider) And FDataProvider.Ready;
+  btnClearFilter.Enabled := btnFilter.Enabled And FDataProvider.Filtered;
 End;
 
 Procedure TfrmEventsReviewer.tmrNotificationTimer(Sender: TObject);
@@ -556,11 +556,11 @@ Begin
   End;
 End;
 
-procedure TfrmEventsReviewer.btnClearFilterClick(Sender: TObject);
-begin
+Procedure TfrmEventsReviewer.btnClearFilterClick(Sender: TObject);
+Begin
   If Assigned(FDataProvider) Then
-  FDataProvider.Filter := '';
-end;
+    FDataProvider.Filter := '';
+End;
 
 Procedure TfrmEventsReviewer.actRefreshDatabaseExecute(Sender: TObject);
 Begin
