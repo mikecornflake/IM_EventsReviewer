@@ -259,7 +259,9 @@ Begin
 
   // And these definitely need freeing :-)
   FreeAndNil(FSettings);
-  FreeAndNil(FDataProvider);
+  FDataProvider := Nil;
+  FreeAndNil(FStarfixDatabaseProvider);
+  FreeAndNil(FEventListingProvider);
   FreeAndNil(FMediaProvider);
 End;
 
@@ -895,9 +897,9 @@ Var
 Begin
   sAnomalyReference := Trim(FDataProvider.AnomalyReference);
   If sAnomalyReference = '' Then
-    bContinue := CheckFolder('Anomaly Image', FSettings.AnomalyImageFolder)
+    bContinue := CheckFolder('Event Image', FSettings.EventImageFolder)
   Else
-    bContinue := CheckFolder('Event Image', FSettings.EventImageFolder);
+    bContinue := CheckFolder('Anomaly Image', FSettings.AnomalyImageFolder);
 
   If bContinue Then
   Begin
