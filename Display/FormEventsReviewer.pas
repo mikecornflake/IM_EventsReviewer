@@ -51,9 +51,9 @@ Type
     mnuSettings: TMenuItem;
     dlgAddImage: TOpenPictureDialog;
     pnlDetailsGrid: TPanel;
-    pnlNotification: TPanel;
     pnlAnomalies: TPanel;
     pcBottom: TPageControl;
+    pnlNotification: TPanel;
     pnlRight: TPanel;
     pnlVideo: TPanel;
     pmFilters: TPopupMenu;
@@ -91,6 +91,13 @@ Type
     Procedure mnuExitClick(Sender: TObject);
     Procedure actSettingsClick(Sender: TObject);
     Procedure pmFiltersPopup(Sender: TObject);
+
+    Procedure pnlNotificationMouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    Procedure pnlNotificationMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
+
+    Procedure pnlNotificationMouseUp(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
     Procedure tmrNotificationTimer(Sender: TObject);
   Private
     // Settings
@@ -114,6 +121,11 @@ Type
 
     // Flags
     FLastImageFolder: String;
+
+    //Notification Panel
+    FNotificationDragging: Boolean;
+    FNotificationDragStart: TPoint;
+    FNotificationStartPos: TPoint;
 
     Function AddImage(Const ASourceFilename: String): Boolean;
     Procedure DoSetDatasets(APopulate: Boolean);
@@ -163,7 +175,7 @@ Uses
   Windows, DBGrids, VideoEngineFactory,
   FrameApplicationSettings, FrameSettingsSyncedVideo, DialogFrameHost,
   FileSupport, LazLogger, FrameVideoLibmpv,
-  FrameEventListingSettings, DialogImageSelection, FrameDateTimeSelection;
+  FrameEventListingSettings, DialogImageSelection, FrameDateTimeSelection, Types, Math;
 
   {$R *.lfm}
 
@@ -432,6 +444,94 @@ Begin
   End;
 End;
 
+Procedure TfrmEventsReviewer.pnlNotificationMouseDown(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+Begin
+  {$IFNDEF RELEASE}
+  DebugLn(['Notification MouseDown: Button=', Ord(Button), ' X=', X, ' Y=', Y]);
+  {$ENDIF}
+
+  If Button <> mbLeft Then
+    Exit;
+
+  tmrNotification.Enabled := False;
+  FNotificationDragging := True;
+  //pnlNotification.MouseCapture := True;
+
+  {$IFNDEF RELEASE}
+  DebugLn(['Notification drag started: Left=', pnlNotification.Left, ' Top=',
+    pnlNotification.Top]);
+  {$ENDIF}
+
+  // Remember the mouse position in screen coordinates.
+  FNotificationDragStart := pnlNotification.ClientToScreen(Types.Point(X, Y));
+
+  // Remember the panel's original position.
+  FNotificationStartPos := Point(pnlNotification.Left, pnlNotification.Top);
+End;
+
+Procedure TfrmEventsReviewer.pnlNotificationMouseMove(Sender: TObject;
+  Shift: TShiftState; X, Y: Integer);
+Var
+  pMouse: TPoint;
+  pVideoTopLeft, pVideoBottomRight: TPoint;
+  rBounds: TRect;
+  iLeft, iTop: Integer;
+Begin
+  {$IFNDEF RELEASE}
+  If ssLeft In Shift Then
+    DebugLn(['Notification MouseMove: X=', X, ' Y=', Y, ' Dragging=', FNotificationDragging]);
+  {$ENDIF}
+
+  If Not FNotificationDragging Then
+    Exit;
+
+  // Current mouse position in screen coordinates.
+  pMouse := pnlNotification.ClientToScreen(Point(X, Y));
+
+  // Calculate the proposed new position.
+  iLeft := FNotificationStartPos.X + (pMouse.X - FNotificationDragStart.X);
+  iTop := FNotificationStartPos.Y + (pMouse.Y - FNotificationDragStart.Y);
+
+  // Convert pnlVideo's client rectangle into the coordinate
+  // system of pnlNotification's parent (the form).
+  pVideoTopLeft := pnlNotification.Parent.ScreenToClient(pnlVideo.ClientToScreen(Point(0, 0)));
+
+  pVideoBottomRight := pnlNotification.Parent.ScreenToClient(pnlVideo.ClientToScreen(
+    Point(pnlVideo.ClientWidth, pnlVideo.ClientHeight)));
+
+  rBounds := Rect(pVideoTopLeft.X, pVideoTopLeft.Y, pVideoBottomRight.X, pVideoBottomRight.Y);
+
+  // Keep the entire notification panel inside pnlVideo.
+  iLeft := EnsureRange(iLeft, rBounds.Left, Max(rBounds.Left, rBounds.Right -
+    pnlNotification.Width));
+
+  iTop := EnsureRange(iTop, rBounds.Top, Max(rBounds.Top, rBounds.Bottom -
+    pnlNotification.Height));
+
+  {$IFNDEF RELEASE}
+  DebugLn(['Notification Move: ', 'Bounds=', rBounds.Left, ',', rBounds.Top,
+    ' - ', rBounds.Right, ',', rBounds.Bottom, ' PanelSize=', pnlNotification.Width,
+    'x', pnlNotification.Height, ' NewPos=', iLeft, ',', iTop]);
+  {$ENDIF}
+
+  pnlNotification.SetBounds(iLeft, iTop, pnlNotification.Width, pnlNotification.Height);
+End;
+
+Procedure TfrmEventsReviewer.pnlNotificationMouseUp(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+Begin
+  {$IFNDEF RELEASE}
+  DebugLn(['Notification MouseUp: Button=', Ord(Button)]);
+  {$ENDIF}
+  If Button = mbLeft Then
+  Begin
+    FNotificationDragging := False;
+    tmrNotification.Enabled := True;
+    //pnlNotification.MouseCapture := False;
+  End;
+End;
+
 Procedure TfrmEventsReviewer.DoSetDatasets(APopulate: Boolean);
 Begin
   If APopulate Then
@@ -603,7 +703,7 @@ Var
 Begin
   dtDateTime := FDataProvider.DateTime;
 
-  If Not InputQueryDateTime('Please enter new time', dtDateTime) Then
+  If Not InputQueryDateTime('Please enter new time (UTC)', dtDateTime) Then
     Exit;
 
   FDataProvider.GotoDateTime(dtDateTime);
