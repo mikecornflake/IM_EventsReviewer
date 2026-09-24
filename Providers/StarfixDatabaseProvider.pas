@@ -406,6 +406,7 @@ Begin
   sQuery += '       DATEADD(S, S.END_TIME, ''1970-01-01'') AS [End_Time], ';
   sQuery += '       S.[SESSION_ID] ';
   sQuery += 'FROM DBO.SESSIONS S ';
+  sQuery += 'WHERE S.INPUT_FILES=''Pos Import'' ';
   sQuery += 'ORDER BY S.SESSION_ID ';
 
   oQuery := TSQLQuery.Create(nil);

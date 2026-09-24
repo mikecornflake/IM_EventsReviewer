@@ -5,7 +5,7 @@ Unit FrameGridSelection;
 Interface
 
 Uses
-  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, Grids, FrameEditor, DB;
+  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, Grids, ComCtrls, FrameEditor, DB;
 
 Type
 
@@ -13,7 +13,15 @@ Type
 
   TfmeGridSelection = Class(TFrameEditorBase)
     grdSelection: TStringGrid;
+    ImageList1: TImageList;
+    ToolBar1: TToolBar;
+    btnSelectAll: TToolButton;
+    btnToggleSelection: TToolButton;
+    btnClearSelection: TToolButton;
 
+    Procedure btnClearSelectionClick(Sender: TObject);
+    Procedure btnSelectAllClick(Sender: TObject);
+    Procedure btnToggleSelectionClick(Sender: TObject);
     Procedure grdSelectionGetCellHint(Sender: TObject; ACol, ARow: Integer; Var HintText: String);
 
     Procedure grdSelectionMouseDown(Sender: TObject; Button: TMouseButton;
@@ -73,6 +81,39 @@ Procedure TfmeGridSelection.grdSelectionGetCellHint(Sender: TObject;
   ACol, ARow: Integer; Var HintText: String);
 Begin
   HintText := grdSelection.Cells[ACol, ARow];
+End;
+
+Procedure TfmeGridSelection.btnSelectAllClick(Sender: TObject);
+Var
+  iRow: Integer;
+Begin
+  For iRow := 1 To grdSelection.RowCount - 1 Do
+    grdSelection.Cells[0, iRow] := 'Y';
+
+  grdSelection.Invalidate;
+End;
+
+Procedure TfmeGridSelection.btnToggleSelectionClick(Sender: TObject);
+Var
+  iRow: Integer;
+Begin
+  For iRow := 1 To grdSelection.RowCount - 1 Do
+    If grdSelection.Cells[0, iRow] = 'Y' Then
+      grdSelection.Cells[0, iRow] := 'N'
+    Else
+      grdSelection.Cells[0, iRow] := 'Y';
+
+  grdSelection.Invalidate;
+End;
+
+Procedure TfmeGridSelection.btnClearSelectionClick(Sender: TObject);
+Var
+  iRow: Integer;
+Begin
+  For iRow := 1 To grdSelection.RowCount - 1 Do
+    grdSelection.Cells[0, iRow] := 'N';
+
+  grdSelection.Invalidate;
 End;
 
 Procedure TfmeGridSelection.grdSelectionMouseDown(Sender: TObject;

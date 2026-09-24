@@ -447,21 +447,12 @@ End;
 Procedure TfrmEventsReviewer.pnlNotificationMouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 Begin
-  {$IFNDEF RELEASE}
-  DebugLn(['Notification MouseDown: Button=', Ord(Button), ' X=', X, ' Y=', Y]);
-  {$ENDIF}
-
   If Button <> mbLeft Then
     Exit;
 
   tmrNotification.Enabled := False;
   FNotificationDragging := True;
   //pnlNotification.MouseCapture := True;
-
-  {$IFNDEF RELEASE}
-  DebugLn(['Notification drag started: Left=', pnlNotification.Left, ' Top=',
-    pnlNotification.Top]);
-  {$ENDIF}
 
   // Remember the mouse position in screen coordinates.
   FNotificationDragStart := pnlNotification.ClientToScreen(Types.Point(X, Y));
@@ -478,11 +469,6 @@ Var
   rBounds: TRect;
   iLeft, iTop: Integer;
 Begin
-  {$IFNDEF RELEASE}
-  If ssLeft In Shift Then
-    DebugLn(['Notification MouseMove: X=', X, ' Y=', Y, ' Dragging=', FNotificationDragging]);
-  {$ENDIF}
-
   If Not FNotificationDragging Then
     Exit;
 
@@ -509,21 +495,12 @@ Begin
   iTop := EnsureRange(iTop, rBounds.Top, Max(rBounds.Top, rBounds.Bottom -
     pnlNotification.Height));
 
-  {$IFNDEF RELEASE}
-  DebugLn(['Notification Move: ', 'Bounds=', rBounds.Left, ',', rBounds.Top,
-    ' - ', rBounds.Right, ',', rBounds.Bottom, ' PanelSize=', pnlNotification.Width,
-    'x', pnlNotification.Height, ' NewPos=', iLeft, ',', iTop]);
-  {$ENDIF}
-
   pnlNotification.SetBounds(iLeft, iTop, pnlNotification.Width, pnlNotification.Height);
 End;
 
 Procedure TfrmEventsReviewer.pnlNotificationMouseUp(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 Begin
-  {$IFNDEF RELEASE}
-  DebugLn(['Notification MouseUp: Button=', Ord(Button)]);
-  {$ENDIF}
   If Button = mbLeft Then
   Begin
     FNotificationDragging := False;
