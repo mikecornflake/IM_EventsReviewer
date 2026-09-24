@@ -40,6 +40,8 @@ Type
     FOnProviderReady: TNotifyEvent;
     FOnDataChanged: TDataChangedEvent;
 
+    Function ProcessEventnameForReport(Var AType: String): Boolean; Virtual;
+
     Function GetDataSet: TDataSet; Virtual; Abstract;
 
     Function GetFiltered: Boolean;
@@ -88,9 +90,7 @@ Type
     // back to the DataProvider
     // Naming them DataFilters during development to avoid confusion with existing
     // Filters
-    Procedure ApplyDataFilter(ADataFilter: TDataFilter);
-    Procedure ClearDataFilter;
-    Function DataFiltered: Boolean;
+    Procedure ApplyDataFilter(ADataFilter: TDataFilter); Virtual;
 
     Function DateTime: TDateTime;
     Function AnomalyReference: String;
@@ -187,18 +187,7 @@ Begin
       Else
         dLen := oLen.AsFloat / 1000;
 
-      // Starfix Database processing only...
-      // Merge all fieldjoint types into a single line
-      If sType.Contains(' Joint') Then
-        sType := 'Fieldjoint';
-
-      // Starfix Database processing only...
-      // Merge Start/End events into a single line each (assumes Length correctly set)
-      If sType.EndsWith(' Start') Then
-        sType.Replace(' Start', '');
-
-      // Starfix Database processing only...
-      If Not sType.Contains(' End') Then
+      If ProcessEventnameForReport(sType) Then
         APipelineView.AddData(sType, dKP, dLen, (oAnom.AsString = 'Y'));
 
       DataSet.Next;
@@ -219,15 +208,9 @@ Begin
 
 End;
 
-Procedure TDataProvider.ClearDataFilter;
+Function TDataProvider.ProcessEventnameForReport(Var AType: String): Boolean;
 Begin
-
-  frmEventsReviewer.MessageBus.Broadcast(Self, TIMMessageFilterChanged);
-End;
-
-Function TDataProvider.DataFiltered: Boolean;
-Begin
-
+  Result := True;
 End;
 
 Function TDataProvider.GetFiltered: Boolean;

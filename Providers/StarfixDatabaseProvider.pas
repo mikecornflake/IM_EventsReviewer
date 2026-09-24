@@ -31,6 +31,8 @@ Type
 
     qryVideosforTime: TSQLQuery;
   Protected
+    Function ProcessEventnameForReport(Var AType: String): Boolean; Override;
+
     Function GetDataSet: TDataSet; Override;
     Function GetReady: Boolean; Override;
   Public
@@ -216,7 +218,7 @@ Begin
 End;
 
 Function TStarfixDatabaseProvider.Refresh: Boolean;
-var
+Var
   dtCurrent: TDateTime;
 Begin
   Result := False;
@@ -254,6 +256,22 @@ Begin
     FConnection.Close;
 
   Result := True;
+End;
+
+Function TStarfixDatabaseProvider.ProcessEventnameForReport(Var AType: String): Boolean;
+Begin
+  Result := Inherited ProcessEventnameForReport(AType);
+
+  // Merge all fieldjoint types into a single line
+  If AType.Contains(' Joint') Then
+    AType := 'Fieldjoint';
+
+  // Starfix Database processing only...
+  // Merge Start/End events into a single line each (assumes Length correctly set)
+  If AType.EndsWith(' Start') Then
+    AType := AType.Replace(' Start', '');
+
+  Result := Result And Not (AType.Contains(' End'));
 End;
 
 Function TStarfixDatabaseProvider.GetDataSet: TDataSet;

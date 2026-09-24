@@ -33,6 +33,8 @@ Type
     Procedure LoadEvents;
 
   Protected
+    Function ProcessEventnameForReport(Var AType: String): Boolean; Override;
+
     Function GetDataSet: TDataSet; Override;
     Function GetReady: Boolean; Override;
   Public
@@ -143,7 +145,7 @@ Begin
 End;
 
 Function TEventListingProvider.Refresh: Boolean;
-var
+Var
   dtCurrent: TDateTime;
 Begin
   // Remember State
@@ -358,6 +360,22 @@ Begin
   End;
 
   FMaster.Table.First;
+End;
+
+Function TEventListingProvider.ProcessEventnameForReport(Var AType: String): Boolean;
+Begin
+  Result := Inherited ProcessEventnameForReport(AType);
+
+  // Merge all fieldjoint types into a single line
+  If AType.Contains(' Joint') Then
+    AType := 'Fieldjoint';
+
+  // Starfix Database processing only...
+  // Merge Start/End events into a single line each (assumes Length correctly set)
+  If AType.EndsWith(' Start') Then
+    AType := AType.Replace(' Start', '');
+
+  Result := Result And Not AType.Contains(' End');
 End;
 
 Function TEventListingProvider.GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles;
