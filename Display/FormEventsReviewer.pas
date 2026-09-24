@@ -543,9 +543,6 @@ Begin
     FDataProvider.Filter := '(Type = ''Freespan*'')'
   Else
     FDataProvider.Filter := '';
-
-  // Resize columns etc
-  fmeDBGrid.InitialiseDBGrid(True);
 End;
 
 Procedure TfrmEventsReviewer.actRefreshDatabaseExecute(Sender: TObject);
@@ -585,6 +582,9 @@ End;
 Procedure TfrmEventsReviewer.DoReceiveFilterChanged(AMessage: TIMMessage);
 Begin
   DoSetDatasets(True);
+
+  // Resize columns etc
+  fmeDBGrid.InitialiseDBGrid(True);
 End;
 
 Procedure TfrmEventsReviewer.LoadImages(Const AAnomalyReference: String);

@@ -18,6 +18,7 @@ inherited frmEventsReviewer: TfrmEventsReviewer
   inherited sbMain: TStatusBar
     Top = 746
     Width = 1231
+    Visible = False
   end
   object tbMain: TToolBar[2]
     Left = 0

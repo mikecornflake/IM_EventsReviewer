@@ -143,8 +143,16 @@ Begin
 End;
 
 Function TEventListingProvider.Refresh: Boolean;
+var
+  dtCurrent: TDateTime;
 Begin
+  // Remember State
+  dtCurrent := DateTime;
+
   Result := Open;
+
+  // Try to restore State
+  Self.GotoNearestValue(FFieldStartTime, dtCurrent, -1);
 End;
 
 Function TEventListingProvider.Close: Boolean;

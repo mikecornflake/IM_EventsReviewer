@@ -216,11 +216,16 @@ Begin
 End;
 
 Function TStarfixDatabaseProvider.Refresh: Boolean;
+var
+  dtCurrent: TDateTime;
 Begin
   Result := False;
 
   If Ready Then
   Begin
+    // Remember State
+    dtCurrent := DateTime;
+
     FMaster.Close;
     FMaster.Open;
 
@@ -229,6 +234,9 @@ Begin
     // Let the Application know we're now ready for it
     If Assigned(FOnProviderReady) Then
       FOnProviderReady(Self);
+
+    // Restore State;
+    GotoNearestValue(FFieldStartTime, dtCurrent, -1);
   End;
 End;
 

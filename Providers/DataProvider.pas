@@ -7,7 +7,7 @@ Interface
 
 Uses
   Classes, SysUtils, MediaTypes, DB, BufDataset, Inifiles,
-  IMMessaging, AppMessaging, FramePipelineView;
+  IMMessaging, AppMessaging, FramePipelineView, DataFilters;
 
 Type
   TDataChangedEvent = Procedure(Sender: TObject; Const AAnomalyReference: String;
@@ -21,7 +21,8 @@ Type
 
   { TDataProvider }
   TDataProvider = Class(TObject, IIM_Persistent)
-  private
+  Private
+    FDataFilters: TDataFilters;
   Protected
     // FIELDNAMES
     FFieldStartKP, FFieldStartTime, FFieldAnomalyReference: String;
@@ -64,7 +65,10 @@ Type
 
     // For both Filtered and Master datasets
     Procedure DoDatasetAfterOpen(ADataSet: TDataSet);
-    Procedure DoDatasetApplyFormats(ADataset: TDataset); Virtual;
+    Procedure DoDatasetApplyFormats(ADataSet: TDataSet); Virtual;
+
+    // State Management
+    Procedure GotoNearestValue(AFieldname: String; AValue: Double; AThreshold: Double);
   Public
     Constructor Create; Virtual;
     Destructor Destroy; Override;
@@ -77,13 +81,24 @@ Type
 
     Function GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles; Virtual; Abstract;
 
-    Function PopulatePipelineView(APipelineView: TFramePipelineView): Boolean;  Virtual;
+    Function PopulatePipelineView(APipelineView: TFramePipelineView): Boolean; Virtual;
+
+    // Filters are options presented to the user interface.
+    // If the user wants to apply a filter, it's up to the UI to pass the correct filter
+    // back to the DataProvider
+    // Naming them DataFilters during development to avoid confusion with existing
+    // Filters
+    Procedure ApplyDataFilter(ADataFilter: TDataFilter);
+    Procedure ClearDataFilter;
+    Function DataFiltered: Boolean;
 
     Function DateTime: TDateTime;
     Function AnomalyReference: String;
 
     Procedure LoadSettings(AInifile: TIniFile); Virtual; Abstract;
     Procedure SaveSettings(AInifile: TIniFile); Virtual; Abstract;
+
+    Property DataFilters: TDataFilters Read FDataFilters;
 
     // Properties
     Property Ready: Boolean Read GetReady;
@@ -120,6 +135,9 @@ Begin
   FUpdatingFilteredDataset := False;
   FUpdatingMasterDataset := False;
 
+  // Filters
+  FDataFilters := TDataFilters.Create(True);
+
   // Messages
   frmEventsReviewer.MessageBus.Subscribe(Self, TIMMessageTime, @DoReceiveSeekTimeMessage);
   frmEventsReviewer.MessageBus.Subscribe(Self, TIMMessageKP, @DoReceiveSeekKPMessage);
@@ -127,6 +145,7 @@ End;
 
 Destructor TDataProvider.Destroy;
 Begin
+  FreeAndNil(FDataFilters);
   FreeAndNil(FFilteredDataset);
 
   Inherited Destroy;
@@ -138,28 +157,28 @@ Var
   oKP, oLen, oType, oAnom: TField;
   sType: String;
   dKP, dLen: Extended;
-begin
+Begin
   Result := False;
 
   APipelineView.Clear;
 
-  If Not Dataset.Active Then
+  If Not DataSet.Active Then
     Exit;
 
   frmEventsReviewer.Status := 'Loading chart';
 
-  oKP := Dataset.FieldByName(FFieldStartKP);
-  oLen := Dataset.FieldByName('Length_(m)');
-  oType := Dataset.FieldByName('Type');
-  oAnom := Dataset.FieldByName('Anomaly');
+  oKP := DataSet.FieldByName(FFieldStartKP);
+  oLen := DataSet.FieldByName('Length_(m)');
+  oType := DataSet.FieldByName('Type');
+  oAnom := DataSet.FieldByName('Anomaly');
 
-  Dataset.DisableControls;
-  bmOriginal := Dataset.GetBookmark;
+  DataSet.DisableControls;
+  bmOriginal := DataSet.GetBookmark;
   Try
-    Dataset.First;
+    DataSet.First;
     APipelineView.BeginUpdate;
 
-    While Not Dataset.EOF Do
+    While Not DataSet.EOF Do
     Begin
       sType := oType.AsString;
       dKP := oKP.AsExtended;
@@ -182,18 +201,34 @@ begin
       If Not sType.Contains(' End') Then
         APipelineView.AddData(sType, dKP, dLen, (oAnom.AsString = 'Y'));
 
-      Dataset.Next;
+      DataSet.Next;
     End;
-    Dataset.GotoBookmark(bmOriginal);
+    DataSet.GotoBookmark(bmOriginal);
   Finally
-    Dataset.FreeBookmark(bmOriginal);
-    Dataset.EnableControls;
+    DataSet.FreeBookmark(bmOriginal);
+    DataSet.EnableControls;
     APipelineView.EndUpdate;
 
     frmEventsReviewer.Status := 'Finished loading chart';
     frmEventsReviewer.Status := '';
   End;
-end;
+End;
+
+Procedure TDataProvider.ApplyDataFilter(ADataFilter: TDataFilter);
+Begin
+
+End;
+
+Procedure TDataProvider.ClearDataFilter;
+Begin
+
+  frmEventsReviewer.MessageBus.Broadcast(Self, TIMMessageFilterChanged);
+End;
+
+Function TDataProvider.DataFiltered: Boolean;
+Begin
+
+End;
 
 Function TDataProvider.GetFiltered: Boolean;
 Begin
@@ -201,8 +236,12 @@ Begin
 End;
 
 Procedure TDataProvider.SetFilter(Const AValue: String);
+Var
+  dtCurrent: TDateTime;
 Begin
   FFilter := AValue;
+
+  dtCurrent := DateTime;
 
   If Filtered Then
   Begin
@@ -214,6 +253,40 @@ Begin
     FFilteredDataset.Close;
 
   frmEventsReviewer.MessageBus.Broadcast(Self, TIMMessageFilterChanged);
+
+  // -1 means "closest"
+  GotoNearestValue(FFieldStartTime, dtCurrent, -1);
+End;
+
+Procedure TDataProvider.GotoNearestValue(AFieldname: String; AValue: Double; AThreshold: Double);
+Begin
+  If Filtered Then
+  Begin
+    FUpdatingFilteredDataset := True;
+    Try
+      DBSupport.GotoNearestValue(FFilteredDataset, AFieldname, AValue, AThreshold);
+    Finally
+      FUpdatingFilteredDataset := False;
+    End;
+
+    // This was suppressed by the above and by FUpdatingFilteredDataset,
+    //  This call is sufficent to keep the Master scrolled to correct record
+    DoFilterAfterScroll(FFilteredDataset);
+  End
+  Else
+  Begin
+    FUpdatingMasterDataset := True;
+    Try
+      If DBSupport.GotoNearestValue(DataSet, AFieldname, AValue, AThreshold) Then
+      Begin
+        // The above suppressed OnAfterScroll, so we need to manually raise
+        // This time within the protection of FUpdatingMasterDataset
+        DoMasterAfterScroll(DataSet);
+      End;
+    Finally
+      FUpdatingMasterDataset := False;
+    End;
+  End;
 End;
 
 Function TDataProvider.GetFilter: String;
@@ -305,10 +378,10 @@ End;
 // If supported, set known fields to valid formats
 Procedure TDataProvider.DoDatasetAfterOpen(ADataSet: TDataSet);
 Begin
-  DoDatasetApplyFormats(ADataset);
+  DoDatasetApplyFormats(ADataSet);
 End;
 
-Procedure TDataProvider.DoDatasetApplyFormats(ADataset: TDataset);
+Procedure TDataProvider.DoDatasetApplyFormats(ADataSet: TDataSet);
 Var
   oField: TField;
 Begin
@@ -347,32 +420,7 @@ Begin
     oKP := DataSet.FieldByName(FFieldStartKP);
     dStartKP := oKP.AsExtended;
 
-    // Check FUpdatingMasterDataset when responding to subsequence seektime requests
-    // if FUpdatingMasterDataset is true, then we know we made the call and don't need
-    // to respond
-    FUpdatingMasterDataset := True;
-    Try
-      If GotoNearestValue(DataSet, FFieldStartTime, oMessage.DateTime, dtThreshold) Then
-      Begin
-        // The above suppressed OnAfterScroll, so we need to manually raise
-        DoMasterAfterScroll(DataSet);
-      End;
-    Finally
-      FUpdatingMasterDataset := False;
-    End;
-
-    If Filtered Then
-    Begin
-      // Check FUpdatingFilteredDataset when responding to subsequence seektime requests
-      // if FUpdatingFilteredDataset is true, then we know we made the call and don't need
-      // to respond
-      FUpdatingFilteredDataset := True;
-      Try
-        GotoNearestValue(FFilteredDataset, FFieldStartTime, oMessage.DateTime, dtThreshold);
-      Finally
-        FUpdatingFilteredDataset := False;
-      End;
-    End;
+    GotoNearestValue(FFieldStartTime, oMessage.DateTime, dtThreshold);
 
     If (abs(dStartKP - oKP.AsExtended) > 0.001) Then
       frmEventsReviewer.MessageBus.BroadcastKP(Self, oKP.AsExtended);
@@ -380,12 +428,12 @@ Begin
 End;
 
 Procedure TDataProvider.DoReceiveSeekKPMessage(AMessage: TIMMessage);
-var
+Var
   oMessage: TIMMessageKP;
   oTime: TField;
   dtTime: TDateTime;
   dtThreshold: Extended;
-begin
+Begin
   If Not (AMessage Is TIMMessageKP) Then
     Exit;
 
@@ -397,37 +445,11 @@ begin
     dtTime := oTime.AsDateTime;
     dtThreshold := 0.001; // Nearest m
 
-    // Check FUpdatingMasterDataset when responding to subsequence seektime requests
-    // if FUpdatingMasterDataset is true, then we know we made the call and don't need
-    // to respond
-    FUpdatingMasterDataset := True;
-    Try
-      If GotoNearestValue(DataSet, FFieldStartKP, oMessage.KP, dtThreshold) Then
-      Begin
-        // The above suppressed OnAfterScroll, so we need to manually raise
-        DoMasterAfterScroll(DataSet);
-      End;
-    Finally
-      FUpdatingMasterDataset := False;
-    End;
+    GotoNearestValue(FFieldStartKP, oMessage.KP, dtThreshold);
 
-    If Filtered Then
-    Begin
-      // Check FUpdatingFilteredDataset when responding to subsequence seektime requests
-      // if FUpdatingFilteredDataset is true, then we know we made the call and don't need
-      // to respond
-      FUpdatingFilteredDataset := True;
-      Try
-        GotoNearestValue(FFilteredDataset, FFieldStartKP, oMessage.KP, dtThreshold);
-      Finally
-        FUpdatingFilteredDataset := False;
-      End;
-    End;
-
-    //
     If (abs(dtTime - oTime.AsDateTime) > (1 / SecsPerDay)) Then
       frmEventsReviewer.MessageBus.BroadcastTime(Self, oTime.AsDateTime);
   End;
-end;
+End;
 
 End.
