@@ -131,6 +131,7 @@ Type
     Procedure DoSetDatasets(APopulate: Boolean);
     Function GetExactTimeSeek: Boolean;
     Procedure LoadImages(Const AAnomalyReference: String);
+    Procedure ReloadAllMedia;
 
     Procedure SetDataProvider(AProvider: TDataProvider);
   Protected
@@ -412,6 +413,8 @@ Begin
     Begin
       FSettings.ApplySettingsFrame(fmeSettingsApp);
       fmeVideo.ApplySettingsFrame(fmeSettingsVideo);
+
+      ReloadAllMedia;
     End;
   Finally
     fmeSettingsApp.Free;
@@ -693,12 +696,23 @@ End;
 
 Procedure TfrmEventsReviewer.actRefreshDatabaseExecute(Sender: TObject);
 Begin
-  FMediaProvider.ScanVideoFiles(FSettings.VideoFolder);
   If Assigned(Sender) Then
     FDataProvider.Refresh;
-  fmeImageViewer.RefreshImages;
+
+  ReloadAllMedia;
 
   RefreshUI;
+End;
+
+Procedure TfrmEventsReviewer.ReloadAllMedia;
+Begin
+  If Assigned(FDataProvider) And FDataProvider.Ready Then
+  Begin
+    // Media folder contents are updated dynamically during operations
+    // Reload all media on eiter settings change or user request
+    FMediaProvider.ScanVideoFiles(FSettings.VideoFolder);
+    fmeImageViewer.RefreshImages;
+  End;
 End;
 
 Procedure TfrmEventsReviewer.mnuExitClick(Sender: TObject);
