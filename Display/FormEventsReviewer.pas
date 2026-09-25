@@ -176,7 +176,7 @@ Uses
   ThirdPartySupport, StringSupport, FileUtil, MSSQLSupport,
   Windows, DBGrids, VideoEngineFactory,
   FrameApplicationSettings, FrameSettingsSyncedVideo, DialogFrameHost,
-  FileSupport, LazLogger, FrameVideoLibmpv,
+  FileSupport, LazFileUtils, LazLogger, FrameVideoLibmpv,
   FrameEventListingSettings, DialogImageSelection, FrameDateTimeSelection, Types, Math;
 
   {$R *.lfm}
@@ -890,12 +890,12 @@ Begin
   Result := False;
 
   sPrefix := Trim(FDataProvider.AnomalyReference);
+  sExt := ExtractFileExt(ASourceFilename);
+
   If sPrefix <> '' Then
   Begin
     // If this is an anomaly image, rename to the Anomaly Reference
     sDir := IncludeTrailingBackslash(FSettings.AnomalyImageFolder);
-
-    sExt := ExtractFileExt(ASourceFilename);
 
     iFileSuffix := 0;
 
@@ -916,8 +916,11 @@ Begin
   Begin
     // If this is an event image, keep original name, but change folder
     sDir := IncludeTrailingPathDelimiter(FSettings.EventImageFolder);
+    sPrefix := ExtractFilenameOnly(ASourceFilename);
 
-    sFilename := sDir + ExtractFilename(ASourceFilename);
+    sFilename := sDir + sPrefix + sExt;
+    If FileExists(sFilename) Then
+      sFilename := UniqueFilename(sDir, sPrefix + '_', sExt, False, 5);
   End;
 
   // Copy the file to the destination
@@ -931,7 +934,10 @@ Begin
     FLastImageFolder := '';
   End
   Else
+  Begin
     Status := 'Unable to copy image ' + ASourceFilename;
+    ShowMessage(Status);
+  End;
 End;
 
 Function TfrmEventsReviewer.GetExactTimeSeek: Boolean;
