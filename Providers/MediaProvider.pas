@@ -37,6 +37,9 @@ Const
 
 Implementation
 
+Uses
+  Dialogs;
+
 { TMediaProvider }
 
 Constructor TMediaProvider.Create;
@@ -67,7 +70,12 @@ Begin
 
   // Populate VideoFilenames
   If (AFolder <> '') And DirectoryExists(AFolder) Then
+  Begin
     FVideos.ScanFolder(AFolder);
+
+    If FVideos.Errors.Count > 0 Then
+      ShowMessage(FVideos.Errors.Text);
+  End;
 End;
 
 Function TMediaProvider.LookupFolder(AVideoFilename: String): String;

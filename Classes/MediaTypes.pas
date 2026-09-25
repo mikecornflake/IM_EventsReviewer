@@ -126,6 +126,8 @@ Var
   iExistingSize, iDuplicateSize: Int64;
   oExisting: TVideoFile;
   sExisting, sDuplicate, sError: String;
+Const
+  ErrorDuplicate = 'Duplicate files found - see application log';
 Begin
   Result := -1;
 
@@ -153,6 +155,9 @@ Begin
     Begin
       DebugLn(['TVideoFiles.AddVideo: Duplicate videos found. ', sExisting,
         ' and ', sDuplicate]);
+
+      If FErrors.IndexOf(ErrorDuplicate)=-1 Then
+        FErrors.Add(ErrorDuplicate);
     End
     Else
     Begin
