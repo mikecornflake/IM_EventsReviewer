@@ -23,6 +23,7 @@ Type
     Destructor Destroy; Override;
 
     Procedure Refresh;
+    Procedure Clear;
 
     Procedure ScanVideoFiles(AFolder: String);
     Function LookupFolder(AVideoFilename: String): String;
@@ -59,6 +60,11 @@ End;
 Procedure TMediaProvider.Refresh;
 Begin
   ScanVideoFiles(FFolder);
+End;
+
+Procedure TMediaProvider.Clear;
+Begin
+  FVideos.Clear;
 End;
 
 Procedure TMediaProvider.ScanVideoFiles(AFolder: String);

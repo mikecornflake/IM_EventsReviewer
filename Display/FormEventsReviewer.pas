@@ -128,6 +128,7 @@ Type
     FNotificationStartPos: TPoint;
 
     Function AddImage(Const ASourceFilename: String): Boolean;
+    Procedure ClearAllMedia;
     Procedure DoSetDatasets(APopulate: Boolean);
     Function GetExactTimeSeek: Boolean;
     Procedure LoadImages(Const AAnomalyReference: String);
@@ -549,22 +550,25 @@ Begin
     FDataProvider.OnProviderPreparing := nil;
     FDataProvider.OnDataChanged := nil;
 
-    // This will reload when the ProviderReady message is broadcast
-    fmePipelineChart.Clear;
+    ClearAllMedia;
 
     DoSetDatasets(False);
   End;
 
   FDataProvider := AProvider;
 
-  If Assigned(FDataProvider) Then
-  Begin
-    FDataProvider.OnProviderPreparing := @DoProviderPreparing;
-    FDataProvider.OnDataChanged := @DoDataChanged;
+  Try
+    If Assigned(FDataProvider) Then
+    Begin
+      FDataProvider.OnProviderPreparing := @DoProviderPreparing;
+      FDataProvider.OnDataChanged := @DoDataChanged;
 
-    DoSetDatasets(True);
+      DoSetDatasets(True);
 
-    FDataProvider.Open;
+      FDataProvider.Open;
+    End;
+  Finally
+    RefreshUI;
   End;
 End;
 
@@ -696,12 +700,24 @@ End;
 
 Procedure TfrmEventsReviewer.actRefreshDatabaseExecute(Sender: TObject);
 Begin
-  If Assigned(Sender) Then
-    FDataProvider.Refresh;
-
-  ReloadAllMedia;
-
-  RefreshUI;
+  Try
+    // Sender is nil if this routine manually called during
+    // OnDataProviderPreparing
+    If Assigned(Sender) Then
+      FDataProvider.Refresh;
+  Finally
+    Try
+      If FDataProvider.Ready Then
+        ReloadAllMedia
+      Else
+      Begin
+        DoSetDatasets(False);
+        ClearAllMedia;
+      End;
+    Finally
+      RefreshUI;
+    End;
+  End;
 End;
 
 Procedure TfrmEventsReviewer.ReloadAllMedia;
@@ -713,6 +729,20 @@ Begin
     FMediaProvider.ScanVideoFiles(FSettings.VideoFolder);
     fmeImageViewer.RefreshImages;
   End;
+End;
+
+Procedure TfrmEventsReviewer.ClearAllMedia;
+Begin
+  // This will reload when the ProviderReady message is broadcast
+  fmePipelineChart.Clear;
+
+  fmeImageViewer.ClearImages;
+  fmeVideo.Clear;
+  FMediaProvider.Clear;
+
+  // clear flags
+  FLastImageFolder := '';
+  fmeImageViewer.Enabled := False;
 End;
 
 Procedure TfrmEventsReviewer.mnuExitClick(Sender: TObject);
@@ -790,7 +820,7 @@ Begin
 
   slImages := TStringList.Create;
   Try
-    FindAllFiles(slImages, sFolder, AAnomalyReference + '*.*', False);
+    FindAllFiles(slImages, sFolder, AAnomalyReference + '_*.*', False);
 
     slImages.Sorted := True;
 

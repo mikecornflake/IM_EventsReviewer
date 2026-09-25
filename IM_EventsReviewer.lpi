@@ -19,7 +19,7 @@
       <UseVersionInfo Value="True"/>
       <AutoIncrementBuild Value="True"/>
       <MinorVersionNr Value="1"/>
-      <BuildNr Value="118"/>
+      <BuildNr Value="121"/>
       <Attributes pvaPreRelease="True"/>
       <StringTable Comments="Inspector Mike Events Reviewer" CompanyName="Inspector Mike 2.0 Pty Ltd" LegalCopyright="(c) 2026"/>
     </VersionInfo>

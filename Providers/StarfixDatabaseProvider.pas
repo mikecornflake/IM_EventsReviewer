@@ -327,7 +327,7 @@ End;
 
 Function TStarfixDatabaseProvider.GetReady: Boolean;
 Begin
-  Result := FLoaded And FConnection.Connected;
+  Result := FLoaded And FConnection.Connected And FMaster.Active;
 End;
 
 Procedure TStarfixDatabaseProvider.ApplySettingsFrame(AFrame: TFrameMSSQLConnection);

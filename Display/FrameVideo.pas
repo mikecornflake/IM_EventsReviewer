@@ -50,6 +50,7 @@ Type
     Destructor Destroy; Override;
 
     Procedure LoadVideos(AVideoFiles: TVideoFiles; ASeekDateTime: TDateTime);
+    Procedure Clear;
 
     Procedure PopulateSettingsFrame(AFrame: TFrameSettingsSyncedVideo);
     Procedure ApplySettingsFrame(AFrame: TFrameSettingsSyncedVideo);
@@ -234,14 +235,7 @@ Var
   sFolder: String;
 Begin
   If AVideoFiles.Count = 0 Then
-  Begin
-    fmeVideoPlayer.Clear;
-
-    // TODO: Implement fmeSyncedVideo.clear
-    //       Not done now as this will require testing all Video modules
-    fmeSyncedVideo.ClearVideoCount;
-    fmeSyncedVideo.ClearUnloadedVideoFrames;
-  End
+    Clear
   Else
   Begin
     FPendingSeek := True;
@@ -282,6 +276,16 @@ Begin
       frmEventsReviewer.Busy := False;
     End;
   End;
+End;
+
+Procedure TfmeVideo.Clear;
+Begin
+  fmeVideoPlayer.Clear;
+
+  // TODO: Implement fmeSyncedVideo.clear
+  //       Not done now as this will require testing all Video modules
+  fmeSyncedVideo.ClearVideoCount;
+  fmeSyncedVideo.ClearUnloadedVideoFrames;
 End;
 
 Procedure TfmeVideo.PopulateSettingsFrame(AFrame: TFrameSettingsSyncedVideo);
