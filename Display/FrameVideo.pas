@@ -136,9 +136,9 @@ Begin
 End;
 
 Function TfmeVideo.MasterFilename: String;
-begin
+Begin
   Result := fmeSyncedVideo.Filename;
-end;
+End;
 
 Procedure TfmeVideo.SetImageGrabFolder(Const AValue: String);
 Begin

@@ -123,7 +123,7 @@ Type
 Implementation
 
 Uses
-  FormEventsReviewer, DBSupport, Menus;
+  FormEventsReviewer, DBSupport, Menus, LazLogger, Dialogs;
 
   { TDataProvider }
 
@@ -198,8 +198,8 @@ Begin
 
       DataSet.Next;
     End;
-    DataSet.GotoBookmark(bmOriginal);
   Finally
+    DataSet.GotoBookmark(bmOriginal);
     DataSet.FreeBookmark(bmOriginal);
     DataSet.EnableControls;
     APipelineView.EndUpdate;
@@ -238,17 +238,32 @@ Procedure TDataProvider.SetFilter(Const AValue: String);
 Var
   dtCurrent: TDateTime;
   bChange: Boolean;
+  sError: String;
 Begin
-  FFilter := AValue;
   bChange := False;
 
   dtCurrent := DateTime;
 
-  If Filtered Then
+  If Trim(AValue) <> '' Then
   Begin
-    BuildFilteredDataset(DataSet, FFilteredDataset, AValue);
+    Try
+      BuildFilteredDataset(DataSet, FFilteredDataset, AValue);
+      FFilteredDataset.Open;
+      FFilter := AValue;
+    Except
+      On E: Exception Do
+      Begin
+        sError := 'Unable to set filter: ' + AValue;
+        {$IFNDEF RELEASE}
+        DebugLn([ClassName, '.', {$I %CURRENTROUTINE%}, ' ', sError, ': ', E.Message]);
+        {$ENDIF}
+        ShowMessage(sError);
 
-    FFilteredDataset.Open;
+        If FFilteredDataset.Active Then
+          FFilteredDataset.Close;
+      End;
+    End;
+    // Regardless of success/failure - let's broadcast change
     bChange := True;
   End
   Else If FFilteredDataset.Active Then

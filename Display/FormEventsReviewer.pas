@@ -726,6 +726,7 @@ Begin
     // Reload all media on eiter settings change or user request
 
     // The loaded video may no longer be valid after recan
+    // This only checks one of the n filenames - really ALL loaded files should be checked
     sCurrent := fmeVideo.MasterFilename;
 
     // Refresh
