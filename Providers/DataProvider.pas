@@ -259,6 +259,8 @@ Begin
         {$ENDIF}
         ShowMessage(sError);
 
+        FFilter := '';
+
         If FFilteredDataset.Active Then
           FFilteredDataset.Close;
       End;
@@ -266,10 +268,13 @@ Begin
     // Regardless of success/failure - let's broadcast change
     bChange := True;
   End
-  Else If FFilteredDataset.Active Then
+  Else
   Begin
-    FFilteredDataset.Close;
-    bChange := True;
+    bChange := (FFilter <> '') Or FFilteredDataset.Active;
+
+    If FFilteredDataset.Active Then
+      FFilteredDataset.Close;
+    FFilter := '';
   End;
 
   If bChange Then

@@ -242,7 +242,18 @@ Begin
         DoMasterAfterScroll(FMaster);
       Except
         On E: Exception Do
+        Begin
           ShowMessage(E.Message);
+
+          If FMaster.Active Then
+            FMaster.Close;
+
+          If FConnection.Connected Then
+            FConnection.Close;
+
+          Result := False;
+          FLoaded := False;
+        End;
       End;
     Finally
       MainForm.Busy := False;
@@ -367,41 +378,51 @@ Begin
   {$ENDIF}
 
   Result := TVideoFiles.Create;
-
-  // Find the target videos
-  If qryVideosforTime.Active Then
-    qryVideosforTime.Close;
-
-  // Split for testing purposes
-  qryVideosforTime.ParamByName('TIMEDATE_ID').AsDateTime := ADateTime;
   Try
-    qryVideosforTime.Open;
-  Except
-    On E: Exception Do
-    Begin
-      DebugLn(['DATABASE EXCEPTION: ', E.ClassName, ': ', E.Message,
-        ' Connected=', FConnection.Connected, ' Transaction.Active=', FTransaction.Active]);
+    // Find the target videos
+    If qryVideosforTime.Active Then
+      qryVideosforTime.Close;
 
-      Raise Exception.CreateFmt('%s: %s' + LineEnding + 'Connection connected: %s' +
-        LineEnding + 'Transaction active: %s', [E.ClassName, E.Message,
-        BoolToStr(FConnection.Connected, True), BoolToStr(FTransaction.Active, True)]);
+    // Split for testing purposes
+    qryVideosforTime.ParamByName('TIMEDATE_ID').AsDateTime := ADateTime;
+    Try
+      qryVideosforTime.Open;
+    Except
+      On E: Exception Do
+      Begin
+        DebugLn(['DATABASE EXCEPTION: ', E.ClassName, ': ', E.Message,
+          ' Connected=', FConnection.Connected, ' Transaction.Active=', FTransaction.Active]);
+
+        Raise Exception.CreateFmt('%s: %s' + LineEnding + 'Connection connected: %s' +
+          LineEnding + 'Transaction active: %s', [E.ClassName, E.Message,
+          BoolToStr(FConnection.Connected, True), BoolToStr(FTransaction.Active, True)]);
+      End;
     End;
-  End;
 
-  qryVideosforTime.First;
+    qryVideosforTime.First;
 
-  While Not qryVideosforTime.EOF Do
-  Begin
-    oVideoFile := TVideoFile.Create;
+    While Not qryVideosforTime.EOF Do
+    Begin
+      oVideoFile := TVideoFile.Create;
+      Try
+        oVideoFile.Filename := qryVideosforTime.FieldByName('Filename').AsString;
+        oVideoFile.Channel := qryVideosforTime.FieldByName('Channel').AsString;
+        oVideoFile.StartDateTime := qryVideosforTime.FieldByName('Start').AsDateTime;
+        oVideoFile.EndDateTime := qryVideosforTime.FieldByName('End').AsDateTime;
 
-    oVideoFile.Filename := qryVideosforTime.FieldByName('Filename').AsString;
-    oVideoFile.Channel := qryVideosforTime.FieldByName('Channel').AsString;
-    oVideoFile.StartDateTime := qryVideosforTime.FieldByName('Start').AsDateTime;
-    oVideoFile.EndDateTime := qryVideosforTime.FieldByName('End').AsDateTime;
+        Result.Add(oVideoFile);
+      Except
+        oVideoFile.Free;
+        Raise;
+      End;
 
-    Result.Add(oVideoFile);
+      qryVideosforTime.Next;
+    End;
+  Except
+    Result.Free;
+    Result := nil;
 
-    qryVideosforTime.Next;
+    Raise;
   End;
 End;
 
