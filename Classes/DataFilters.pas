@@ -5,7 +5,7 @@ Unit DataFilters;
 Interface
 
 Uses
-  Classes, SysUtils, fgl, FrameBase;
+  Classes, SysUtils, fgl;
 
 Type
 

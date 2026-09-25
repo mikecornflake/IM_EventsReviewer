@@ -2,10 +2,12 @@ Unit FrameEventListingSettings;
 
 {$mode ObjFPC}{$H+}
 
+// TODO: Implement UTC Selection as per https://en.wikipedia.org/wiki/List_of_UTC_offsets
+
 Interface
 
 Uses
-  Classes, SysUtils, Forms, Controls, StdCtrls, EditBtn, FrameBase;
+  Classes, SysUtils, Forms, Controls, StdCtrls, EditBtn, Spin, FrameBase;
 
 Type
 
@@ -13,10 +15,10 @@ Type
 
   TFrameEventListingSettings = Class(TFrameBase)
     cboWorksheet: TComboBox;
-    edtRow: TEdit;
     edtFilename: TFileNameEdit;
     edtCol: TEdit;
-    edtUTCOffset: TEdit;
+    edtRow: TSpinEdit;
+    edtUTCOffset: TFloatSpinEdit;
     Label5: TLabel;
     Label6: TLabel;
     Label7: TLabel;
@@ -70,8 +72,7 @@ End;
 
 Function TFrameEventListingSettings.GetUTCOffset: Double;
 Begin
-  Result := 0;
-  TryStrToFloat(edtUTCOffset.Text, Result);
+  Result := edtUTCOffset.Value;
 End;
 
 Function TFrameEventListingSettings.GetWorksheet: String;

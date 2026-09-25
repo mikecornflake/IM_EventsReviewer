@@ -1,8 +1,8 @@
 inherited FrameEventListingSettings: TFrameEventListingSettings
   Height = 231
-  Width = 277
+  Width = 296
   ClientHeight = 231
-  ClientWidth = 277
+  ClientWidth = 296
   LCLVersion = '4.99.0.0'
   DesignLeft = 390
   DesignTop = 10
@@ -19,7 +19,7 @@ inherited FrameEventListingSettings: TFrameEventListingSettings
     Left = 8
     Height = 23
     Top = 26
-    Width = 263
+    Width = 282
     FileName = 'edtFilename'
     DialogTitle = 'Select Event Listing spreadsheet'
     Filter = 'Excel Files (*.xlsx)|*.xlsx|Older Excel Files (*.xls)|*.xls|All Files (*.*)|*.*'
@@ -36,7 +36,7 @@ inherited FrameEventListingSettings: TFrameEventListingSettings
     Left = 8
     Height = 23
     Top = 80
-    Width = 263
+    Width = 282
     Anchors = [akTop, akLeft, akRight]
     ItemHeight = 15
     TabOrder = 1
@@ -60,15 +60,7 @@ inherited FrameEventListingSettings: TFrameEventListingSettings
     Font.Style = [fsBold]
     ParentFont = False
   end
-  object edtRow: TEdit[5]
-    Left = 128
-    Height = 23
-    Top = 128
-    Width = 100
-    TabOrder = 2
-    Text = '1'
-  end
-  object Label8: TLabel[6]
+  object Label8: TLabel[5]
     Left = 8
     Height = 15
     Top = 112
@@ -77,15 +69,15 @@ inherited FrameEventListingSettings: TFrameEventListingSettings
     Font.Style = [fsBold]
     ParentFont = False
   end
-  object edtCol: TEdit[7]
+  object edtCol: TEdit[6]
     Left = 8
     Height = 23
     Top = 128
     Width = 100
-    TabOrder = 3
+    TabOrder = 2
     Text = 'A'
   end
-  object Label9: TLabel[8]
+  object Label9: TLabel[7]
     Left = 8
     Height = 15
     Top = 168
@@ -94,12 +86,22 @@ inherited FrameEventListingSettings: TFrameEventListingSettings
     Font.Style = [fsBold]
     ParentFont = False
   end
-  object edtUTCOffset: TEdit[9]
+  object edtRow: TSpinEdit[8]
+    Left = 128
+    Height = 23
+    Top = 128
+    Width = 100
+    TabOrder = 3
+    Value = 1
+  end
+  object edtUTCOffset: TFloatSpinEdit[9]
     Left = 8
     Height = 23
     Top = 184
     Width = 100
+    MaxValue = 14
+    MinValue = -12
     TabOrder = 4
-    Text = '1'
+    Value = 1
   end
 end

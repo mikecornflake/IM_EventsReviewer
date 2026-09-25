@@ -6,7 +6,8 @@ Interface
 
 Uses
   Classes, SysUtils, DataProvider, MediaTypes, Inifiles, DB, ExtCtrls, DBSupport,
-  BufDataset, fpspreadsheet, xlsxOOXML, FrameEventListingSettings, IMMessaging, AppMessaging;
+  BufDataset, fpspreadsheet, FrameEventListingSettings, IMMessaging, AppMessaging,
+  xlsxOOXML, xlsbiff8;
 
 Type
 
@@ -121,7 +122,7 @@ Begin
   FSpreadsheet := TsWorkbook.Create;
 
   Try
-    FSpreadsheet.ReadFromFile(FFileName, sfOOXML);
+    FSpreadsheet.ReadFromFile(FFileName);
 
     FWorksheet := FSpreadsheet.GetWorksheetByName(FWorksheetName);
 
