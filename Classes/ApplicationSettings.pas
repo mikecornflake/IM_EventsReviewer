@@ -48,7 +48,7 @@ Type
 Implementation
 
 Uses
-  Forms;
+  Forms, Math;
 
   { TApplicationSettings }
 
@@ -110,7 +110,8 @@ Begin
   FVideoFolder := oInifile.ReadString('Settings', 'VideoFolder', '');
   FVessel := oInifile.ReadString('Settings', 'Vessel', '');
   FROV := oInifile.ReadString('Settings', 'ROV', '');
-  FMaxVideoDuration := oInifile.ReadInteger('Settings', 'MaxVideoDuration', 15);
+  // Do not allow a maximum length of less than 5 minutes
+  FMaxVideoDuration := Max(5, oInifile.ReadInteger('Settings', 'MaxVideoDuration', 15));
 End;
 
 Procedure TApplicationSettings.SaveSettings(oInifile: TIniFile);

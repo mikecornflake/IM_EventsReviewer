@@ -214,8 +214,10 @@ Begin
     oVideoFiles := frmEventsReviewer.DataProvider.GetVideoFilesForTime(oMessage.DateTime);
 
     // If not, ask the Media Provider...
+    // Media Provider may have to guess based off start time only, so provide a default
+    // Max Video duration
     If Not Assigned(oVideoFiles) Then
-      oVideoFiles := frmEventsReviewer.MediaProvider.VideoFilesForDateTime(oMessage.DateTime);
+      oVideoFiles := frmEventsReviewer.MediaProvider.VideoFilesForDateTime(oMessage.DateTime, frmEventsReviewer.Settings.MaxVideoDuration);
 
     Try
       LoadVideos(oVideoFiles, oMessage.DateTime);

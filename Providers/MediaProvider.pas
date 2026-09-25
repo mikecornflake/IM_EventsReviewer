@@ -27,13 +27,10 @@ Type
     Procedure ScanVideoFiles(AFolder: String);
     Function LookupFolder(AVideoFilename: String): String;
 
-    Function VideoFilesForDateTime(Const ADateTime: TDateTime): TVideoFiles;
+    Function VideoFilesForDateTime(Const ADateTime: TDateTime; AMaxVideoDurationMinutes: Integer): TVideoFiles;
 
     Property Videos: TVideoFiles Read FVideos;
   End;
-
-Const
-  DEFAULT_VIDEO_DURATION_MINUTES = 15;
 
 Implementation
 
@@ -89,7 +86,7 @@ Begin
     Result := '';
 End;
 
-Function TMediaProvider.VideoFilesForDateTime(Const ADateTime: TDateTime): TVideoFiles;
+Function TMediaProvider.VideoFilesForDateTime(Const ADateTime: TDateTime; AMaxVideoDurationMinutes: Integer): TVideoFiles;
 Var
   i: Integer;
   oVideo: TVideoFile;
@@ -106,7 +103,7 @@ Begin
     slBestByChannel.Duplicates := dupIgnore;
     slBestByChannel.OwnsObjects := False;
 
-    dtMaxAge := DEFAULT_VIDEO_DURATION_MINUTES / MinsPerDay;
+    dtMaxAge := AMaxVideoDurationMinutes / MinsPerDay;
 
     For i := 0 To FVideos.Count - 1 Do
     Begin
