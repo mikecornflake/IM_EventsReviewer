@@ -782,7 +782,7 @@ End;
 Procedure TfrmEventsReviewer.LoadImages(Const AAnomalyReference: String);
 Var
   slImages: TStringList;
-  sImageFile, sFolder, sExt: String;
+  sImageFile, sFolder, sExt, sMask: String;
 
   Function Caption(ABaseFolder: String; AFilename: String): String;
   Begin
@@ -820,7 +820,12 @@ Begin
 
   slImages := TStringList.Create;
   Try
-    FindAllFiles(slImages, sFolder, AAnomalyReference + '_*.*', False);
+    If Trim(AAnomalyReference) = '' Then
+      sMask := '*.*'
+    Else
+      sMask := Trim(AAnomalyReference) + '_*.*';
+
+    FindAllFiles(slImages, sFolder, sMask, False);
 
     slImages.Sorted := True;
 
