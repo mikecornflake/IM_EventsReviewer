@@ -27,6 +27,7 @@ Type
 
     Procedure ScanVideoFiles(AFolder: String);
     Function LookupFolder(AVideoFilename: String): String;
+    Function Find(AVideoFilename: String): TVideoFile;
 
     Function VideoFilesForDateTime(Const ADateTime: TDateTime;
       AMaxVideoDurationMinutes: Integer): TVideoFiles;
@@ -91,6 +92,11 @@ Begin
     Result := oVideo.Folder
   Else
     Result := '';
+End;
+
+Function TMediaProvider.Find(AVideoFilename: String): TVideoFile;
+Begin
+  Result := FVideos.Find(AVideoFilename);
 End;
 
 Function TMediaProvider.VideoFilesForDateTime(Const ADateTime: TDateTime;

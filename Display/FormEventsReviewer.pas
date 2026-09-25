@@ -11,7 +11,7 @@ Uses
   FormMain, FrameImageViewer, FrameGrids, FrameVideo,
   // Application
   ApplicationSettings, DataProvider, MediaProvider, FrameVerticalDBGrid, StarfixDatabaseProvider,
-  EventListingProvider, IMMessaging, AppMessaging, DataFilters, FramePipelineEvents;
+  EventListingProvider, IMMessaging, AppMessaging, DataFilters, MediaTypes, FramePipelineEvents;
 
 Type
 
@@ -701,15 +701,10 @@ End;
 Procedure TfrmEventsReviewer.actRefreshDatabaseExecute(Sender: TObject);
 Begin
   Try
-    // Sender is nil if this routine manually called during
-    // OnDataProviderPreparing
-    If Assigned(Sender) Then
-      FDataProvider.Refresh;
+    FDataProvider.Refresh;
   Finally
     Try
-      If FDataProvider.Ready Then
-        ReloadAllMedia
-      Else
+      If Not FDataProvider.Ready Then
       Begin
         DoSetDatasets(False);
         ClearAllMedia;
@@ -721,19 +716,38 @@ Begin
 End;
 
 Procedure TfrmEventsReviewer.ReloadAllMedia;
+Var
+  sCurrent: String;
+  oVideo: TVideoFile;
 Begin
   If Assigned(FDataProvider) And FDataProvider.Ready Then
   Begin
     // Media folder contents are updated dynamically during operations
     // Reload all media on eiter settings change or user request
+
+    // The loaded video may no longer be valid after recan
+    sCurrent := fmeVideo.MasterFilename;
+
+    // Refresh
     FMediaProvider.ScanVideoFiles(FSettings.VideoFolder);
+
+    // Does the refreshed MediaProvider still know about the current file
+    If sCurrent <> '' Then
+    Begin
+      oVideo := FMediaProvider.Find(ExtractFileName(sCurrent));
+
+      If Not Assigned(oVideo) Or (Not SameFileName(sCurrent,
+        IncludeTrailingPathDelimiter(oVideo.Folder) + oVideo.Filename)) Then
+        fmeVideo.Clear;
+    End;
+
     fmeImageViewer.RefreshImages;
   End;
 End;
 
 Procedure TfrmEventsReviewer.ClearAllMedia;
 Begin
-  // This will reload when the ProviderReady message is broadcast
+  // These will reload when the ProviderReady message is broadcast
   fmePipelineChart.Clear;
 
   fmeImageViewer.ClearImages;
@@ -743,6 +757,13 @@ Begin
   // clear flags
   FLastImageFolder := '';
   fmeImageViewer.Enabled := False;
+
+  // Other UI touchups
+  Caption := Application.Title;
+
+  // Ensure notification panel is hidden
+  tmrNotification.Enabled := False;
+  pnlNotification.Visible := False;
 End;
 
 Procedure TfrmEventsReviewer.mnuExitClick(Sender: TObject);
@@ -755,7 +776,7 @@ Begin
   // We're now either connected to database, or have the offline data available
   If FDataProvider.Ready Then
   Begin
-    actRefreshDatabaseExecute(nil);
+    ReloadAllMedia;
 
     // Resize columns etc
     fmeDBGrid.InitialiseDBGrid(True);
@@ -930,7 +951,7 @@ Begin
   Begin
     Status := 'Successfully added image ' + sFilename;
 
-    // Force a refres
+    // Force a refresh
     FLastImageFolder := '';
   End
   Else

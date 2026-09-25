@@ -19,7 +19,7 @@
       <UseVersionInfo Value="True"/>
       <AutoIncrementBuild Value="True"/>
       <MinorVersionNr Value="1"/>
-      <BuildNr Value="126"/>
+      <BuildNr Value="129"/>
       <Attributes pvaPreRelease="True"/>
       <StringTable Comments="Inspector Mike Events Reviewer" CompanyName="Inspector Mike 2.0 Pty Ltd" LegalCopyright="(c) 2026"/>
     </VersionInfo>
@@ -270,7 +270,7 @@
     </Linking>
     <Other>
       <CompilerMessages>
-        <IgnoredMessages idx6058="True" idx5024="True" idx3124="True" idx3123="True"/>
+        <IgnoredMessages idx6058="True" idx5091="True" idx5024="True" idx3124="True" idx3123="True"/>
       </CompilerMessages>
       <CustomOptions Value="-dIM_DEBUG"/>
     </Other>

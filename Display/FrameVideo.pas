@@ -58,6 +58,10 @@ Type
     Procedure LoadSettings(oInifile: TIniFile); Override;
     Procedure SaveSettings(oInifile: TIniFile); Override;
 
+    // We have a synced playback engine.  This will only return the filename
+    // of the first (master) filename
+    Function MasterFilename: String;
+
     Property VideoTrackbarSeek: Boolean Read GetVideoTrackbarSeek;
 
     Property ImageGrabHint: String Read GetImageGrabHint Write SetImageGrabHint;
@@ -130,6 +134,11 @@ Begin
 
   Inherited SaveSettings(oInifile);
 End;
+
+Function TfmeVideo.MasterFilename: String;
+begin
+  Result := fmeSyncedVideo.Filename;
+end;
 
 Procedure TfmeVideo.SetImageGrabFolder(Const AValue: String);
 Begin
@@ -286,6 +295,13 @@ Begin
   //       Not done now as this will require testing all Video modules
   fmeSyncedVideo.ClearVideoCount;
   fmeSyncedVideo.ClearUnloadedVideoFrames;
+
+  // Clear any pending seeks
+  tmrSeekAfterLoadVideo.Enabled := False;
+  FSeekPending := False;
+  FPendingSeek := False;
+  FPendingSeekTime := 0;
+  FPendingVideoTime := 0;
 End;
 
 Procedure TfmeVideo.PopulateSettingsFrame(AFrame: TFrameSettingsSyncedVideo);
