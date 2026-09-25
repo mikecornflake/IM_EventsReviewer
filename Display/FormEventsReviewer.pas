@@ -147,7 +147,7 @@ Type
     // Callback events
     Procedure DoRefreshImages(Sender: TObject);
     Procedure DoAddNewImage(Sender: TObject);
-    Procedure DoProviderReady(Sender: TObject);
+    Procedure DoProviderPreparing(Sender: TObject);
     Procedure DoReceiveFilterChanged(AMessage: TIMMessage);
     Procedure DoReceiveTimeSeekMessage(AMessage: TIMMessage);
     Procedure DoDataChanged(Sender: TObject; Const AAnomalyReference: String;
@@ -259,7 +259,7 @@ Begin
 
   // And these definitely need freeing :-)
   FreeAndNil(FSettings);
-  FDataProvider := Nil;
+  FDataProvider := nil;
   FreeAndNil(FStarfixDatabaseProvider);
   FreeAndNil(FEventListingProvider);
   FreeAndNil(FMediaProvider);
@@ -543,8 +543,11 @@ Begin
   Begin
     FDataProvider.Close;
 
-    FDataProvider.OnProviderReady := nil;
+    FDataProvider.OnProviderPreparing := nil;
     FDataProvider.OnDataChanged := nil;
+
+    // This will reload when the ProviderReady message is broadcast
+    fmePipelineChart.Clear;
 
     DoSetDatasets(False);
   End;
@@ -553,7 +556,7 @@ Begin
 
   If Assigned(FDataProvider) Then
   Begin
-    FDataProvider.OnProviderReady := @DoProviderReady;
+    FDataProvider.OnProviderPreparing := @DoProviderPreparing;
     FDataProvider.OnDataChanged := @DoDataChanged;
 
     DoSetDatasets(True);
@@ -703,7 +706,7 @@ Begin
   Close;
 End;
 
-Procedure TfrmEventsReviewer.DoProviderReady(Sender: TObject);
+Procedure TfrmEventsReviewer.DoProviderPreparing(Sender: TObject);
 Begin
   // We're now either connected to database, or have the offline data available
   If FDataProvider.Ready Then

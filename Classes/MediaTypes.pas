@@ -120,6 +120,9 @@ Begin
   Inherited Clear;
 End;
 
+// This will return -1 if a duplicate file is found
+// If FreeObjects=False, it will be up the caller to
+// respond accordingly
 Function TVideoFiles.AddVideo(AVideoFile: TVideoFile): Integer;
 Var
   iIndex: Integer;

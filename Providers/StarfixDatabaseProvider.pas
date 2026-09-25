@@ -144,7 +144,7 @@ Begin
   ThirdParties.Include([THIRDPARTY_MSSQL]);
 
   // Events
-  FOnProviderReady := nil;
+  FOnProviderPreparing := nil;
   FOnDataChanged := nil;
 
   // Filters
@@ -231,8 +231,8 @@ Begin
         FLoaded := True;
 
         // Let the Application know we're now ready for it
-        If Assigned(FOnProviderReady) Then
-          FOnProviderReady(Self);
+        If Assigned(FOnProviderPreparing) Then
+          FOnProviderPreparing(Self);
 
         // Everything that must happen before the rest of the application
         // sees the provider as ready has now happened.
@@ -274,8 +274,8 @@ Begin
     Result := True;
 
     // Let the Application know we're now ready for it
-    If Assigned(FOnProviderReady) Then
-      FOnProviderReady(Self);
+    If Assigned(FOnProviderPreparing) Then
+      FOnProviderPreparing(Self);
 
     // Restore State;
     GotoNearestValue(FFieldStartTime, dtCurrent, -1);

@@ -134,6 +134,8 @@ Begin
     grdSelection.Cells[0, iRow] := 'N'
   Else
     grdSelection.Cells[0, iRow] := 'Y';
+
+  grdSelection.Invalidate;
 End;
 
 Procedure TfmeGridSelection.SetDataset(Const AValue: TDataset);

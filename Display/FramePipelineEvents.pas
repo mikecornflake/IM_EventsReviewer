@@ -25,6 +25,8 @@ Type
     Constructor Create(TheOwner: TComponent); Override;
     Destructor Destroy; Override;
 
+    Procedure Clear;
+
     Property KP: Double Read GetKP;
   End;
 
@@ -58,6 +60,11 @@ Begin
   FreeAndNil(fmePipelineView);
 
   Inherited Destroy;
+End;
+
+Procedure TfmePipelineEvents.Clear;
+Begin
+  fmePipelineView.Clear;
 End;
 
 Procedure TfmePipelineEvents.DoReceiveSeekKPMessage(AMessage: TIMMessage);

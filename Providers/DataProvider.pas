@@ -38,7 +38,7 @@ Type
     FUpdatingFilteredDataset: Boolean;
     FUpdatingMasterDataset: Boolean;
 
-    FOnProviderReady: TNotifyEvent;
+    FOnProviderPreparing: TNotifyEvent;
     FOnDataChanged: TDataChangedEvent;
 
     Function ProcessEventnameForReport(Var AType: String): Boolean; Virtual;
@@ -55,8 +55,8 @@ Type
 
     Function GetReady: Boolean; Virtual; Abstract;
 
-    Function GetOnProviderReady: TNotifyEvent;
-    Procedure SetOnProviderReady(AValue: TNotifyEvent);
+    Function GetOnProviderPreparing: TNotifyEvent;
+    Procedure SetOnProviderPreparing(AValue: TNotifyEvent);
 
     Function GetOnDataChanged: TDataChangedEvent;
     Procedure SetOnDataChanged(AValue: TDataChangedEvent);
@@ -115,7 +115,8 @@ Type
     Property Filter: String Read FFilter Write SetFilter;
 
     // Events
-    Property OnProviderReady: TNotifyEvent Read GetOnProviderReady Write SetOnProviderReady;
+    Property OnProviderPreparing: TNotifyEvent Read GetOnProviderPreparing
+      Write SetOnProviderPreparing;
     Property OnDataChanged: TDataChangedEvent Read GetOnDataChanged Write SetOnDataChanged;
   End;
 
@@ -318,18 +319,18 @@ End;
 
 Procedure TDataProvider.DoProviderReady;
 Begin
-  If Assigned(FOnProviderReady) Then
-    FOnProviderReady(Self);
+  If Assigned(FOnProviderPreparing) Then
+    FOnProviderPreparing(Self);
 End;
 
-Function TDataProvider.GetOnProviderReady: TNotifyEvent;
+Function TDataProvider.GetOnProviderPreparing: TNotifyEvent;
 Begin
-  Result := FOnProviderReady;
+  Result := FOnProviderPreparing;
 End;
 
-Procedure TDataProvider.SetOnProviderReady(AValue: TNotifyEvent);
+Procedure TDataProvider.SetOnProviderPreparing(AValue: TNotifyEvent);
 Begin
-  FOnProviderReady := AValue;
+  FOnProviderPreparing := AValue;
 End;
 
 Function TDataProvider.GetOnDataChanged: TDataChangedEvent;
