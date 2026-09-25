@@ -1,23 +1,22 @@
-unit FrameEditor;
+Unit FrameEditor;
 
 {$mode ObjFPC}{$H+}
 
-interface
+Interface
 
-uses
+Uses
   Classes, SysUtils, Forms, Controls, FrameBase;
 
-type
-  TFrameEditorBase = class(TFrameBase)
-  private
+Type
+  TFrameEditorBase = Class(TFrameBase)
+  Private
 
-  public
+  Public
 
-  end;
+  End;
 
-implementation
+Implementation
 
 {$R *.lfm}
 
-end.
-
+End.

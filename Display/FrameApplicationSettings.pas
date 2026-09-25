@@ -29,13 +29,13 @@ Type
     Procedure FormCreate(Sender: TObject);
   Private
     Function GetAnomalyImageFolder: String;
-    function GetEventImageFolder: String;
+    Function GetEventImageFolder: String;
     Function GetMaxVideoDuration: Integer;
     Function GetROV: String;
     Function GetVessel: String;
     Function GetVideoFolder: String;
-    procedure SetAnomalyImageFolder(const AValue: String);
-    procedure SetEventImageFolder(const AValue: String);
+    Procedure SetAnomalyImageFolder(Const AValue: String);
+    Procedure SetEventImageFolder(Const AValue: String);
     Procedure SetMaxVideoDuration(Const AValue: Integer);
     Procedure SetROV(Const AValue: String);
     Procedure SetVessel(Const AValue: String);
@@ -68,10 +68,10 @@ Begin
   Result := edtAnomalyImageFolder.Text;
 End;
 
-function TFrameApplicationSettings.GetEventImageFolder: String;
-begin
+Function TFrameApplicationSettings.GetEventImageFolder: String;
+Begin
   Result := edtEventImageFolder.Text;
-end;
+End;
 
 Function TFrameApplicationSettings.GetMaxVideoDuration: Integer;
 Begin
@@ -93,15 +93,15 @@ Begin
   Result := edtVideoFolder.Text;
 End;
 
-procedure TFrameApplicationSettings.SetAnomalyImageFolder(const AValue: String);
+Procedure TFrameApplicationSettings.SetAnomalyImageFolder(Const AValue: String);
 Begin
   edtAnomalyImageFolder.Text := AValue;
 End;
 
-procedure TFrameApplicationSettings.SetEventImageFolder(const AValue: String);
-begin
+Procedure TFrameApplicationSettings.SetEventImageFolder(Const AValue: String);
+Begin
   edtEventImageFolder.Text := AValue;
-end;
+End;
 
 Procedure TFrameApplicationSettings.SetMaxVideoDuration(Const AValue: Integer);
 Begin

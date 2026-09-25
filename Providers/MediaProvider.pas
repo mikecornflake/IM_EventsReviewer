@@ -27,7 +27,8 @@ Type
     Procedure ScanVideoFiles(AFolder: String);
     Function LookupFolder(AVideoFilename: String): String;
 
-    Function VideoFilesForDateTime(Const ADateTime: TDateTime; AMaxVideoDurationMinutes: Integer): TVideoFiles;
+    Function VideoFilesForDateTime(Const ADateTime: TDateTime;
+      AMaxVideoDurationMinutes: Integer): TVideoFiles;
 
     Property Videos: TVideoFiles Read FVideos;
   End;
@@ -37,7 +38,7 @@ Implementation
 Uses
   Dialogs;
 
-{ TMediaProvider }
+  { TMediaProvider }
 
 Constructor TMediaProvider.Create;
 Begin
@@ -86,7 +87,8 @@ Begin
     Result := '';
 End;
 
-Function TMediaProvider.VideoFilesForDateTime(Const ADateTime: TDateTime; AMaxVideoDurationMinutes: Integer): TVideoFiles;
+Function TMediaProvider.VideoFilesForDateTime(Const ADateTime: TDateTime;
+  AMaxVideoDurationMinutes: Integer): TVideoFiles;
 Var
   i: Integer;
   oVideo: TVideoFile;

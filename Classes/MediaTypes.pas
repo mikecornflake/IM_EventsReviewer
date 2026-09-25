@@ -159,7 +159,7 @@ Begin
       DebugLn(['TVideoFiles.AddVideo: Duplicate videos found. ', sExisting,
         ' and ', sDuplicate]);
 
-      If FErrors.IndexOf(ErrorDuplicate)=-1 Then
+      If FErrors.IndexOf(ErrorDuplicate) = -1 Then
         FErrors.Add(ErrorDuplicate);
     End
     Else

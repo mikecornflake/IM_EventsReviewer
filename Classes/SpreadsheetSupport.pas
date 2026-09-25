@@ -12,7 +12,8 @@ Procedure GetWorksheetNames(Const AFilename: String; AStrings: TStrings);
 
 Function CellText(AWorksheet: TsWorksheet; ARow, ACol: Integer): String;
 Function CellFloat(AWorksheet: TsWorksheet; ARow, ACol: Integer; Out AValue: Double): Boolean;
-Function CellDateTime(AWorksheet: TsWorksheet; ARow, ACol: Integer; Out AValue: TDateTime): Boolean;
+Function CellDateTime(AWorksheet: TsWorksheet; ARow, ACol: Integer;
+  Out AValue: TDateTime): Boolean;
 
 Function ColumnIndexToName(AColumn: Integer): String;
 Function ColumnNameToIndex(Const AColumn: String): Integer;
