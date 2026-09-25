@@ -31,6 +31,7 @@ Type
   Private
     FInferInfoFromFilename: Boolean;
     FFilenameIndex: TStringList;
+    FErrors: TStringList;
 
     Procedure InternalScanFolder(Const AFolder: String);
   Public
@@ -47,12 +48,14 @@ Type
     // Attempt to populate StartDateTime and Channel from filename
     Property InferInfoFromFilename: Boolean Read FInferInfoFromFilename
       Write FInferInfoFromFilename;
+
+    Property Errors: TStringList Read FErrors;
   End;
 
 Implementation
 
 Uses
-  InspectionSupport, FileSupport;
+  InspectionSupport, FileSupport, LazLogger;
 
   { TVideoFile }
 
@@ -97,11 +100,14 @@ Begin
   FFilenameIndex.Duplicates := dupError;
   FFilenameIndex.Sorted := True;
 
+  FErrors := TStringList.Create;
+
   FInferInfoFromFilename := False;
 End;
 
 Destructor TVideoFiles.Destroy;
 Begin
+  FreeAndNil(FErrors);
   FreeAndNil(FFilenameIndex);
 
   Inherited Destroy;
@@ -109,17 +115,55 @@ End;
 
 Procedure TVideoFiles.Clear;
 Begin
+  FErrors.Clear;
   FFilenameIndex.Clear;
   Inherited Clear;
 End;
 
 Function TVideoFiles.AddVideo(AVideoFile: TVideoFile): Integer;
+Var
+  iIndex: Integer;
+  iExistingSize, iDuplicateSize: Int64;
+  oExisting: TVideoFile;
+  sExisting, sDuplicate, sError: String;
 Begin
+  Result := -1;
+
   If FInferInfoFromFilename Then
     AVideoFile.InferMissingInfo;
 
-  FFilenameIndex.AddObject(AVideoFile.Filename, AVideoFile);
-  Result := Add(AVideoFile);
+  iIndex := FFilenameIndex.IndexOf(AVideoFile.Filename);
+  If iIndex = -1 Then
+  Begin
+    Result := Add(AVideoFile);
+    FFilenameIndex.AddObject(AVideoFile.Filename, AVideoFile);
+  End
+  Else
+  Begin
+    oExisting := TVideoFile(FFilenameIndex.Objects[iIndex]);
+
+    sExisting := IncludeTrailingPathDelimiter(oExisting.Folder) + oExisting.Filename;
+    sDuplicate := IncludeTrailingPathDelimiter(AVideoFile.Folder) + AVideoFile.Filename;
+
+    iExistingSize := FileSize(sExisting);
+    iDuplicateSize := FileSize(sDuplicate);
+
+    If (iExistingSize >= 0) And (iDuplicateSize >= 0) And
+      (iExistingSize = iDuplicateSize) Then
+    Begin
+      DebugLn(['TVideoFiles.AddVideo: Duplicate videos found. ', sExisting,
+        ' and ', sDuplicate]);
+    End
+    Else
+    Begin
+      sError := 'Duplicate videos with different or unreadable sizes. Existing: ' +
+        sExisting + LineEnding + 'Duplicate: ' + sDuplicate;
+      FErrors.Add(sError);
+    End;
+
+    If FreeObjects Then
+      FreeAndNil(AVideoFile);
+  End;
 End;
 
 Procedure TVideoFiles.InternalScanFolder(Const AFolder: String);
@@ -159,6 +203,10 @@ End;
 
 Procedure TVideoFiles.ScanFolder(Const AFolder: String);
 Begin
+  {$IFNDEF RELEASE}
+  DebugLn([ClassName, '.', {$I %CURRENTROUTINE%}, ' ', AFolder]);
+  {$ENDIF}
+
   Clear;
 
   InternalScanFolder(AFolder);

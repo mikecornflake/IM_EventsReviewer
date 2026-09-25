@@ -62,12 +62,12 @@ End;
 
 Procedure TMediaProvider.ScanVideoFiles(AFolder: String);
 Begin
+  FFolder := AFolder;
+  FVideos.Clear;
+
   // Populate VideoFilenames
   If (AFolder <> '') And DirectoryExists(AFolder) Then
-  Begin
-    FFolder := AFolder;
     FVideos.ScanFolder(AFolder);
-  End;
 End;
 
 Function TMediaProvider.LookupFolder(AVideoFilename: String): String;
