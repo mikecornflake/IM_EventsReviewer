@@ -186,6 +186,9 @@ inherited frmEventsReviewer: TfrmEventsReviewer
       object tsImages: TTabSheet
         Caption = 'Images'
       end
+      object tsVideoFiles: TTabSheet
+        Caption = 'Videos'
+      end
     end
   end
   object pnlNotification: TPanel[6]

@@ -11,7 +11,8 @@ Uses
   FormMain, FrameImageViewer, FrameGrids, FrameVideo,
   // Application
   ApplicationSettings, DataProvider, MediaProvider, FrameVerticalDBGrid, StarfixDatabaseProvider,
-  EventListingProvider, IMMessaging, AppMessaging, DataFilters, MediaTypes, FramePipelineEvents;
+  EventListingProvider, IMMessaging, AppMessaging, DataFilters, MediaTypes,
+  FramePipelineEvents, FrameVideoFiles;
 
 Type
 
@@ -65,6 +66,7 @@ Type
     btnFilter: TToolButton;
     btnClearFilter: TToolButton;
     btnGoto: TToolButton;
+    tsVideoFiles: TTabSheet;
     tsImages: TTabSheet;
     tsChart: TTabSheet;
     tmrNotification: TTimer;
@@ -118,6 +120,7 @@ Type
     fmeDBGrid: TFrameGrid;
     fmeVerticalDBGrid: TFrameVerticalDBGrid;
     fmePipelineChart: TfmePipelineEvents;
+    fmeVideoFiles: TfmeVideoFiles;
 
     // Flags
     FLastImageFolder: String;
@@ -213,6 +216,11 @@ Begin
   fmePipelineChart.Name := 'fmePipelineChart';
   fmePipelineChart.Align := alClient;
 
+  fmeVideoFiles := TfmeVideoFiles.Create(Self);
+  fmeVideoFiles.Parent := tsVideoFiles;
+  fmeVideoFiles.Name := 'fmeVideoFiles';
+  fmeVideoFiles.Align := alClient;
+
   fmeDBGrid := TFrameGrid.Create(Self);
   fmeDBGrid.Parent := pnlAnomalies;
   fmeDBGrid.Name := 'fmeDBGrid';
@@ -254,6 +262,7 @@ Begin
 
   // Fully aware these woudl be cleared up by their owner anyway
   // My philosophy is: I create, I clean up...
+  FreeAndNil(fmeVideoFiles);
   FreeAndNil(fmePipelineChart);
   FreeAndNil(fmeImageViewer);
   FreeAndNil(fmeDBGrid);
@@ -701,7 +710,15 @@ End;
 Procedure TfrmEventsReviewer.actRefreshDataExecute(Sender: TObject);
 Begin
   Try
-    FDataProvider.Refresh;
+    Busy := True;
+    Status := 'Refreshing all media';
+    Try
+      FDataProvider.Refresh;
+    Finally
+      Status := 'Finished refreshing all media';
+      Status := '';
+      Busy := False;
+    End;
   Finally
     Try
       If Not FDataProvider.Ready Then
@@ -722,51 +739,70 @@ Var
 Begin
   If Assigned(FDataProvider) And FDataProvider.Ready Then
   Begin
-    // Media folder contents are updated dynamically during operations
-    // Reload all media on eiter settings change or user request
+    Busy := True;
+    Status := 'Reloading all media';
+    Try
+      // Media folder contents are updated dynamically during operations
+      // Reload all media on eiter settings change or user request
 
-    // The loaded video may no longer be valid after recan
-    // This only checks one of the n filenames - really ALL loaded files should be checked
-    sCurrent := fmeVideo.MasterFilename;
+      // The loaded video may no longer be valid after recan
+      // This only checks one of the n filenames - really ALL loaded files should be checked
+      sCurrent := fmeVideo.MasterFilename;
 
-    // Refresh
-    FMediaProvider.ScanVideoFiles(FSettings.VideoFolder);
+      // Refresh
+      FMediaProvider.ScanVideoFiles(FSettings.VideoFolder);
 
-    fmePipelineChart.LoadData;
 
-    // Does the refreshed MediaProvider still know about the current file
-    If sCurrent <> '' Then
-    Begin
-      oVideo := FMediaProvider.Find(ExtractFileName(sCurrent));
+      fmePipelineChart.LoadData;
+      fmeVideoFiles.Load(FMediaProvider.Videos);
 
-      If Not Assigned(oVideo) Or (Not SameFileName(sCurrent,
-        IncludeTrailingPathDelimiter(oVideo.Folder) + oVideo.Filename)) Then
-        fmeVideo.Clear;
+      // Does the refreshed MediaProvider still know about the current file
+      If sCurrent <> '' Then
+      Begin
+        oVideo := FMediaProvider.Find(ExtractFileName(sCurrent));
+
+        If Not Assigned(oVideo) Or (Not SameFileName(sCurrent,
+          IncludeTrailingPathDelimiter(oVideo.Folder) + oVideo.Filename)) Then
+          fmeVideo.Clear;
+      End;
+
+      fmeImageViewer.RefreshImages;
+    Finally
+      Status := 'Finished reloading all media';
+      Status := '';
+      Busy := False;
     End;
-
-    fmeImageViewer.RefreshImages;
   End;
 End;
 
 Procedure TfrmEventsReviewer.ClearAllMedia;
 Begin
-  // These will reload when the ProviderReady message is broadcast
-  fmePipelineChart.Clear;
+  Busy := True;
+  Status := 'Clearing all media';
+  Try
+    // These will reload when the ProviderReady message is broadcast
+    fmePipelineChart.Clear;
+    fmeVideoFiles.Clear;;
 
-  fmeImageViewer.ClearImages;
-  fmeVideo.Clear;
-  FMediaProvider.Clear;
+    fmeImageViewer.ClearImages;
+    fmeVideo.Clear;
+    FMediaProvider.Clear;
 
-  // clear flags
-  FLastImageFolder := '';
-  fmeImageViewer.Enabled := False;
+    // clear flags
+    FLastImageFolder := '';
+    fmeImageViewer.Enabled := False;
 
-  // Other UI touchups
-  Caption := Application.Title;
+    // Other UI touchups
+    Caption := Application.Title;
 
-  // Ensure notification panel is hidden
-  tmrNotification.Enabled := False;
-  pnlNotification.Visible := False;
+    // Ensure notification panel is hidden
+    tmrNotification.Enabled := False;
+    pnlNotification.Visible := False;
+  Finally
+    Status := 'Finished clearing all media';
+    Status := '';
+    Busy := False;
+  End;
 End;
 
 Procedure TfrmEventsReviewer.mnuExitClick(Sender: TObject);
@@ -818,54 +854,59 @@ Begin
   DebugLn([ClassName, '.', {$I %CURRENTROUTINE%}, ' ', AAnomalyReference]);
   {$ENDIF}
 
-  If Trim(AAnomalyReference) = '' Then
-    sFolder := FSettings.EventImageFolder
-  Else
-    sFolder := FSettings.AnomalyImageFolder;
-
-  fmeVideo.GrabImageBtnEnabled := DirectoryExists(sFolder);
-
-  If Not fmeVideo.GrabImageBtnEnabled Then
-    fmeVideo.ImageGrabHint := 'Check Settings: Image Folder does not exist.'
-  Else
-    fmeVideo.ImageGrabHint := 'Selected images will be saved in ' + sFolder;
-
-  If (AAnomalyReference = '') And (sFolder = FLastImageFolder) Then
-    Exit;
-
-  FLastImageFolder := sFolder;
-
-  fmeImageViewer.ClearImages;
-
-  If Not fmeVideo.GrabImageBtnEnabled Then
-    Exit;
-
-  Status := 'Loading images from ' + sFolder;
-
-  slImages := TStringList.Create;
+  Busy := True;
+  Status := 'Loading images ' + AAnomalyReference;
   Try
     If Trim(AAnomalyReference) = '' Then
-      sMask := '*.*'
+      sFolder := FSettings.EventImageFolder
     Else
-      sMask := Trim(AAnomalyReference) + '_*.*';
+      sFolder := FSettings.AnomalyImageFolder;
 
-    FindAllFiles(slImages, sFolder, sMask, False);
+    fmeVideo.GrabImageBtnEnabled := DirectoryExists(sFolder);
 
-    slImages.Sorted := True;
+    If Not fmeVideo.GrabImageBtnEnabled Then
+      fmeVideo.ImageGrabHint := 'Check Settings: Image Folder does not exist.'
+    Else
+      fmeVideo.ImageGrabHint := 'Selected images will be saved in ' + sFolder;
 
-    For sImageFile In slImages Do
-    Begin
-      sExt := ExtractFileExt(sImageFile);
+    If (AAnomalyReference = '') And (sFolder = FLastImageFolder) Then
+      Exit;
 
-      If IsImage(sExt) Then
-        fmeImageViewer.AddImage(sImageFile, Caption(sFolder, sImageFile));
+    FLastImageFolder := sFolder;
+
+    fmeImageViewer.ClearImages;
+
+    If Not fmeVideo.GrabImageBtnEnabled Then
+      Exit;
+
+    Status := 'Loading images from ' + sFolder;
+
+    slImages := TStringList.Create;
+    Try
+      If Trim(AAnomalyReference) = '' Then
+        sMask := '*.*'
+      Else
+        sMask := Trim(AAnomalyReference) + '_*.*';
+
+      FindAllFiles(slImages, sFolder, sMask, False);
+
+      slImages.Sorted := True;
+
+      For sImageFile In slImages Do
+      Begin
+        sExt := ExtractFileExt(sImageFile);
+
+        If IsImage(sExt) Then
+          fmeImageViewer.AddImage(sImageFile, Caption(sFolder, sImageFile));
+      End;
+    Finally
+      slImages.Free;
     End;
   Finally
-    slImages.Free;
+    Status := 'Finished loading images';
+    Status := '';
+    Busy := False;
   End;
-
-  Status := 'Finished loading images';
-  Status := '';
 End;
 
 Procedure TfrmEventsReviewer.DoRefreshImages(Sender: TObject);
