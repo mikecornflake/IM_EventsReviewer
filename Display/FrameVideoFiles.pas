@@ -6,7 +6,7 @@ Interface
 
 Uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, FrameBase, FrameGrids,
-  BufDataset, DB, MediaTypes;
+  BufDataset, DB, MediaTypes, AppMessaging, IMMessaging;
 
 Type
 
@@ -17,6 +17,7 @@ Type
     FDataset: TBufDataset;
     fmeGrid: TFrameGrid;
 
+    Procedure DoReceiveSeekTimeMessage(AMessage: TIMMessage);
   Public
     Constructor Create(TheOwner: TComponent); Override;
     Destructor Destroy; Override;
@@ -28,7 +29,7 @@ Type
 Implementation
 
 Uses
-  FormMain, DBSupport;
+  FormEventsReviewer, FormMain, DBSupport;
 
   {$R *.lfm}
 
@@ -44,6 +45,8 @@ Begin
   fmeGrid.Align := alClient;
 
   FDataset := nil;
+
+  frmEventsReviewer.MessageBus.Subscribe(Self, TIMMessageTime, @DoReceiveSeekTimeMessage);
 End;
 
 Destructor TfmeVideoFiles.Destroy;
@@ -65,8 +68,8 @@ Procedure TfmeVideoFiles.Load(AVideoFiles: TVideoFiles);
 Var
   oVideo: TVideoFile;
 Begin
-  MainForm.Busy := True;
-  MainForm.SetStatusAndLog('Loading video files', INDENT_INC);
+  frmEventsReviewer.Busy := True;
+  frmEventsReviewer.SetStatusAndLog('Loading video files', INDENT_INC);
   Try
     Clear;
 
@@ -109,8 +112,8 @@ Begin
 
     fmeGrid.InitialiseDBGrid(False);
   Finally
-    MainForm.SetStatusAndLog('Finished loading video files', INDENT_DEC, True);
-    MainForm.Busy := False;
+    frmEventsReviewer.SetStatusAndLog('Finished loading video files', INDENT_DEC, True);
+    frmEventsReviewer.Busy := False;
   End;
 End;
 
@@ -120,6 +123,42 @@ Begin
   Begin
     FDataset.Close;
     FDataset.Clear;
+  End;
+End;
+
+Procedure TfmeVideoFiles.DoReceiveSeekTimeMessage(AMessage: TIMMessage);
+Var
+  oMessage: TIMMessageTime;
+  dtCurrentStart, dtCurrentEnd, dtDefaultMax: TDateTime;
+Begin
+  If Not (AMessage Is TIMMessageTime) Then
+    Exit;
+
+  // Only change video if absolutely needed
+  If Not (FDataset.Active) Or (FDataset.IsEmpty) Then
+    Exit;
+
+  oMessage := TIMMessageTime(AMessage);
+
+  If frmEventsReviewer.Settings.MaxVideoDuration > 0 Then
+    dtDefaultMax := frmEventsReviewer.Settings.MaxVideoDuration / MinsPerDay
+  Else
+    dtDefaultMax := 15 / MinsPerDay;
+
+  dtCurrentStart := FDataset.FieldByName('Start_Time').AsDateTime;
+  dtCurrentEnd := ValueAsFloat(FDataset, 'End_Time', dtCurrentStart + dtDefaultMax);
+
+  If (oMessage.DateTime < dtCurrentStart) Or (oMessage.DateTime > dtCurrentEnd) Then
+  Begin
+    frmEventsReviewer.Busy := True;
+    frmEventsReviewer.SetStatusAndLog('Seeking video file list to ' +
+      FormatDateTime('yyyy-mm-dd HH:ss:ss', oMessage.DateTime), INDENT_INC);
+    Try
+      DBSupport.GotoNearestValue(FDataset, 'Start_Time', oMessage.DateTime, SEEK_LAST_BEFORE);
+    Finally
+      frmEventsReviewer.SetStatusAndLog('Finished seek video file list', INDENT_DEC);
+      frmEventsReviewer.Busy := False;
+    End;
   End;
 End;
 
