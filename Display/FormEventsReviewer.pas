@@ -425,12 +425,19 @@ Begin
 
     If oDlg.ShowModal = mrOk Then
     Begin
-      FDataProvider.ApplyFrames;
+      Busy := True;
+      SetStatusAndLog('Apply settings and refresing', INDENT_INC);
+      Try
+        FDataProvider.ApplyFrames;
 
-      FSettings.ApplySettingsFrame(fmeSettingsApp);
-      fmeVideo.ApplySettingsFrame(fmeSettingsVideo);
+        FSettings.ApplySettingsFrame(fmeSettingsApp);
+        fmeVideo.ApplySettingsFrame(fmeSettingsVideo);
 
-      ReloadAllMedia;
+        ReloadAllMedia;
+      Finally
+        SetStatusAndLog('Finished applying settings and refresing', INDENT_DEC, True);
+        Busy := False;
+      End;
     End;
   Finally
     FDataProvider.UnRegisterFrames(oDlg);
@@ -726,6 +733,9 @@ Begin
     Busy := True;
     SetStatusAndLog('Refreshing all media', INDENT_INC);
     Try
+      // Force the Video List to reload
+      fmeVideoFiles.ForceReloadAll := True;
+
       FDataProvider.Refresh;
     Finally
       SetStatusAndLog('Finished refreshing all media', INDENT_DEC, True);
@@ -764,7 +774,6 @@ Begin
       // Refresh
       FMediaProvider.ScanVideoFiles(FSettings.VideoFolder);
 
-
       fmePipelineChart.LoadData;
       fmeVideoFiles.Load(FMediaProvider.Videos);
 
@@ -773,8 +782,9 @@ Begin
       Begin
         oVideo := FMediaProvider.Find(ExtractFileName(sCurrent));
 
-        If Not Assigned(oVideo) Or (Not SameFileName(sCurrent,
-          IncludeTrailingPathDelimiter(oVideo.Folder) + oVideo.Filename)) Then
+        If Not Assigned(oVideo) Or
+          (Not SameFileName(sCurrent, IncludeTrailingPathDelimiter(oVideo.Folder) +
+          oVideo.Filename)) Then
           fmeVideo.Clear;
       End;
 

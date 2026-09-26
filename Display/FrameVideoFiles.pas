@@ -15,7 +15,12 @@ Type
   TfmeVideoFiles = Class(TFrameBase)
   Private
     FDataset: TBufDataset;
+    FForceReloadAll: Boolean;
     fmeGrid: TFrameGrid;
+
+    FLastFolder: String;
+    FLastCount: Integer;
+
 
     Procedure DoReceiveSeekTimeMessage(AMessage: TIMMessage);
   Public
@@ -24,6 +29,8 @@ Type
 
     Procedure Load(AVideoFiles: TVideoFiles);
     Procedure Clear;
+
+    Property ForceReloadAll: Boolean Read FForceReloadAll Write FForceReloadAll;
   End;
 
 Implementation
@@ -38,6 +45,10 @@ Uses
 Constructor TfmeVideoFiles.Create(TheOwner: TComponent);
 Begin
   Inherited Create(TheOwner);
+
+  FForceReloadAll := False;
+  FLastFolder := '';
+  FLastCount := 0;
 
   fmeGrid := TFrameGrid.Create(Self);
   fmeGrid.Name := 'fmeGrid';
@@ -70,13 +81,19 @@ Var
   dtDefaultMax, dtCurrentEnd: Extended;
   dtCurrentStart: TDateTime;
 Begin
+  If (AVideoFiles.Count = FLastCount) And (frmEventsReviewer.Settings.VideoFolder = FLastFolder) Then
+    If Not FForceReloadAll Then
+      Exit;
+
   frmEventsReviewer.Busy := True;
-  frmEventsReviewer.SetStatusAndLog('Loading video files', INDENT_INC);
+  frmEventsReviewer.SetStatusAndLog(Format('Loading %d video files', [AVideoFiles.Count]),
+    INDENT_INC);
   Try
     Clear;
+    fmeGrid.DataSet := nil;
 
-    If Not Assigned(FDataset) Then
-      FDataset := TBufDataset.Create(Self);
+    FreeAndNil(FDataset);
+    FDataset := TBufDataset.Create(Self);
 
     FDataset.FieldDefs.Add('Filename', ftString, 255);
     FDataset.FieldDefs.Add('Folder', ftString, 1024);
@@ -136,9 +153,13 @@ Begin
 
     FDataset.Open;
     FDataset.IndexFieldNames := 'Start_Time';
-    fmeGrid.DataSet := FDataset;
 
-    fmeGrid.InitialiseDBGrid(False);
+    fmeGrid.DataSet := FDataset;
+    fmeGrid.InitialiseDBGrid(True);
+
+    FForceReloadAll:=False;
+    FLastCount := AVideoFiles.Count;
+    FLastFolder := frmEventsReviewer.Settings.VideoFolder;
   Finally
     frmEventsReviewer.SetStatusAndLog('Finished loading video files', INDENT_DEC, True);
     frmEventsReviewer.Busy := False;
