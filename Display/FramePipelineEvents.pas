@@ -65,9 +65,9 @@ Begin
 End;
 
 Procedure TfmePipelineEvents.LoadData;
-begin
+Begin
   frmEventsReviewer.DataProvider.PopulatePipelineView(fmePipelineView);
-end;
+End;
 
 Procedure TfmePipelineEvents.Clear;
 Begin

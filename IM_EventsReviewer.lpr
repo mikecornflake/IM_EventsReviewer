@@ -18,8 +18,8 @@ Uses
 
 Begin
   RequireDerivedFormResource := True;
-  Application.Title := 'IM Events Reviewer';
-  Application.Scaled := True;
+  Application.Title:='IM Events Reviewer';
+  Application.Scaled:=True;
   {$PUSH}
   {$WARN 5044 OFF}
   Application.MainFormOnTaskbar := True;

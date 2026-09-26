@@ -384,19 +384,19 @@ Begin
 End;
 
 Procedure TDataProvider.RegisterFrames(ADialog: TDialogFrameHost; ALoading: Boolean);
-begin
-  //
-end;
+Begin
+
+End;
 
 Procedure TDataProvider.ApplyFrames;
-begin
-  //
-end;
+Begin
+
+End;
 
 Procedure TDataProvider.UnRegisterFrames(ADialog: TDialogFrameHost);
-begin
-  //
-end;
+Begin
+
+End;
 
 // AAnomalyNo (aka Anomaly Reference) is not guaranteed to be set
 Procedure TDataProvider.DoMasterChanged(Const AAnomalyReference: String;
