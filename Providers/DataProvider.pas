@@ -7,7 +7,7 @@ Interface
 
 Uses
   Classes, SysUtils, MediaTypes, DB, BufDataset, Inifiles,
-  IMMessaging, AppMessaging, FramePipelineView, DataFilters;
+  IMMessaging, AppMessaging, FramePipelineView, DataFilters, DialogFrameHost;
 
 Type
   TDataChangedEvent = Procedure(Sender: TObject; Const AAnomalyReference: String;
@@ -102,6 +102,10 @@ Type
 
     Procedure LoadSettings(AInifile: TIniFile); Virtual; Abstract;
     Procedure SaveSettings(AInifile: TIniFile); Virtual; Abstract;
+
+    Procedure RegisterFrames(ADialog: TDialogFrameHost; ALoading: Boolean); Virtual;
+    Procedure ApplyFrames; Virtual;
+    Procedure UnRegisterFrames(ADialog: TDialogFrameHost); Virtual;
 
     Property DataFilters: TDataFilters Read FDataFilters;
 
@@ -378,6 +382,21 @@ Begin
   Else
     Result := '';
 End;
+
+Procedure TDataProvider.RegisterFrames(ADialog: TDialogFrameHost; ALoading: Boolean);
+begin
+  //
+end;
+
+Procedure TDataProvider.ApplyFrames;
+begin
+  //
+end;
+
+Procedure TDataProvider.UnRegisterFrames(ADialog: TDialogFrameHost);
+begin
+  //
+end;
 
 // AAnomalyNo (aka Anomaly Reference) is not guaranteed to be set
 Procedure TDataProvider.DoMasterChanged(Const AAnomalyReference: String;

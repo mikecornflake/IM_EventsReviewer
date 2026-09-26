@@ -41,14 +41,14 @@ Type
     FCampaignEventRules: TCampaignEventRules;
     FLoadingRule: Boolean;
 
-    Procedure RefreshUI; Override;
-
     Procedure LoadRule(ACampaignEventRule: TCampaignEventRule);
     Procedure LoadRules;
     Procedure SaveRule;
   Public
     Constructor Create(TheOwner: TComponent); Override;
     Destructor Destroy; Override;
+
+    Procedure RefreshUI; Override;
 
     Procedure CopyFrom(ASource: TCampaignEventRules);
 

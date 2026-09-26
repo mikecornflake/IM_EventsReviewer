@@ -70,7 +70,6 @@ End;
 
 Function TCampaignEventRule.TestEventname(AEventname: String): Boolean;
 Var
-  bUseRule: Boolean;
   sKeyword: String;
 Begin
   Result := False;

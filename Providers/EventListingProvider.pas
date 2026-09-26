@@ -7,7 +7,7 @@ Interface
 Uses
   Classes, SysUtils, DataProvider, MediaTypes, Inifiles, DB, ExtCtrls, DBSupport,
   BufDataset, fpspreadsheet, FrameEventListingSettings, IMMessaging, AppMessaging,
-  xlsxOOXML, xlsbiff8, CampaignRules;
+  xlsxOOXML, xlsbiff8, CampaignRules, FrameCampaignRules, DialogFrameHost;
 
 Type
 
@@ -16,6 +16,11 @@ Type
   TEventListingProvider = Class(TDataProvider)
   Private
     FCampaignEventRules: TCampaignEventRules;
+
+    // Settings Frames
+    fmeSettingsEventListing: TFrameEventListingSettings;
+    fmeCampaignRules: TfmeCampaignRules;
+
     // Settings
     FFileName: String;
     FWorksheetName: String;
@@ -34,6 +39,8 @@ Type
     Procedure CreateFields;
     Procedure LoadEvents;
 
+    Procedure ApplySettingsFrame(AFrame: TFrameEventListingSettings);
+    Procedure PopulateSettingsFrame(AFrame: TFrameEventListingSettings);
   Protected
     Function ProcessEventnameForReport(Var AType: String): Boolean; Override;
 
@@ -49,10 +56,9 @@ Type
 
     Function Title: String; Override;
 
-    Procedure ApplySettingsFrame(AFrame: TFrameEventListingSettings);
-    Procedure PopulateSettingsFrame(AFrame: TFrameEventListingSettings);
-
-    Property CampaignEventRules: TCampaignEventRules Read FCampaignEventRules;
+    Procedure RegisterFrames(ADialog: TDialogFrameHost; ALoading: Boolean); Override;
+    Procedure ApplyFrames; Override;
+    Procedure UnRegisterFrames(ADialog: TDialogFrameHost); Override;
 
     Function GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles; Override;
 
@@ -94,11 +100,18 @@ Begin
     '(NOT (Type = ''*Joint*''))', @DoDataFilterExecute));
 
   FCampaignEventRules := TCampaignEventRules.Create(True);
+
+  fmeCampaignRules := nil;
+  fmeSettingsEventListing := nil;
 End;
 
 
 Destructor TEventListingProvider.Destroy;
 Begin
+  // In theory, not needed
+  FreeAndNil(fmeSettingsEventListing);
+  FreeAndNil(fmeCampaignRules);
+
   FreeAndNil(FCampaignEventRules);
   FreeAndNil(FSpreadsheet);
   FreeAndNil(FMaster);
@@ -224,6 +237,47 @@ Begin
   AFrame.StartCol := FStartCol;
   AFrame.StartRow := FStartRow;
   AFrame.UTC_Offset := FUTCOffset;
+End;
+
+Procedure TEventListingProvider.RegisterFrames(ADialog: TDialogFrameHost; ALoading: Boolean);
+Begin
+  Inherited RegisterFrames(ADialog, ALoading);
+
+  If ALoading Then
+  Begin
+    If Not Assigned(fmeSettingsEventListing) Then
+      fmeSettingsEventListing := TFrameEventListingSettings.Create(ADialog);
+
+    ADialog.RegisterFrame(fmeSettingsEventListing, 'Event Listing');
+    PopulateSettingsFrame(fmeSettingsEventListing);
+  End
+  Else
+  Begin
+    If Not Assigned(fmeCampaignRules) Then
+      fmeCampaignRules := TfmeCampaignRules.Create(ADialog);
+
+    ADialog.RegisterFrame(fmeCampaignRules, 'Pipeline Chart');
+    fmeCampaignRules.CopyFrom(FCampaignEventRules);
+  End;
+End;
+
+Procedure TEventListingProvider.ApplyFrames;
+Begin
+  Inherited ApplyFrames;
+
+  If Assigned(fmeSettingsEventListing) Then
+    ApplySettingsFrame(fmeSettingsEventListing);
+
+  If Assigned(fmeCampaignRules) Then
+    FCampaignEventRules.CopyFrom(fmeCampaignRules.CampaignEventRules);
+End;
+
+Procedure TEventListingProvider.UnRegisterFrames(ADialog: TDialogFrameHost);
+Begin
+  Inherited UnRegisterFrames(ADialog);
+
+  FreeAndNil(fmeSettingsEventListing);
+  FreeAndNil(fmeCampaignRules);
 End;
 
 Function TEventListingProvider.Title: String;
@@ -423,12 +477,12 @@ Begin
   FStartRow := AIniFile.ReadInteger('EventListing', 'StartRow', 0);
   FUTCOffset := AIniFile.ReadFloat('EventListing', 'UTCOffset', 1);
 
-  FCampaignEventRules.LoadSettings(AIniFile, 'CampaignRules');
+  FCampaignEventRules.LoadSettings(AIniFile, 'EventListing.CampaignRules');
 End;
 
 Procedure TEventListingProvider.SaveSettings(AIniFile: TIniFile);
 Begin
-  FCampaignEventRules.SaveSettings(AIniFile, 'CampaignRules');
+  FCampaignEventRules.SaveSettings(AIniFile, 'EventListing.CampaignRules');
 
   AIniFile.WriteString('EventListing', 'Filename', FFileName);
   AIniFile.WriteString('EventListing', 'Worksheet', FWorksheetName);

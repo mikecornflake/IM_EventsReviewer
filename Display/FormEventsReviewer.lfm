@@ -53,7 +53,7 @@ inherited frmEventsReviewer: TfrmEventsReviewer
     object btnRefreshDatabase: TToolButton
       Left = 264
       Top = 2
-      Action = actRefreshDatabase
+      Action = actRefreshData
     end
     object btnOpenEventListing: TToolButton
       Left = 1
@@ -666,11 +666,11 @@ inherited frmEventsReviewer: TfrmEventsReviewer
       ImageIndex = 7
       OnExecute = actDatabaseOpenClick
     end
-    object actRefreshDatabase: TAction
+    object actRefreshData: TAction
       Caption = 'Refresh Data'
       Hint = 'Reload data'
       ImageIndex = 12
-      OnExecute = actRefreshDatabaseExecute
+      OnExecute = actRefreshDataExecute
     end
     object actSettings: TAction
       Caption = 'Settings...'

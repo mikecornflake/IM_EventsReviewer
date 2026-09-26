@@ -23,7 +23,7 @@ Type
     actGotoKP: TAction;
     actGotoTime: TAction;
     actOpenEventListing: TAction;
-    actRefreshDatabase: TAction;
+    actRefreshData: TAction;
     actSeekVideo: TAction;
     actSettings: TAction;
     actOpenDatabase: TAction;
@@ -81,7 +81,7 @@ Type
     Procedure actGotoTimeExecute(Sender: TObject);
     Procedure btnClearFilterClick(Sender: TObject);
     Procedure actOpenEventListingExecute(Sender: TObject);
-    Procedure actRefreshDatabaseExecute(Sender: TObject);
+    Procedure actRefreshDataExecute(Sender: TObject);
     Procedure actSeekVideoExecute(Sender: TObject);
     Procedure DBEditClick(Sender: TObject);
     Procedure FormCreate(Sender: TObject);
@@ -177,8 +177,8 @@ Uses
   Windows, DBGrids, VideoEngineFactory,
   FrameApplicationSettings, FrameSettingsSyncedVideo, DialogFrameHost,
   FileSupport, LazFileUtils, LazLogger, FrameVideoLibmpv,
-  FrameEventListingSettings, DialogImageSelection, FrameDateTimeSelection,
-  Types, Math, FrameCampaignRules;
+  DialogImageSelection, FrameDateTimeSelection,
+  Types, Math;
 
   {$R *.lfm}
 
@@ -363,7 +363,8 @@ Begin
 
   actOpenDatabase.Enabled := MSSQL.Available;
   actOpenEventListing.Enabled := True;
-  actRefreshDatabase.Enabled := bProviderReady;
+  actRefreshData.Enabled := bProviderReady;
+  actSettings.Enabled := bProviderReady;
 
   actSeekVideo.Enabled := bEventsReady;
   actGotoKP.Enabled := bEventsReady;
@@ -408,17 +409,23 @@ Begin
     oDlg.RegisterFrame(fmeSettingsApp, 'Folders');
     FSettings.PopulateSettingsFrame(fmeSettingsApp);
 
+    FDataProvider.RegisterFrames(oDlg, False);
+
     oDlg.RegisterFrame(fmeSettingsVideo, 'Video');
     fmeVideo.PopulateSettingsFrame(fmeSettingsVideo);
 
     If oDlg.ShowModal = mrOk Then
     Begin
+      FDataProvider.ApplyFrames;
+
       FSettings.ApplySettingsFrame(fmeSettingsApp);
       fmeVideo.ApplySettingsFrame(fmeSettingsVideo);
 
       ReloadAllMedia;
     End;
   Finally
+    FDataProvider.UnRegisterFrames(oDlg);
+
     fmeSettingsApp.Free;
     fmeSettingsVideo.Free;
     oDlg.Free;
@@ -589,30 +596,21 @@ End;
 Procedure TfrmEventsReviewer.actOpenEventListingExecute(Sender: TObject);
 Var
   oDlg: TDialogFrameHost;
-  fmeSettingsEventListing: TFrameEventListingSettings;
   fmeSettingsApp: TFrameApplicationSettings;
-  fmeCampaignRules: TfmeCampaignRules;
 Begin
   oDlg := TDialogFrameHost.Create(Self);
-  fmeSettingsEventListing := TFrameEventListingSettings.Create(oDlg);
   fmeSettingsApp := TFrameApplicationSettings.Create(oDlg);
-  fmeCampaignRules := TfmeCampaignRules.Create(oDlg);
   Try
     oDlg.Caption := Application.Title;
 
-    oDlg.RegisterFrame(fmeSettingsEventListing, 'Event Listing');
-    FEventListingProvider.PopulateSettingsFrame(fmeSettingsEventListing);
+    FEventListingProvider.RegisterFrames(oDlg, True);
 
     oDlg.RegisterFrame(fmeSettingsApp, 'Folders');
     FSettings.PopulateSettingsFrame(fmeSettingsApp);
 
-    oDlg.RegisterFrame(fmeCampaignRules, 'Pipeline Chart');
-    fmeCampaignRules.CopyFrom(FEventListingProvider.CampaignEventRules);
-
     If oDlg.ShowModal = mrOk Then
     Begin
-      FEventListingProvider.ApplySettingsFrame(fmeSettingsEventListing);
-      FEventListingProvider.CampaignEventRules.CopyFrom(fmeCampaignRules.CampaignEventRules);
+      FEventListingProvider.ApplyFrames;
 
       FSettings.ApplySettingsFrame(fmeSettingsApp);
 
@@ -623,8 +621,8 @@ Begin
         RefreshUI;
     End;
   Finally
-    fmeSettingsEventListing.Free;
-    fmeSettingsApp.Free;
+    FEventListingProvider.UnRegisterFrames(oDlg);
+
     oDlg.Free;
   End;
 End;
@@ -632,28 +630,21 @@ End;
 Procedure TfrmEventsReviewer.actDatabaseOpenClick(Sender: TObject);
 Var
   oDlg: TDialogFrameHost;
-  fmeSettingsMSSQL: TFrameMSSQLConnection;
   fmeSettingsApp: TFrameApplicationSettings;
 Begin
   oDlg := TDialogFrameHost.Create(Self);
-  fmeSettingsMSSQL := TFrameMSSQLConnection.Create(oDlg);
   fmeSettingsApp := TFrameApplicationSettings.Create(oDlg);
   Try
     oDlg.Caption := Application.Title;
 
-    // Additional filter to limit the databases available to be opened
-    fmeSettingsMSSQL.DatabasePrefix := 'SFX';
-
-    oDlg.RegisterFrame(fmeSettingsMSSQL, 'Database Server');
-    FStarfixDatabaseProvider.PopulateSettingsFrame(fmeSettingsMSSQL);
+    FStarfixDatabaseProvider.RegisterFrames(oDlg, True);
 
     oDlg.RegisterFrame(fmeSettingsApp, 'Folders');
     FSettings.PopulateSettingsFrame(fmeSettingsApp);
 
     If oDlg.ShowModal = mrOk Then
     Begin
-      FStarfixDatabaseProvider.ApplySettingsFrame(fmeSettingsMSSQL);
-      FSettings.ApplySettingsFrame(fmeSettingsApp);
+      FStarfixDatabaseProvider.ApplyFrames;
 
       // Set Provider includes the Open Call;
       SetDataProvider(FStarfixDatabaseProvider);
@@ -662,7 +653,8 @@ Begin
         RefreshUI;
     End;
   Finally
-    fmeSettingsMSSQL.Free;
+    FStarfixDatabaseProvider.UnRegisterFrames(oDlg);
+
     fmeSettingsApp.Free;
     oDlg.Free;
   End;
@@ -706,7 +698,7 @@ Begin
   FDataProvider.GotoDateTime(dtDateTime);
 End;
 
-Procedure TfrmEventsReviewer.actRefreshDatabaseExecute(Sender: TObject);
+Procedure TfrmEventsReviewer.actRefreshDataExecute(Sender: TObject);
 Begin
   Try
     FDataProvider.Refresh;
@@ -739,6 +731,8 @@ Begin
 
     // Refresh
     FMediaProvider.ScanVideoFiles(FSettings.VideoFolder);
+
+    fmePipelineChart.LoadData;
 
     // Does the refreshed MediaProvider still know about the current file
     If sCurrent <> '' Then

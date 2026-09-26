@@ -25,6 +25,8 @@ Type
     Constructor Create(TheOwner: TComponent); Override;
     Destructor Destroy; Override;
 
+    Procedure LoadData;
+
     Procedure Clear;
 
     Property KP: Double Read GetKP;
@@ -62,6 +64,11 @@ Begin
   Inherited Destroy;
 End;
 
+Procedure TfmePipelineEvents.LoadData;
+begin
+  frmEventsReviewer.DataProvider.PopulatePipelineView(fmePipelineView);
+end;
+
 Procedure TfmePipelineEvents.Clear;
 Begin
   fmePipelineView.Clear;
@@ -75,7 +82,7 @@ End;
 
 Procedure TfmePipelineEvents.DoReceiveDataProviderReady(AMessage: TIMMessage);
 Begin
-  frmEventsReviewer.DataProvider.PopulatePipelineView(fmePipelineView);
+  LoadData;
 End;
 
 Procedure TfmePipelineEvents.DoOnRangeClick(Sender: TObject; ARange: TPipelineEventRange;

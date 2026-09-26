@@ -7,8 +7,8 @@ Interface
 
 Uses
   Classes, SysUtils, DataProvider, MediaTypes, Inifiles, mssqlconn, sqldb,
-  dblib, DB, BufDataset, ExtCtrls,
-  MSSQLSupport, IMMessaging, AppMessaging;
+  dblib, DB, BufDataset, ExtCtrls, MSSQLSupport, FrameCampaignRules,
+  IMMessaging, AppMessaging, DialogFrameHost, CampaignRules;
 
 Type
 
@@ -16,6 +16,8 @@ Type
 
   TStarfixDatabaseProvider = Class(TDataProvider)
   Private
+    FCampaignEventRules: TCampaignEventRules;
+
     // Connection Details
     FDatabaseName, FServer: String;
     FUsername, FPassword: String;
@@ -32,8 +34,15 @@ Type
     // Dynamic SQL
     FMasterSQLSelect, FMasterSQLWhere, FMasterSQLOrder: String;
 
+    // Settings Frames
+    fmeSettingsMSSQL: TFrameMSSQLConnection;
+    fmeCampaignRules: TfmeCampaignRules;
+
     qryVideosforTime: TSQLQuery;
     Function GetSessionSelectionFilter: String;
+
+    Procedure ApplySettingsFrame(AFrame: TFrameMSSQLConnection);
+    Procedure PopulateSettingsFrame(AFrame: TFrameMSSQLConnection);
   Protected
     Function ProcessEventnameForReport(Var AType: String): Boolean; Override;
 
@@ -49,8 +58,9 @@ Type
 
     Function Title: String; Override;
 
-    Procedure ApplySettingsFrame(AFrame: TFrameMSSQLConnection);
-    Procedure PopulateSettingsFrame(AFrame: TFrameMSSQLConnection);
+    Procedure RegisterFrames(ADialog: TDialogFrameHost; ALoading: Boolean); Override;
+    Procedure ApplyFrames; Override;
+    Procedure UnRegisterFrames(ADialog: TDialogFrameHost); Override;
 
     Function GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles; Override;
 
@@ -62,7 +72,7 @@ Implementation
 
 Uses
   FormMain, FormEventsReviewer, ThirdPartySupport,
-  Dialogs, Controls, Forms, LazLogger, DBSupport, DataFilters, DialogFrameHost, FrameGridSelection;
+  Dialogs, Controls, Forms, LazLogger, DBSupport, DataFilters, FrameGridSelection;
 
   { TStarfixDatabaseProvider }
 
@@ -153,13 +163,23 @@ Begin
     @DoDataFilterExecute));
   FDataFilters.Add(TDataFilter.Create(17, 'Exclude Fieldjoints',
     '(NOT (Type = ''*Joint*''))', @DoDataFilterExecute));
+
+  FCampaignEventRules := TCampaignEventRules.Create(True);
+
+  fmeSettingsMSSQL := nil;
+  fmeCampaignRules := nil;
 End;
 
 Destructor TStarfixDatabaseProvider.Destroy;
 Begin
+  // Shouldn't be needed
+  FreeAndNil(fmeSettingsMSSQL);
+  FreeAndNil(fmeCampaignRules);
+
   If FConnection.Connected Then
     FConnection.Connected := False;
 
+  FreeAndNil(FCampaignEventRules);
   FreeAndNil(qryVideosforTime);
   FreeAndNil(FMaster);
   FreeAndNil(FTransaction);
@@ -288,6 +308,13 @@ Begin
     If Assigned(FOnProviderPreparing) Then
       FOnProviderPreparing(Self);
 
+    // Everything that must happen before the rest of the application
+    // sees the provider as ready has now happened.
+    frmEventsReviewer.MessageBus.Broadcast(Self, TIMMessageDataProviderReady);
+
+    // We suppressed the first event being loaded, so broadcast it now manually
+    DoMasterAfterScroll(FMaster);
+
     // Restore State;
     GotoNearestValue(FFieldStartTime, dtCurrent, -1);
   End;
@@ -319,9 +346,7 @@ Function TStarfixDatabaseProvider.ProcessEventnameForReport(Var AType: String): 
 Begin
   Result := Inherited ProcessEventnameForReport(AType);
 
-  // Merge all fieldjoint types into a single line
-  If AType.Contains(' Joint') Then
-    AType := 'Fieldjoint';
+  AType := FCampaignEventRules.ProcessedEventname(AType);
 
   // Starfix Database processing only...
   // Merge Start/End events into a single line each (assumes Length correctly set)
@@ -367,6 +392,50 @@ Begin
     Result := 'Fugro Starfix Database: Connected to ' + FDatabaseName
   Else
     Result := 'Fugro Starfix Database: Not connected';
+End;
+
+Procedure TStarfixDatabaseProvider.RegisterFrames(ADialog: TDialogFrameHost; ALoading: Boolean);
+Begin
+  Inherited RegisterFrames(ADialog, ALoading);
+
+  If ALoading Then
+  Begin
+    If Not Assigned(fmeSettingsMSSQL) Then
+      fmeSettingsMSSQL := TFrameMSSQLConnection.Create(ADialog);
+
+    // Additional filter to limit the databases available to be opened
+    fmeSettingsMSSQL.DatabasePrefix := 'SFX';
+
+    ADialog.RegisterFrame(fmeSettingsMSSQL, 'Database Server');
+    PopulateSettingsFrame(fmeSettingsMSSQL);
+  End
+  Else
+  Begin
+    If Not Assigned(fmeCampaignRules) Then
+      fmeCampaignRules := TfmeCampaignRules.Create(ADialog);
+
+    ADialog.RegisterFrame(fmeCampaignRules, 'Pipeline Chart');
+    fmeCampaignRules.CopyFrom(FCampaignEventRules);
+  End;
+End;
+
+Procedure TStarfixDatabaseProvider.ApplyFrames;
+Begin
+  Inherited ApplyFrames;
+
+  If Assigned(fmeSettingsMSSQL) Then
+    ApplySettingsFrame(fmeSettingsMSSQL);
+
+  If Assigned(fmeCampaignRules) Then
+    FCampaignEventRules.CopyFrom(fmeCampaignRules.CampaignEventRules);
+End;
+
+Procedure TStarfixDatabaseProvider.UnRegisterFrames(ADialog: TDialogFrameHost);
+Begin
+  Inherited UnRegisterFrames(ADialog);
+
+  FreeAndNil(fmeSettingsMSSQL);
+  FreeAndNil(fmeCampaignRules);
 End;
 
 Function TStarfixDatabaseProvider.GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles;
@@ -513,6 +582,8 @@ Begin
   FUsername := AInifile.ReadString('Database', 'Username', '');
   FPassword := AInifile.ReadString('Database', 'Password', '');
   FPort := AInifile.ReadInteger('Database', 'Port', 1433);
+
+  FCampaignEventRules.LoadSettings(AInifile, 'StarfixDatabase.CampaignRules');
 End;
 
 Procedure TStarfixDatabaseProvider.SaveSettings(AInifile: TIniFile);
@@ -523,6 +594,8 @@ Begin
   AInifile.WriteString('Database', 'Username', FUsername);
   AInifile.WriteString('Database', 'Password', FPassword);
   AInifile.WriteInteger('Database', 'Port', FPort);
+
+  FCampaignEventRules.SaveSettings(AInifile, 'StarfixDatabase.CampaignRules');
 End;
 
 End.
