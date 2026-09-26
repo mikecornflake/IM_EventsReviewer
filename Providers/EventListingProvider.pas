@@ -192,6 +192,8 @@ End;
 
 Function TEventListingProvider.Close: Boolean;
 Begin
+  FMinDateTime := 0;
+  FMaxDateTime := 0;
   FLoaded := False;
 
   FreeAndNil(FSpreadsheet);
@@ -333,6 +335,9 @@ Var
   sType: String;
   sSubType, sTemp: String;
 Begin
+  FMinDateTime := 0;
+  FMaxDateTime := 0;
+
   // Clear any set Filter on Refresh;
   Filter := '';
 
@@ -375,6 +380,12 @@ Begin
           dtStart := dtStart - dtOffset;
 
           FMaster[FFieldStartTime].AsDateTime := dtStart;
+
+          If (FMinDateTime = 0) Or (dtStart < FMinDateTime) Then
+            FMinDateTime := dtStart;
+
+          If (dtStart > FMaxDateTime) Then
+            FMaxDateTime := dtStart;
         End;
 
         // KP = F

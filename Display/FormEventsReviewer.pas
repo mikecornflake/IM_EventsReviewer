@@ -773,9 +773,8 @@ Begin
       Begin
         oVideo := FMediaProvider.Find(ExtractFileName(sCurrent));
 
-        If Not Assigned(oVideo) Or
-          (Not SameFileName(sCurrent, IncludeTrailingPathDelimiter(oVideo.Folder) +
-          oVideo.Filename)) Then
+        If Not Assigned(oVideo) Or (Not SameFileName(sCurrent,
+          IncludeTrailingPathDelimiter(oVideo.Folder) + oVideo.Filename)) Then
           fmeVideo.Clear;
       End;
 

@@ -31,16 +31,17 @@ Type
     FTransaction: TSQLTransaction;
     FMaster: TSQLQuery;
 
-    // Dynamic SQL
-    FMasterSQLSelect, FMasterSQLWhere, FMasterSQLOrder: String;
+    // Dynamic SQLs
+    FMasterSQLSelect, FMasterSQLFrom, FMasterSQLWhere, FMasterSQLOrder: String;
+    FTimeSQLSelect: String; // Replacement Select for the Master SQL
+    FVideosForTimeSQL: String;
+    FQuery: TSQLQuery;
 
     // Settings Frames
     fmeSettingsMSSQL: TFrameMSSQLConnection;
     fmeCampaignRules: TfmeCampaignRules;
 
-    qryVideosforTime: TSQLQuery;
     Function GetSessionSelectionFilter: String;
-
     Procedure ApplySettingsFrame(AFrame: TFrameMSSQLConnection);
     Procedure PopulateSettingsFrame(AFrame: TFrameMSSQLConnection);
   Protected
@@ -94,46 +95,54 @@ Begin
   FMaster.AfterOpen := @DoDatasetAfterOpen;
   FUpdatingMasterDataset := False;
 
-  FMasterSQLSelect := 'SELECT E.[UNIQUE_ID], ';
+  FTimeSQLSelect := 'SELECT                                                         ';
+  FTimeSQLSelect += '  Min(DATEADD(S, E.TIMEDATE, ''1970-01-01'')) As [Start_Time], ';
+  FTimeSQLSelect += '  Max(DATEADD(S, E.TIMEDATE, ''1970-01-01'')) As [End_Time]    ';
+
+  FMasterSQLSelect := 'SELECT E.[UNIQUE_ID],                   ';
   FMasterSQLSelect += '       DATEADD(S, E.TIMEDATE, ''1970-01-01'') AS [' +
     FFieldStartTime + '], ';
   FMasterSQLSelect += '       E.KP AS [' + FFieldStartKP + '], ';
-  FMasterSQLSelect += '       E.[Type], ';
-  FMasterSQLSelect += '       E.Comment AS [Description], ';
+  FMasterSQLSelect += '       E.[Type],                        ';
+  FMasterSQLSelect += '       E.Comment AS [Description],      ';
   FMasterSQLSelect += '       E.Anomaly_No AS [' + FFieldAnomalyReference + '], ';
-  FMasterSQLSelect += '       CASE E.Anomaly ';
-  FMasterSQLSelect += '           WHEN 1 THEN ''Y'' ';
-  FMasterSQLSelect += '           ELSE ''N'' ';
-  FMasterSQLSelect += '       END AS [Anomaly], ';
-  FMasterSQLSelect += '       CASE E.Anomaly ';
-  FMasterSQLSelect += '           WHEN 1 THEN ''Red'' ';
-  FMasterSQLSelect += '           ELSE NULL ';
-  FMasterSQLSelect += '       END AS [Colour_ID], ';
+  FMasterSQLSelect += '       CASE E.Anomaly                   ';
+  FMasterSQLSelect += '           WHEN 1 THEN ''Y''            ';
+  FMasterSQLSelect += '           ELSE ''N''                   ';
+  FMasterSQLSelect += '       END AS [Anomaly],                ';
+  FMasterSQLSelect += '       CASE E.Anomaly                   ';
+  FMasterSQLSelect += '           WHEN 1 THEN ''Red''          ';
+  FMasterSQLSelect += '           ELSE NULL                    ';
+  FMasterSQLSelect += '       END AS [Colour_ID],              ';
   FMasterSQLSelect += '       TRY_CONVERT(decimal(18,3), E.Length) AS [Length_(m)], ';
-  FMasterSQLSelect += '       TRY_CONVERT(decimal(18,3), E.Width) AS [Width_(m)], ';
+  FMasterSQLSelect += '       TRY_CONVERT(decimal(18,3), E.Width) AS [Width_(m)],   ';
   FMasterSQLSelect += '       TRY_CONVERT(decimal(18,3), E.Height) AS [Height_(m)], ';
   FMasterSQLSelect += '       E.Observed_Offset AS [Offset_(m)], ';
-  FMasterSQLSelect += '       E.[Clock], ';
-  FMasterSQLSelect += '       E.East AS [Easting], ';
-  FMasterSQLSelect += '       E.North AS [Northing], ';
-  FMasterSQLSelect += '       E.[Depth] ';
-  FMasterSQLSelect += 'FROM dbo.Event_3 E ';
-  FMasterSQLSelect += 'INNER JOIN dbo.SESSIONS S ON (S.START_TIME <= E.TIMEDATE ';
-  FMasterSQLSelect += '                              AND S.END_TIME >= E.TIMEDATE ';
-  FMasterSQLSelect += '                              AND S.INPUT_FILES = ''Pos Import'') ';
+  FMasterSQLSelect += '       E.[Clock],                       ';
+  FMasterSQLSelect += '       E.East AS [Easting],             ';
+  FMasterSQLSelect += '       E.North AS [Northing],           ';
+  FMasterSQLSelect += '       E.[Depth]                        ';
+
+  FMasterSQLFrom := 'FROM dbo.Event_3 E                        ';
+  FMasterSQLFrom += 'INNER JOIN dbo.SESSIONS S ON (S.START_TIME <= E.TIMEDATE          ';
+  FMasterSQLFrom += '                              AND S.END_TIME >= E.TIMEDATE        ';
+  FMasterSQLFrom += '                              AND S.INPUT_FILES = ''Pos Import'') ';
+
   FMasterSQLWhere := 'WHERE (E.PROC_FLAGS & 512) <> 512 ';
+
   FMasterSQLOrder := 'ORDER BY [KP] ASC ';
 
-  qryVideosforTime := TSQLQuery.Create(nil);
-  qryVideosforTime.Database := FConnection;
-  qryVideosforTime.Transaction := FTransaction;
-  qryVideosforTime.SQL.Add('SELECT V.Filename As [Filename],       ');
-  qryVideosforTime.SQL.Add('    V.ChannelLocation As [Channel], ');
-  qryVideosforTime.SQL.Add('    DATEADD(S, V.StartTime, ''1970-01-01'') AS [Start], ');
-  qryVideosforTime.SQL.Add('    DATEADD(S, V.EndTime, ''1970-01-01'') AS [End]      ');
-  qryVideosforTime.SQL.Add('FROM dbo.dvfilename_5 V            ');
-  qryVideosforTime.SQL.Add('WHERE DATEADD(S, V.StartTime, ''1970-01-01'') <= :TIMEDATE_ID');
-  qryVideosforTime.SQL.Add('  AND DATEADD(S, V.EndTime,   ''1970-01-01'') >= :TIMEDATE_ID');
+  FQuery := TSQLQuery.Create(nil);
+  FQuery.Database := FConnection;
+  FQuery.Transaction := FTransaction;
+
+  FVideosForTimeSQL := 'SELECT V.Filename As [Filename],      ';
+  FVideosForTimeSQL += '    V.ChannelLocation As [Channel],   ';
+  FVideosForTimeSQL += '    DATEADD(S, V.StartTime, ''1970-01-01'') AS [Start], ';
+  FVideosForTimeSQL += '    DATEADD(S, V.EndTime, ''1970-01-01'') AS [End]      ';
+  FVideosForTimeSQL += 'FROM dbo.dvfilename_5 V                ';
+  FVideosForTimeSQL += 'WHERE DATEADD(S, V.StartTime, ''1970-01-01'') <= :TIMEDATE_ID';
+  FVideosForTimeSQL += '  AND DATEADD(S, V.EndTime,   ''1970-01-01'') >= :TIMEDATE_ID';
 
   // Fetch complete result set.
   // Required when other queries on the same connection may be opened
@@ -141,7 +150,7 @@ Begin
   // Without this, FreeTDS may report
   //    "adaptive server operation with results pending".
   FMaster.PacketRecords := -1;
-  qryVideosforTime.PacketRecords := -1;
+  FQuery.PacketRecords := -1;
 
   // Register the database driver
   FDriverFilename := '';
@@ -180,7 +189,7 @@ Begin
     FConnection.Connected := False;
 
   FreeAndNil(FCampaignEventRules);
-  FreeAndNil(qryVideosforTime);
+  FreeAndNil(FQuery);
   FreeAndNil(FMaster);
   FreeAndNil(FTransaction);
   FreeAndNil(FConnection);
@@ -236,16 +245,32 @@ Begin
         FConnection.ExecuteDirect('SET ANSI_NULLS ON');
         FTransaction.Commit;
 
-        MainForm.Busy := False;
+        // Override our earlier Busy (manually, because it is likely a nested Busy)
+        frmEventsReviewer.Cursor := crDefault;
+        Screen.Cursor := crDefault;
         Try
           sSessionFilter := Trim(GetSessionSelectionFilter);
         Finally
-          MainForm.Busy := True;
+          frmEventsReviewer.Cursor := crHourglass;
+          Screen.Cursor := crHourglass;
         End;
 
+        If FMaster.Active Then
+          FMaster.Close;
+
         // Retrieving results
-        FMaster.SQL.Text := FMasterSQLSelect + FMasterSQLWhere + sSessionFilter + FMasterSQLOrder;
+        FMaster.SQL.Text := FMasterSQLSelect + FMasterSQLFrom + FMasterSQLWhere +
+          sSessionFilter + FMasterSQLOrder;
         FMaster.Open;
+
+        If FQuery.Active Then
+          FQuery.Close;
+
+        FQuery.SQL.Text := FTimeSQLSelect + FMasterSQLFrom + FMasterSQLWhere + sSessionFilter;
+        FQuery.Open;
+
+        FMinDateTime := ValueAsFloat(FQuery, 'Start_Time', 0);
+        FMaxDateTime := ValueAsFloat(FQuery, 'End_Time', 0);
 
         Result := True;
         FLoaded := True;
@@ -322,6 +347,8 @@ End;
 
 Function TStarfixDatabaseProvider.Close: Boolean;
 Begin
+  FMinDateTime := 0;
+  FMaxDateTime := 0;
   FLoaded := False;
 
   // Clear any set Filter
@@ -333,8 +360,8 @@ Begin
   If FMaster.Active Then
     FMaster.Close;
 
-  If qryVideosforTime.Active Then
-    qryVideosforTime.Close;
+  If FQuery.Active Then
+    FQuery.Close;
 
   If FConnection.Connected Then
     FConnection.Close;
@@ -449,13 +476,15 @@ Begin
   Result := TVideoFiles.Create;
   Try
     // Find the target videos
-    If qryVideosforTime.Active Then
-      qryVideosforTime.Close;
+    If FQuery.Active Then
+      FQuery.Close;
+
+    FQuery.SQL.Text := FVideosForTimeSQL;
 
     // Split for testing purposes
-    qryVideosforTime.ParamByName('TIMEDATE_ID').AsDateTime := ADateTime;
+    FQuery.ParamByName('TIMEDATE_ID').AsDateTime := ADateTime;
     Try
-      qryVideosforTime.Open;
+      FQuery.Open;
     Except
       On E: Exception Do
       Begin
@@ -468,16 +497,16 @@ Begin
       End;
     End;
 
-    qryVideosforTime.First;
+    FQuery.First;
 
-    While Not qryVideosforTime.EOF Do
+    While Not FQuery.EOF Do
     Begin
       oVideoFile := TVideoFile.Create;
       Try
-        oVideoFile.Filename := qryVideosforTime.FieldByName('Filename').AsString;
-        oVideoFile.Channel := qryVideosforTime.FieldByName('Channel').AsString;
-        oVideoFile.StartDateTime := qryVideosforTime.FieldByName('Start').AsDateTime;
-        oVideoFile.EndDateTime := qryVideosforTime.FieldByName('End').AsDateTime;
+        oVideoFile.Filename := FQuery.FieldByName('Filename').AsString;
+        oVideoFile.Channel := FQuery.FieldByName('Channel').AsString;
+        oVideoFile.StartDateTime := FQuery.FieldByName('Start').AsDateTime;
+        oVideoFile.EndDateTime := FQuery.FieldByName('End').AsDateTime;
 
         Result.Add(oVideoFile);
       Except
@@ -485,8 +514,10 @@ Begin
         Raise;
       End;
 
-      qryVideosforTime.Next;
+      FQuery.Next;
     End;
+
+    FQuery.Close;
   Except
     Result.Free;
     Result := nil;

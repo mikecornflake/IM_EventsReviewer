@@ -29,7 +29,7 @@ Type
 Implementation
 
 Uses
-  FormEventsReviewer, FormMain, DBSupport;
+  FormEventsReviewer, FormMain, DBSupport, LazLogger;
 
   {$R *.lfm}
 
@@ -67,6 +67,8 @@ End;
 Procedure TfmeVideoFiles.Load(AVideoFiles: TVideoFiles);
 Var
   oVideo: TVideoFile;
+  dtDefaultMax, dtCurrentEnd: Extended;
+  dtCurrentStart: TDateTime;
 Begin
   frmEventsReviewer.Busy := True;
   frmEventsReviewer.SetStatusAndLog('Loading video files', INDENT_INC);
@@ -83,6 +85,7 @@ Begin
     FDataset.FieldDefs.Add('End_Time', ftDateTime);    //  EndDateTime
     FDataset.FieldDefs.Add('Confidence', ftInteger);   //  InferredConfidence
     FDataset.FieldDefs.Add('Format', ftString, 255);   //  InferredFormatName
+    FDataset.FieldDefs.Add('Colour_ID', ftString, 20);
 
     FDataset.CreateDataset;
 
@@ -100,9 +103,34 @@ Begin
         FDataset.FieldByName('Confidence').AsInteger := oVideo.InferredConfidence;
         FDataset.FieldByName('Format').AsString := oVideo.InferredFormatName;
 
+        // Populate Colour_ID according to rules
+        If FDataset.FieldByName('Start_Time').IsNull Then
+          FDataset.FieldByName('Colour_ID').AsString := 'Red' // Invalid Start Time
+        Else
+        Begin
+          // Is this video within DataProvider bounds
+          If frmEventsReviewer.Settings.MaxVideoDuration > 0 Then
+            dtDefaultMax := frmEventsReviewer.Settings.MaxVideoDuration / MinsPerDay
+          Else
+            dtDefaultMax := 15 / MinsPerDay;
+          dtCurrentStart := FDataset.FieldByName('Start_Time').AsDateTime;
+          dtCurrentEnd := ValueAsFloat(FDataset, 'End_Time', dtCurrentStart + dtDefaultMax);
+
+          If (dtCurrentEnd < frmEventsReviewer.DataProvider.MinDateTime) Or
+            (dtCurrentStart > frmEventsReviewer.DataProvider.MaxDateTime) Then
+            FDataset.FieldByName('Colour_ID').AsString := 'clGray';
+        End;
+
         FDataset.Post;
       Except
-        FDataset.Cancel;
+        On E: Exception Do
+        Begin
+          DebugLn([ClassName, '.', {$I %CURRENTROUTINE%}, ' failed to load TVideoFile ',
+            oVideo.Filename, ' ', oVideo.Folder, ' with error:', E.MEssage]);
+
+          If FDataset.State In [dsInsert, dsEdit] Then
+            FDataset.Cancel;
+        End;
       End;
     End;
 
@@ -134,6 +162,9 @@ Begin
   If Not (AMessage Is TIMMessageTime) Then
     Exit;
 
+  If Not Assigned(FDataset) Then
+    Exit;
+
   // Only change video if absolutely needed
   If Not (FDataset.Active) Or (FDataset.IsEmpty) Then
     Exit;
@@ -152,7 +183,7 @@ Begin
   Begin
     frmEventsReviewer.Busy := True;
     frmEventsReviewer.SetStatusAndLog('Seeking video file list to ' +
-      FormatDateTime('yyyy-mm-dd HH:ss:ss', oMessage.DateTime), INDENT_INC);
+      FormatDateTime('yyyy-mm-dd HH:nn:ss', oMessage.DateTime), INDENT_INC);
     Try
       DBSupport.GotoNearestValue(FDataset, 'Start_Time', oMessage.DateTime, SEEK_LAST_BEFORE);
     Finally

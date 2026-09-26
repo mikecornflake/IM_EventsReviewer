@@ -85,7 +85,9 @@ Uses
 Constructor TfmeVideo.Create(TheOwner: TComponent);
 Begin
   Inherited Create(TheOwner);
-  {$IFNDEF RELEASE}DebugLnEnter(['Start ',ClassName, '.', {$I %CURRENTROUTINE%}]);{$ENDIF}
+  {$IFNDEF RELEASE}
+  DebugLnEnter(['Start ', ClassName, '.', {$I %CURRENTROUTINE%}]);
+  {$ENDIF}
 
   fmeVideoPlayer := TFrameVideoPlayer.Create(Self);
   fmeVideoPlayer.Parent := Self;
@@ -113,7 +115,9 @@ Begin
   FPendingSeek := False;
   FPendingSeekTime := 0;
   FLastBroadcastTick := 0;
-  {$IFNDEF RELEASE}DebugLnExit(['End ',ClassName, '.', {$I %CURRENTROUTINE%}]);{$ENDIF}
+  {$IFNDEF RELEASE}
+  DebugLnExit(['End ', ClassName, '.', {$I %CURRENTROUTINE%}]);
+  {$ENDIF}
 End;
 
 Destructor TfmeVideo.Destroy;
@@ -325,7 +329,8 @@ End;
 
 Procedure TfmeVideo.DoVideoLoaded(Sender: TObject);
 Begin
-  frmEventsReviewer.SetStatusAndLog(Format('Finished loading %d videos - starting delayed seek', [fmeSyncedVideo.VideoFileCount]));
+  frmEventsReviewer.SetStatusAndLog(Format('Finished loading %d videos - starting delayed seek',
+    [fmeSyncedVideo.VideoFileCount]));
   tmrSeekAfterLoadVideo.Enabled := True;
 End;
 
@@ -358,7 +363,8 @@ Begin
     FSeekPending := False;
     fmeSyncedVideo.PositionAsTime := FPendingVideoTime;
 
-    frmEventsReviewer.SetStatusAndLog('Seeking video to '+FormatDateTime('HH:nn:ss', FPendingVideoTime));
+    frmEventsReviewer.SetStatusAndLog('Seeking video to ' + FormatDateTime('HH:nn:ss',
+      FPendingVideoTime));
   End;
 End;
 

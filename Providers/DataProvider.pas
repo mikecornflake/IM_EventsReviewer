@@ -22,6 +22,10 @@ Type
   { TDataProvider }
   TDataProvider = Class(TObject, IIM_Persistent)
   Protected
+    // Project Bounds
+    FMaxDateTime: TDateTime;
+    FMinDateTime: TDateTime;
+
     // FIELDNAMES
     FFieldStartKP, FFieldStartTime, FFieldAnomalyReference: String;
 
@@ -118,6 +122,10 @@ Type
     Property Filtered: Boolean Read GetFiltered;
     Property Filter: String Read FFilter Write SetFilter;
 
+    Property MinDateTime: TDateTime Read FMinDateTime;
+    Property MaxDateTime: TDateTime Read FMaxDateTime;
+
+
     // Events
     Property OnProviderPreparing: TNotifyEvent Read GetOnProviderPreparing
       Write SetOnProviderPreparing;
@@ -151,6 +159,10 @@ Begin
   // Messages
   frmEventsReviewer.MessageBus.Subscribe(Self, TIMMessageTime, @DoReceiveSeekTimeMessage);
   frmEventsReviewer.MessageBus.Subscribe(Self, TIMMessageKP, @DoReceiveSeekKPMessage);
+
+  // Date range default
+  FMinDateTime := 0;
+  FMaxDateTime := 0;
 End;
 
 Destructor TDataProvider.Destroy;
