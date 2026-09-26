@@ -7,7 +7,7 @@ Interface
 Uses
   Classes, SysUtils, DataProvider, MediaTypes, Inifiles, DB, ExtCtrls, DBSupport,
   BufDataset, fpspreadsheet, FrameEventListingSettings, IMMessaging, AppMessaging,
-  xlsxOOXML, xlsbiff8;
+  xlsxOOXML, xlsbiff8, CampaignRules;
 
 Type
 
@@ -15,6 +15,7 @@ Type
 
   TEventListingProvider = Class(TDataProvider)
   Private
+    FCampaignEventRules: TCampaignEventRules;
     // Settings
     FFileName: String;
     FWorksheetName: String;
@@ -50,6 +51,8 @@ Type
 
     Procedure ApplySettingsFrame(AFrame: TFrameEventListingSettings);
     Procedure PopulateSettingsFrame(AFrame: TFrameEventListingSettings);
+
+    Property CampaignEventRules: TCampaignEventRules Read FCampaignEventRules;
 
     Function GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles; Override;
 
@@ -89,11 +92,14 @@ Begin
     @DoDataFilterExecute));
   FDataFilters.Add(TDataFilter.Create(17, 'Exclude Fieldjoints',
     '(NOT (Type = ''*Joint*''))', @DoDataFilterExecute));
+
+  FCampaignEventRules := TCampaignEventRules.Create(True);
 End;
 
 
 Destructor TEventListingProvider.Destroy;
 Begin
+  FreeAndNil(FCampaignEventRules);
   FreeAndNil(FSpreadsheet);
   FreeAndNil(FMaster);
 
@@ -394,9 +400,7 @@ Function TEventListingProvider.ProcessEventnameForReport(Var AType: String): Boo
 Begin
   Result := Inherited ProcessEventnameForReport(AType);
 
-  // Merge all fieldjoint types into a single line
-  If AType.Contains(' Joint') Then
-    AType := 'Fieldjoint';
+  AType := FCampaignEventRules.ProcessedEventname(AType);
 
   // Starfix Database processing only...
   // Merge Start/End events into a single line each (assumes Length correctly set)
@@ -418,10 +422,14 @@ Begin
   FStartCol := AIniFile.ReadInteger('EventListing', 'StartCol', 0);
   FStartRow := AIniFile.ReadInteger('EventListing', 'StartRow', 0);
   FUTCOffset := AIniFile.ReadFloat('EventListing', 'UTCOffset', 1);
+
+  FCampaignEventRules.LoadSettings(AIniFile, 'CampaignRules');
 End;
 
 Procedure TEventListingProvider.SaveSettings(AIniFile: TIniFile);
 Begin
+  FCampaignEventRules.SaveSettings(AIniFile, 'CampaignRules');
+
   AIniFile.WriteString('EventListing', 'Filename', FFileName);
   AIniFile.WriteString('EventListing', 'Worksheet', FWorksheetName);
   AIniFile.WriteInteger('EventListing', 'StartCol', FStartCol);

@@ -19,7 +19,7 @@
       <UseVersionInfo Value="True"/>
       <AutoIncrementBuild Value="True"/>
       <MinorVersionNr Value="1"/>
-      <BuildNr Value="132"/>
+      <BuildNr Value="135"/>
       <Attributes pvaPreRelease="True"/>
       <StringTable Comments="Inspector Mike Events Reviewer" CompanyName="Inspector Mike 2.0 Pty Ltd" LegalCopyright="(c) 2026"/>
     </VersionInfo>
@@ -242,6 +242,17 @@
         <Filename Value="Display\FrameDateTimeSelection.pas"/>
         <IsPartOfProject Value="True"/>
         <ComponentName Value="fmeDateTimeSelection"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Frame"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Providers\CampaignRules.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Providers\FrameCampaignRules.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="fmeCampaignRules"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Frame"/>
       </Unit>

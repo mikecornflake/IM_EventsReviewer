@@ -177,7 +177,8 @@ Uses
   Windows, DBGrids, VideoEngineFactory,
   FrameApplicationSettings, FrameSettingsSyncedVideo, DialogFrameHost,
   FileSupport, LazFileUtils, LazLogger, FrameVideoLibmpv,
-  FrameEventListingSettings, DialogImageSelection, FrameDateTimeSelection, Types, Math;
+  FrameEventListingSettings, DialogImageSelection, FrameDateTimeSelection,
+  Types, Math, FrameCampaignRules;
 
   {$R *.lfm}
 
@@ -590,10 +591,12 @@ Var
   oDlg: TDialogFrameHost;
   fmeSettingsEventListing: TFrameEventListingSettings;
   fmeSettingsApp: TFrameApplicationSettings;
+  fmeCampaignRules: TfmeCampaignRules;
 Begin
   oDlg := TDialogFrameHost.Create(Self);
   fmeSettingsEventListing := TFrameEventListingSettings.Create(oDlg);
   fmeSettingsApp := TFrameApplicationSettings.Create(oDlg);
+  fmeCampaignRules := TfmeCampaignRules.Create(oDlg);
   Try
     oDlg.Caption := Application.Title;
 
@@ -603,9 +606,14 @@ Begin
     oDlg.RegisterFrame(fmeSettingsApp, 'Folders');
     FSettings.PopulateSettingsFrame(fmeSettingsApp);
 
+    oDlg.RegisterFrame(fmeCampaignRules, 'Pipeline Chart');
+    fmeCampaignRules.CopyFrom(FEventListingProvider.CampaignEventRules);
+
     If oDlg.ShowModal = mrOk Then
     Begin
       FEventListingProvider.ApplySettingsFrame(fmeSettingsEventListing);
+      FEventListingProvider.CampaignEventRules.CopyFrom(fmeCampaignRules.CampaignEventRules);
+
       FSettings.ApplySettingsFrame(fmeSettingsApp);
 
       // Set Provider includes the Open Call;

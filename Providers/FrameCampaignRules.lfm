@@ -1,0 +1,199 @@
+inherited fmeCampaignRules: TfmeCampaignRules
+  Height = 329
+  Width = 392
+  ClientHeight = 329
+  ClientWidth = 392
+  object lbRules: TListBox[0]
+    Left = 8
+    Height = 190
+    Top = 128
+    Width = 164
+    Anchors = [akTop, akLeft, akBottom]
+    ItemHeight = 0
+    TabOrder = 0
+    OnClick = lbRulesClick
+    OnSelectionChange = lbRulesSelectionChange
+  end
+  object memIncludeKeywords: TMemo[1]
+    Left = 201
+    Height = 74
+    Top = 144
+    Width = 173
+    Anchors = [akTop, akLeft, akRight]
+    Lines.Strings = (
+      'memIncludeKeywords'
+    )
+    ScrollBars = ssAutoBoth
+    TabOrder = 1
+    WordWrap = False
+    OnChange = RuleChanged
+  end
+  object memExcludeKeywords: TMemo[2]
+    Left = 201
+    Height = 78
+    Top = 240
+    Width = 173
+    Anchors = [akTop, akLeft, akRight, akBottom]
+    Lines.Strings = (
+      'memIncludeKeywords'
+    )
+    ScrollBars = ssAutoBoth
+    TabOrder = 2
+    WordWrap = False
+    OnChange = RuleChanged
+  end
+  object Label1: TLabel[3]
+    Left = 8
+    Height = 15
+    Top = 112
+    Width = 119
+    Caption = 'Display Eventname as'
+    Font.Style = [fsBold]
+    ParentFont = False
+  end
+  object Label2: TLabel[4]
+    Left = 201
+    Height = 15
+    Top = 128
+    Width = 86
+    Caption = 'If Type includes'
+    Font.Style = [fsBold]
+    ParentFont = False
+  end
+  object Label3: TLabel[5]
+    Left = 201
+    Height = 15
+    Top = 225
+    Width = 153
+    Anchors = [akTop, akLeft, akRight]
+    Caption = 'But not if Type includes'
+    Font.Style = [fsBold]
+    ParentFont = False
+  end
+  object Label4: TLabel[6]
+    Left = 8
+    Height = 15
+    Top = 0
+    Width = 64
+    Caption = 'Description'
+    Font.Style = [fsBold]
+    ParentFont = False
+  end
+  object Label5: TLabel[7]
+    Left = 17
+    Height = 47
+    Top = 20
+    Width = 357
+    Anchors = [akTop, akLeft, akRight]
+    AutoSize = False
+    Caption = 'The Event names on the Pipeline Chart come from Type in the Grid.'#13#10'They can be simplified and renamed according to the following rules:'
+    WordWrap = True
+  end
+  object ToolBar1: TToolBar[8]
+    Left = 8
+    Height = 26
+    Top = 80
+    Width = 164
+    Align = alNone
+    Caption = 'ToolBar1'
+    Images = ImageList1
+    List = True
+    TabOrder = 3
+    object btnAddRule: TToolButton
+      Left = 1
+      Top = 2
+      Caption = 'Add'
+      ImageIndex = 0
+      OnClick = btnAddRuleClick
+    end
+    object btnDeleteRule: TToolButton
+      Left = 24
+      Top = 2
+      Caption = 'Delete'
+      ImageIndex = 1
+      OnClick = btnDeleteRuleClick
+    end
+    object ToolButton1: TToolButton
+      Left = 47
+      Height = 22
+      Top = 2
+      Caption = 'ToolButton1'
+      Style = tbsSeparator
+    end
+    object btnUp: TToolButton
+      Left = 55
+      Top = 2
+      Caption = 'Up'
+      ImageIndex = 2
+      OnClick = btnUpClick
+    end
+    object btnDown: TToolButton
+      Left = 78
+      Top = 2
+      Caption = 'Down'
+      ImageIndex = 3
+      ShowCaption = False
+      OnClick = btnDownClick
+    end
+  end
+  object Label6: TLabel[9]
+    Left = 201
+    Height = 15
+    Top = 80
+    Width = 119
+    Caption = 'Display Eventname as'
+    Font.Style = [fsBold]
+    ParentFont = False
+  end
+  object edtDisplayname: TEdit[10]
+    Left = 201
+    Height = 23
+    Top = 98
+    Width = 173
+    TabOrder = 4
+    Text = 'edtDisplayname'
+    OnChange = RuleChanged
+  end
+  object ImageList1: TImageList[11]
+    Left = 160
+    Top = 224
+    Bitmap = {
+      4C7A040000001000000010000000660400000000000078DAED556D4C935718BD
+      6AB61FFC601F3F16F6871F66666A4560CD14D7A1991F1D1F750A461C28D1B504
+      288B33CB1458C2E2128C4CC708F20D1A17D4C4596024463411D30285202C4C40
+      708953E28C64B2CD6946B796CDEDEC9EDBD65628528D4BF6832739B9CF3DCF39
+      EFFBBCCFFBDE5688A71CC5095A7140DF2A8AD64214AD815A0FE8213E8F6F155F
+      18B48FF41E8CAB0CAD4AC5EEE1B3F872FC06CAEE5EC5C7A3BD48BFD282A52DFB
+      31EF503244B1C1328DD7F2F211132EC089F45B3D10F66A085B2944DB2188CE1A
+      CCEF3D86E88E6ACC2BDF0CD947E5C33D276A432ADE45936B0C61FD27A5BE02A2
+      A314DE1076798DEE5A3C73F130C2CE1541946E842859EF7B96CFF4D6D49E1388
+      1FB92075156ED84BFCFC251017AB20BEA9C3B3EDB2A7FA6C398F449B9F1FB937
+      BA207A6B20BA64BD53EADB8B7C7E992BAEBB5C5EA316A22157CE21113EFF3A64
+      5EB7E2F9FE639829449F9C4B53BEBC7F82CF2FDF4FD260335E1C3A3EB3FF5200
+      FFC138C4741E811890FDF795C91ED9AB5FFF3257DCB7B2FFFEBAA9FD17AEEB79
+      A9211F2FF4C86B0FC9FAA05CFBFCE62773C50D1F96B328C69C7A33C4BEB77B1E
+      F853A3934469129E3B5388B983723E57A46EA0DCE797B99BABC11CDE9BEF2F4D
+      7A7C11220AD65884FCBEE636E6C9F7552CF5B5081BF94A813939E52DDB0451B0
+      D6A23C0F47B8F8547EF7F2DAAA3F8BD436E4B92173C5F1BE6E6FF8342760BED8
+      A0D9260AE5B3713E9C31C19C1C6BD37B7DCF22C40209ED242C08D0F39458AC6B
+      AF5C18D3E67C75B90D5E704FFE51BE256F76E8A9CDC9BB86A3A77E43F379179A
+      5B5D6AE59E3CEBD44DF1C676E82357D9517DFC2E8E363AB163CF1DACDC328657
+      DE1A552BF7E459A78E7A7F3FAF5B77F21EF6968EE335C31822E27F4494E136A2
+      25B8724F9E75EAA8F77A35F2B976155CC7BE8ADFB134610CDAF563787DC34F58
+      B6D107EEC9B34E1DF51ACF3C16ADB0B9EA1B1D8849BE8388B85FA0D1FF8CC501
+      409E75EAA8A74FCD7B850DFBAB5C884CFC15C10475D4D3E7EEDF0653BE53F677
+      2F283F75D4D3E77E6F366C32BBB032653C283F75D4D3477F44AC75E29D0C070C
+      262756A73964DD81D8CD53419E75EAA8A74FCD6FB9E5D4EA94116CD9F997BA6E
+      72B613C959012079D6A9A39E3EEFB9632F296607D23FBC8FADBBFE44DA071353
+      409E75EA3CBD3F3847E18BF6BE1FB9AA03A93BFF803117D8B1FB1F6CFF88F85B
+      ADDC93679D3AEA277DC2A1E4343A2B12B6DEC47B7BEEC3FC09602E805AB927CF
+      BAC71B1AE00891D32E5C66B12CD15927A8D5BC61551EEEC97BCE71E80C4798CF
+      153DE9EC4707F1BB311B4F39323333413C89D7683462E8F2A002F3C7F19A4C26
+      7475DA71F6CC6905E6E482F1666767A3BDCD86EF86077079F092027372ACCDE4
+      379BCDE3595959C8C8C850F7249893632D8816A202FC77791135FB55CDC6FF39
+      727272BA79E6F9DDF3DC12CCC9B136939FE7E4DAF757717BF416466FFEA0C09C
+      1C6B41B4A0351A4D68B35971AEE5B40273729E33144C68D973F3D74D0A9EDF0E
+      ED638E42CB7E099D4EB7ED09C7E93DF721B35FD67F13FF0201254756
+    }
+  end
+end

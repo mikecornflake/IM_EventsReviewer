@@ -12,7 +12,7 @@ Uses
   Interfaces, // this includes the LCL widgetset
   Forms,
   datetimectrls,
-  FormEventsReviewer;
+  FormEventsReviewer, CampaignRules, FrameCampaignRules;
 
   {$R *.res}
 
