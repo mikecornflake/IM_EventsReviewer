@@ -50,10 +50,14 @@ Destructor TfmeVideoFiles.Destroy;
 Begin
   FreeAndNil(fmeGrid);
 
-  If FDataset.Active Then
-    FDataset.Close;
+  If Assigned(FDataset) Then
+  Begin
+    If FDataset.Active Then
+      FDataset.Close;
 
-  FreeAndNil(FDataset);
+    FreeAndNil(FDataset);
+  End;
+
   Inherited Destroy;
 End;
 
@@ -62,7 +66,7 @@ Var
   oVideo: TVideoFile;
 Begin
   MainForm.Busy := True;
-  MainForm.Status:='Loading video files';
+  MainForm.SetStatusAndLog('Loading video files', INDENT_INC);
   Try
     Clear;
 
@@ -105,8 +109,7 @@ Begin
 
     fmeGrid.InitialiseDBGrid(False);
   Finally
-    MainForm.Status:='Finished loading video files';
-    MainForm.Status:='';
+    MainForm.SetStatusAndLog('Finished loading video files', INDENT_DEC, True);
     MainForm.Busy := False;
   End;
 End;

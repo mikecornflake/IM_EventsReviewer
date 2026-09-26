@@ -17,7 +17,6 @@ Type
     fmePipelineView: TFramePipelineView;
 
     Procedure DoReceiveSeekKPMessage(AMessage: TIMMessage);
-    Procedure DoReceiveDataProviderReady(AMessage: TIMMessage);
 
     Procedure DoOnRangeClick(Sender: TObject; ARange: TPipelineEventRange; ATitle: String);
     Function GetKP: Double;
@@ -53,8 +52,6 @@ Begin
   fmePipelineView.OnRangeClick := @DoOnRangeClick;
 
   frmEventsReviewer.MessageBus.Subscribe(self, TIMMessageKP, @DoReceiveSeekKPMessage);
-  frmEventsReviewer.MessageBus.Subscribe(self, TIMMessageDataProviderReady,
-    @DoReceiveDataProviderReady);
 End;
 
 Destructor TfmePipelineEvents.Destroy;
@@ -78,11 +75,6 @@ Procedure TfmePipelineEvents.DoReceiveSeekKPMessage(AMessage: TIMMessage);
 Begin
   If AMessage Is TIMMessageKP Then
     fmePipelineView.KP := TIMMessageKP(AMessage).KP;
-End;
-
-Procedure TfmePipelineEvents.DoReceiveDataProviderReady(AMessage: TIMMessage);
-Begin
-  LoadData;
 End;
 
 Procedure TfmePipelineEvents.DoOnRangeClick(Sender: TObject; ARange: TPipelineEventRange;

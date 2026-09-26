@@ -127,7 +127,7 @@ Type
 Implementation
 
 Uses
-  FormEventsReviewer, DBSupport, Menus, LazLogger, Dialogs;
+  FormEventsReviewer, DBSupport, Menus, LazLogger, Dialogs, FormMain;
 
   { TDataProvider }
 
@@ -175,41 +175,43 @@ Begin
   If Not DataSet.Active Then
     Exit;
 
-  frmEventsReviewer.Status := 'Loading chart';
-
-  oKP := DataSet.FieldByName(FFieldStartKP);
-  oLen := DataSet.FieldByName('Length_(m)');
-  oType := DataSet.FieldByName('Type');
-  oAnom := DataSet.FieldByName('Anomaly');
-
-  DataSet.DisableControls;
-  bmOriginal := DataSet.GetBookmark;
+  frmEventsReviewer.Busy := True;
+  frmEventsReviewer.SetStatusAndLog('Loading chart', INDENT_INC);
   Try
-    DataSet.First;
-    APipelineView.BeginUpdate;
+    oKP := DataSet.FieldByName(FFieldStartKP);
+    oLen := DataSet.FieldByName('Length_(m)');
+    oType := DataSet.FieldByName('Type');
+    oAnom := DataSet.FieldByName('Anomaly');
 
-    While Not DataSet.EOF Do
-    Begin
-      sType := oType.AsString;
-      dKP := oKP.AsExtended;
-      If (oLen.IsNull) Or (oLen.AsFloat <= 1) Then
-        dLen := 0.001
-      Else
-        dLen := oLen.AsFloat / 1000;
+    DataSet.DisableControls;
+    bmOriginal := DataSet.GetBookmark;
+    Try
+      DataSet.First;
+      APipelineView.BeginUpdate;
 
-      If ProcessEventnameForReport(sType) Then
-        APipelineView.AddData(sType, dKP, dLen, (oAnom.AsString = 'Y'));
+      While Not DataSet.EOF Do
+      Begin
+        sType := oType.AsString;
+        dKP := oKP.AsExtended;
+        If (oLen.IsNull) Or (oLen.AsFloat <= 1) Then
+          dLen := 0.001
+        Else
+          dLen := oLen.AsFloat / 1000;
 
-      DataSet.Next;
+        If ProcessEventnameForReport(sType) Then
+          APipelineView.AddData(sType, dKP, dLen, (oAnom.AsString = 'Y'));
+
+        DataSet.Next;
+      End;
+    Finally
+      DataSet.GotoBookmark(bmOriginal);
+      DataSet.FreeBookmark(bmOriginal);
+      DataSet.EnableControls;
+      APipelineView.EndUpdate;
     End;
   Finally
-    DataSet.GotoBookmark(bmOriginal);
-    DataSet.FreeBookmark(bmOriginal);
-    DataSet.EnableControls;
-    APipelineView.EndUpdate;
-
-    frmEventsReviewer.Status := 'Finished loading chart';
-    frmEventsReviewer.Status := '';
+    frmEventsReviewer.SetStatusAndLog('Finished loading chart', INDENT_DEC, True);
+    frmEventsReviewer.Busy := False;
   End;
 End;
 

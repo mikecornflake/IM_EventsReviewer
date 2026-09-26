@@ -38,7 +38,7 @@ Type
 Implementation
 
 Uses
-  Dialogs;
+  Dialogs, FormMain;
 
   { TMediaProvider }
 
@@ -70,16 +70,23 @@ End;
 
 Procedure TMediaProvider.ScanVideoFiles(AFolder: String);
 Begin
-  FFolder := AFolder;
-  FVideos.Clear;
+  MainForm.Busy := True;
+  MainForm.SetStatusAndLog('Scanning ' + AFolder + ' for videos', INDENT_INC);
+  Try
+    FFolder := AFolder;
+    FVideos.Clear;
 
-  // Populate VideoFilenames
-  If (AFolder <> '') And DirectoryExists(AFolder) Then
-  Begin
-    FVideos.ScanFolder(AFolder);
+    // Populate VideoFilenames
+    If (AFolder <> '') And DirectoryExists(AFolder) Then
+    Begin
+      FVideos.ScanFolder(AFolder);
 
-    If FVideos.Errors.Count > 0 Then
-      ShowMessage(FVideos.Errors.Text);
+      If FVideos.Errors.Count > 0 Then
+        ShowMessage(FVideos.Errors.Text);
+    End;
+  Finally
+    MainForm.SetStatusAndLog('Finished scanning for videos', INDENT_DEC, True);
+    MainForm.Busy := False;
   End;
 End;
 

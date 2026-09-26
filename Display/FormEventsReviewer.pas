@@ -560,32 +560,45 @@ End;
 
 Procedure TfrmEventsReviewer.SetDataProvider(AProvider: TDataProvider);
 Begin
-  If Assigned(FDataProvider) Then
-  Begin
-    FDataProvider.Close;
-
-    FDataProvider.OnProviderPreparing := nil;
-    FDataProvider.OnDataChanged := nil;
-
-    ClearAllMedia;
-
-    DoSetDatasets(False);
-  End;
-
-  FDataProvider := AProvider;
+  Busy := True;
+  If Assigned(AProvider) Then
+    SetStatusAndLog('Opening data source ' + AProvider.Title, INDENT_INC)
+  Else If Assigned(FDataProvider) Then
+    SetStatusAndLog('Closing data source ' + FDataProvider.Title, INDENT_INC)
+  Else
+    SetStatusAndLog('Unknown reason for changing Provider', INDENT_INC);
 
   Try
     If Assigned(FDataProvider) Then
     Begin
-      FDataProvider.OnProviderPreparing := @DoProviderPreparing;
-      FDataProvider.OnDataChanged := @DoDataChanged;
+      FDataProvider.Close;
 
-      DoSetDatasets(True);
+      FDataProvider.OnProviderPreparing := nil;
+      FDataProvider.OnDataChanged := nil;
 
-      FDataProvider.Open;
+      ClearAllMedia;
+
+      DoSetDatasets(False);
+    End;
+
+    FDataProvider := AProvider;
+
+    Try
+      If Assigned(FDataProvider) Then
+      Begin
+        FDataProvider.OnProviderPreparing := @DoProviderPreparing;
+        FDataProvider.OnDataChanged := @DoDataChanged;
+
+        DoSetDatasets(True);
+
+        FDataProvider.Open;
+      End;
+    Finally
+      RefreshUI;
     End;
   Finally
-    RefreshUI;
+    SetStatusAndLog('Finished changing data source', INDENT_DEC, True);
+    Busy := False;
   End;
 End;
 
@@ -711,12 +724,11 @@ Procedure TfrmEventsReviewer.actRefreshDataExecute(Sender: TObject);
 Begin
   Try
     Busy := True;
-    Status := 'Refreshing all media';
+    SetStatusAndLog('Refreshing all media', INDENT_INC);
     Try
       FDataProvider.Refresh;
     Finally
-      Status := 'Finished refreshing all media';
-      Status := '';
+      SetStatusAndLog('Finished refreshing all media', INDENT_DEC, True);
       Busy := False;
     End;
   Finally
@@ -740,7 +752,7 @@ Begin
   If Assigned(FDataProvider) And FDataProvider.Ready Then
   Begin
     Busy := True;
-    Status := 'Reloading all media';
+    SetStatusAndLog('Reloading all media', INDENT_INC);
     Try
       // Media folder contents are updated dynamically during operations
       // Reload all media on eiter settings change or user request
@@ -761,15 +773,15 @@ Begin
       Begin
         oVideo := FMediaProvider.Find(ExtractFileName(sCurrent));
 
-        If Not Assigned(oVideo) Or (Not SameFileName(sCurrent,
-          IncludeTrailingPathDelimiter(oVideo.Folder) + oVideo.Filename)) Then
+        If Not Assigned(oVideo) Or
+          (Not SameFileName(sCurrent, IncludeTrailingPathDelimiter(oVideo.Folder) +
+          oVideo.Filename)) Then
           fmeVideo.Clear;
       End;
 
       fmeImageViewer.RefreshImages;
     Finally
-      Status := 'Finished reloading all media';
-      Status := '';
+      SetStatusAndLog('Finished reloading all media', INDENT_DEC, True);
       Busy := False;
     End;
   End;
@@ -778,7 +790,7 @@ End;
 Procedure TfrmEventsReviewer.ClearAllMedia;
 Begin
   Busy := True;
-  Status := 'Clearing all media';
+  SetStatusAndLog('Clearing all media', INDENT_INC);
   Try
     // These will reload when the ProviderReady message is broadcast
     fmePipelineChart.Clear;
@@ -799,8 +811,7 @@ Begin
     tmrNotification.Enabled := False;
     pnlNotification.Visible := False;
   Finally
-    Status := 'Finished clearing all media';
-    Status := '';
+    SetStatusAndLog('Finished clearing all media', INDENT_DEC, True);
     Busy := False;
   End;
 End;
@@ -815,15 +826,23 @@ Begin
   // We're now either connected to database, or have the offline data available
   If FDataProvider.Ready Then
   Begin
-    ReloadAllMedia;
+    Busy := True;
+    SetStatusAndLog('Preparing UI for ' + FDataProvider.Title, INDENT_INC);
+    Try
+      ReloadAllMedia;
 
-    // Resize columns etc
-    fmeDBGrid.InitialiseDBGrid(True);
+      // Resize columns etc
+      fmeDBGrid.InitialiseDBGrid(True);
 
-    Caption := Format('%s: [%s]', [Application.Title, FDataProvider.Title]);
-    Status := '';
+      Caption := Format('%s: [%s]', [Application.Title, FDataProvider.Title]);
 
-    fmeImageViewer.Enabled := True;
+      Status := '';
+
+      fmeImageViewer.Enabled := True;
+    Finally
+      SetStatusAndLog('Finished preparing UI', INDENT_DEC);
+      Busy := False;
+    End;
   End;
 
   RefreshUI;
@@ -850,12 +869,8 @@ Var
   End;
 
 Begin
-  {$IFNDEF RELEASE}
-  DebugLn([ClassName, '.', {$I %CURRENTROUTINE%}, ' ', AAnomalyReference]);
-  {$ENDIF}
-
   Busy := True;
-  Status := 'Loading images ' + AAnomalyReference;
+  SetStatusAndLog('Loading images ' + AAnomalyReference, INDENT_INC);
   Try
     If Trim(AAnomalyReference) = '' Then
       sFolder := FSettings.EventImageFolder
@@ -879,7 +894,7 @@ Begin
     If Not fmeVideo.GrabImageBtnEnabled Then
       Exit;
 
-    Status := 'Loading images from ' + sFolder;
+    SetStatusAndLog('Loading images from ' + sFolder);
 
     slImages := TStringList.Create;
     Try
@@ -903,8 +918,7 @@ Begin
       slImages.Free;
     End;
   Finally
-    Status := 'Finished loading images';
-    Status := '';
+    SetStatusAndLog('Finished loading images', INDENT_DEC, True);
     Busy := False;
   End;
 End;
@@ -973,7 +987,7 @@ Begin
     // We exhausted a-z
     If FileExists(sFilename) Then
     Begin
-      Status := 'Unable to add image - no free filename';
+      SetStatusAndLog('Unable to add image - no free filename');
       Exit;
     End;
   End
@@ -993,14 +1007,14 @@ Begin
 
   If Result Then
   Begin
-    Status := 'Successfully added image ' + sFilename;
+    SetStatusAndLog('Successfully added image ' + sFilename);
 
     // Force a refresh
     FLastImageFolder := '';
   End
   Else
   Begin
-    Status := 'Unable to copy image ' + ASourceFilename;
+    SetStatusAndLog('Unable to copy image ' + ASourceFilename);
     ShowMessage(Status);
   End;
 End;
