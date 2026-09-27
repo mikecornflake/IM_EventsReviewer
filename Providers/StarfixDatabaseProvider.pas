@@ -197,7 +197,7 @@ Begin
 
   FSessionIDs := TStringList.Create;
 
-  FCapabilities := [dpcHasKP, dpcHasSurvey, dpcHasVideoMetadata];
+  FCapabilities := [dpcHasKP, dpcHasSurvey];
 
   frmEventsReviewer.MessageBus.Subscribe(Self, TIMMessageVideosLoaded, @DoReceiveVideoLoaded);
   frmEventsReviewer.MessageBus.Subscribe(Self, TIMMessageVideosUnLoaded, @DoReceiveVideoUnloaded);

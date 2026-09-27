@@ -259,10 +259,11 @@ End;
 
 Procedure TfrmEventsReviewer.FormDestroy(Sender: TObject);
 Begin
+  // Stop using the MessageBus and turn it off
   FMessageBus.Unsubscribe(Self);
   FMessageBus.Stop;
 
-  // Fully aware these woudl be cleared up by their owner anyway
+  // Fully aware these would be cleared up by their Owner anyway
   // My philosophy is: I create, I clean up...
   FreeAndNil(fmeVideoFiles);
   FreeAndNil(fmePipelineChart);

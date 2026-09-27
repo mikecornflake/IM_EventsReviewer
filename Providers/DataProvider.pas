@@ -10,7 +10,7 @@ Uses
   IMMessaging, AppMessaging, FramePipelineView, DataFilters, DialogFrameHost;
 
 Type
-  TDataProviderCapability = (dpcHasKP, dpcHasSurvey, dpcHasVideoMetadata);
+  TDataProviderCapability = (dpcHasKP, dpcHasSurvey);
   TDataProviderCapabilities = Set Of TDataProviderCapability;
 
   TDataChangedEvent = Procedure(Sender: TObject; Const AAnomalyReference: String;

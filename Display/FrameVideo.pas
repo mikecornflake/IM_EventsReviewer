@@ -116,6 +116,7 @@ End;
 
 Destructor TfmeVideo.Destroy;
 Begin
+  tmrSeekAfterLoadVideo.Enabled := False;
   frmEventsReviewer.MessageBus.Unsubscribe(Self);
 
   FreeAndNil(fmeVideoPlayer);
