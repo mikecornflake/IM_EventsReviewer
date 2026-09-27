@@ -16,6 +16,7 @@ Type
 
   TStarfixDatabaseProvider = Class(TDataProvider)
   Private
+    FSessionIDs: TStringList;
     FCampaignEventRules: TCampaignEventRules;
 
     // Connection Details
@@ -73,7 +74,7 @@ Implementation
 
 Uses
   FormMain, FormEventsReviewer, ThirdPartySupport,
-  Dialogs, Controls, Forms, LazLogger, DBSupport, DataFilters, FrameGridSelection;
+  Dialogs, Controls, Forms, LazLogger, DBSupport, DataFilters, FrameGridSelection, ButtonPanel;
 
   { TStarfixDatabaseProvider }
 
@@ -177,10 +178,14 @@ Begin
 
   fmeSettingsMSSQL := nil;
   fmeCampaignRules := nil;
+
+  FSessionIDs := TStringList.Create;
 End;
 
 Destructor TStarfixDatabaseProvider.Destroy;
 Begin
+  FreeAndNil(FSessionIDs);
+
   // Shouldn't be needed
   FreeAndNil(fmeSettingsMSSQL);
   FreeAndNil(fmeCampaignRules);
@@ -529,80 +534,111 @@ End;
 Function TStarfixDatabaseProvider.GetSessionSelectionFilter: String;
 Var
   sQuery, sIDs: String;
-  oQuery: TSQLQuery;
   oDlg: TDialogFrameHost;
   fmeSelection: TfmeGridSelection;
   iRecord: Integer;
+  oField: TField;
 Begin
   Result := '';
 
-  sQuery := 'SELECT S.NAME AS [Session], ';
-  sQuery += '       CASE S.START_KP ';
-  sQuery += '           WHEN -999999 THEN NULL ';
-  sQuery += '           ELSE S.START_KP ';
-  sQuery += '       END AS [Start_KP], ';
-  sQuery += '       CASE S.END_KP ';
-  sQuery += '           WHEN -999999 THEN NULL ';
-  sQuery += '           ELSE S.END_KP ';
-  sQuery += '       END AS [End_KP], ';
+  sQuery := 'SELECT S.NAME AS [Session],          ';
+  sQuery += '       CASE S.START_KP               ';
+  sQuery += '           WHEN -999999 THEN NULL    ';
+  sQuery += '           ELSE S.START_KP           ';
+  sQuery += '       END AS [Start_KP],            ';
+  sQuery += '       CASE S.END_KP                 ';
+  sQuery += '           WHEN -999999 THEN NULL    ';
+  sQuery += '           ELSE S.END_KP             ';
+  sQuery += '       END AS [End_KP],              ';
   sQuery += '       DATEADD(S, S.START_TIME, ''1970-01-01'') AS [Start_Time], ';
   sQuery += '       DATEADD(S, S.END_TIME, ''1970-01-01'') AS [End_Time], ';
-  sQuery += '       S.[SESSION_ID] ';
-  sQuery += 'FROM DBO.SESSIONS S ';
-  sQuery += 'WHERE S.INPUT_FILES=''Pos Import'' ';
-  sQuery += 'ORDER BY S.SESSION_ID ';
+  sQuery += '       S.[SESSION_ID]                ';
+  sQuery += 'FROM DBO.SESSIONS S                  ';
+  sQuery += 'WHERE S.INPUT_FILES=''Pos Import''   ';
+  sQuery += 'ORDER BY S.SESSION_ID                ';
 
-  oQuery := TSQLQuery.Create(nil);
+  If FQuery.Active Then
+    FQuery.Close;
+
+  FQuery.SQL.Text := sQuery;
+  FQuery.Open;
+
+  oDlg := TDialogFrameHost.Create(frmEventsReviewer);
+  fmeSelection := TfmeGridSelection.Create(oDlg);
   Try
-    oQuery.Database := FConnection;
-    oQuery.Transaction := FTransaction;
+    oDlg.Caption := 'Choose working sessions';
+    oDlg.RegisterFrame(fmeSelection, 'Sessions');
+    oDlg.ButtonPanel.ShowButtons:=[pbOK];
+    oDlg.ButtonPanel.OKButton.Caption := 'Load selected sessions';
+    oDlg.ButtonPanel.OKButton.Enabled := (FSessionIDs.Count > 0);
 
-    oQuery.SQL.Text := sQuery;
-    oQuery.Open;
+    oDlg.ButtonPanel.ShowGlyphs := [];
 
-    oDlg := TDialogFrameHost.Create(frmEventsReviewer);
-    fmeSelection := TfmeGridSelection.Create(oDlg);
-    Try
-      oDlg.Caption := 'Choose working sessions';
-      oDlg.RegisterFrame(fmeSelection, 'Sessions');
-      oDlg.ButtonPanel.OKButton.Caption := 'Select sessions';
-      oDlg.ButtonPanel.CancelButton.Caption := 'Load all sessions';
-      oDlg.ButtonPanel.ShowGlyphs := [];
+    fmeSelection.Dataset := FQuery;
 
-      fmeSelection.Dataset := oQuery;
-
-      If oDlg.ShowModal = mrOk Then
-      Begin
-        sIDs := '';
+    // Presist pre-existing FSessionIDs selection
+    If FSessionIDs.Count > 0 Then
+    Begin
+      FQuery.DisableControls;
+      Try
         iRecord := 0;
 
-        oQuery.First;
+        oField := FQuery.FieldByName('SESSION_ID');
 
-        While Not oQuery.EOF Do
+        FQuery.First;
+        While Not FQuery.EOF Do
+        Begin
+          fmeSelection.Selected[iRecord] := (FSessionIDs.IndexOf(oField.AsString) >= 0);
+
+          Inc(iRecord);
+          FQuery.Next;
+        End;
+      Finally
+        FQuery.EnableControls;
+      End;
+    End;
+
+    If oDlg.ShowModal = mrOk Then
+    Begin
+      sIDs := '';
+      iRecord := 0;
+
+      FQuery.DisableControls;
+      Try
+        // Remember new Session IDs
+        FSessionIDs.Clear;
+        FQuery.First;
+
+        oField := FQuery.FieldByName('SESSION_ID');
+
+        While Not FQuery.EOF Do
         Begin
           If fmeSelection.Selected[iRecord] Then
           Begin
             If sIDs <> '' Then
               sIDs += ',';
 
-            sIDs += oQuery.FieldByName('SESSION_ID').AsString;
+            sIDs += oField.AsString;
+            FSessionIDs.Add(oField.AsString);
           End;
 
           Inc(iRecord);
-          oQuery.Next;
+          FQuery.Next;
         End;
-
-        If sIDs <> '' Then
-          Result := 'AND S.SESSION_ID IN (' + sIDs + ') ';
+      Finally
+        FQuery.EnableControls;
       End;
-    Finally
-      fmeSelection.Free;
-      oDlg.Free;
+
+      If sIDs <> '' Then
+        Result := 'AND S.SESSION_ID IN (' + sIDs + ') ';
     End;
   Finally
-    oQuery.Close;
-    oQuery.Free;
+    fmeSelection.Free;
+    oDlg.Free;
   End;
+
+  If FQuery.Active Then
+    FQuery.Close;
 End;
 
 Procedure TStarfixDatabaseProvider.LoadSettings(AInifile: TIniFile);
@@ -613,6 +649,7 @@ Begin
   FUsername := AInifile.ReadString('Database', 'Username', '');
   FPassword := AInifile.ReadString('Database', 'Password', '');
   FPort := AInifile.ReadInteger('Database', 'Port', 1433);
+  FSessionIDs.DelimitedText := AInifile.ReadString('Database', 'Sessions', '');
 
   FCampaignEventRules.LoadSettings(AInifile, 'StarfixDatabase.CampaignRules');
 End;
@@ -625,6 +662,8 @@ Begin
   AInifile.WriteString('Database', 'Username', FUsername);
   AInifile.WriteString('Database', 'Password', FPassword);
   AInifile.WriteInteger('Database', 'Port', FPort);
+
+  AInifile.WriteString('Database', 'Sessions', FSessionIDs.DelimitedText);
 
   FCampaignEventRules.SaveSettings(AInifile, 'StarfixDatabase.CampaignRules');
 End;

@@ -5,7 +5,8 @@ Unit FrameGridSelection;
 Interface
 
 Uses
-  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, Grids, ComCtrls, FrameEditor, DB;
+  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, Grids, ComCtrls,
+  FrameEditor, DB, StdCtrls;
 
 Type
 
@@ -22,15 +23,20 @@ Type
     Procedure btnClearSelectionClick(Sender: TObject);
     Procedure btnSelectAllClick(Sender: TObject);
     Procedure btnToggleSelectionClick(Sender: TObject);
-    Procedure grdSelectionGetCellHint(Sender: TObject; ACol, ARow: Integer; Var HintText: String);
+
+    Procedure grdSelectionCheckboxToggled(Sender: TObject; aCol, aRow: Integer;
+      aState: TCheckboxState);
+    Procedure grdSelectionGetCellHint(Sender: TObject; aCol, aRow: Integer; Var HintText: String);
 
     Procedure grdSelectionMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
-    Procedure grdSelectionPrepareCanvas(Sender: TObject; ACol, ARow: Integer;
+    Procedure grdSelectionPrepareCanvas(Sender: TObject; aCol, aRow: Integer;
       aState: TGridDrawState);
   Private
     FDataset: TDataset;
+    FParentDialog: TCustomForm;
     Function GetSelected(ARecordIndex: Integer): Boolean;
+    Function HasSelection: Boolean;
     Procedure SetDataset(Const AValue: TDataset);
 
     Procedure LoadData;
@@ -40,6 +46,8 @@ Type
     Constructor Create(TheOwner: TComponent); Override;
     Destructor Destroy; Override;
 
+    Procedure RefreshUI; Override;
+
     Property Dataset: TDataset Read FDataset Write SetDataset;
 
     Property Selected[ARecordIndex: Integer]: Boolean Read GetSelected Write SetSelected;
@@ -48,7 +56,7 @@ Type
 Implementation
 
 Uses
-  StrUtils, Math;
+  StrUtils, Math, DialogFrameHost;
 
   {$R *.lfm}
 
@@ -57,6 +65,7 @@ Uses
 Constructor TfmeGridSelection.Create(TheOwner: TComponent);
 Begin
   Inherited Create(TheOwner);
+  FParentDialog := nil;
 End;
 
 Destructor TfmeGridSelection.Destroy;
@@ -64,23 +73,49 @@ Begin
   Inherited Destroy;
 End;
 
-Procedure TfmeGridSelection.grdSelectionPrepareCanvas(Sender: TObject;
-  ACol, ARow: Integer; aState: TGridDrawState);
+Procedure TfmeGridSelection.RefreshUI;
 Begin
-  If ARow = 0 Then
+  Inherited RefreshUI;
+
+  If FParentDialog = nil Then
+    FParentDialog := GetParentForm(Self);
+
+  If Assigned(FParentDialog) And (FParentDialog Is TDialogFrameHost) Then
+    TDialogFrameHost(FParentDialog).ButtonPanel.OKButton.Enabled := HasSelection;
+End;
+
+Function TfmeGridSelection.HasSelection: Boolean;
+Var
+  iRow: Integer;
+Begin
+  Result := False;
+
+  For iRow := 1 To grdSelection.RowCount - 1 Do
+  Begin
+    Result := grdSelection.Cells[0, iRow] = 'Y';
+
+    If Result Then
+      Break;
+  End;
+End;
+
+Procedure TfmeGridSelection.grdSelectionPrepareCanvas(Sender: TObject;
+  aCol, aRow: Integer; aState: TGridDrawState);
+Begin
+  If aRow = 0 Then
     grdSelection.Canvas.Font.Style := grdSelection.Canvas.Font.Style + [fsBold];
 
-  If (ARow < grdSelection.FixedRows) Then
+  If (aRow < grdSelection.FixedRows) Then
     Exit;
 
-  If grdSelection.Cells[0, ARow] = 'Y' Then
+  If grdSelection.Cells[0, aRow] = 'Y' Then
     grdSelection.Canvas.Brush.Color := clHighlight;
 End;
 
 Procedure TfmeGridSelection.grdSelectionGetCellHint(Sender: TObject;
-  ACol, ARow: Integer; Var HintText: String);
+  aCol, aRow: Integer; Var HintText: String);
 Begin
-  HintText := grdSelection.Cells[ACol, ARow];
+  HintText := grdSelection.Cells[aCol, aRow];
 End;
 
 Procedure TfmeGridSelection.btnSelectAllClick(Sender: TObject);
@@ -91,6 +126,7 @@ Begin
     grdSelection.Cells[0, iRow] := 'Y';
 
   grdSelection.Invalidate;
+  RefreshUI;
 End;
 
 Procedure TfmeGridSelection.btnToggleSelectionClick(Sender: TObject);
@@ -104,6 +140,18 @@ Begin
       grdSelection.Cells[0, iRow] := 'Y';
 
   grdSelection.Invalidate;
+  RefreshUI;
+End;
+
+Procedure TfmeGridSelection.grdSelectionCheckboxToggled(Sender: TObject;
+  aCol, aRow: Integer; aState: TCheckboxState);
+Begin
+  If aState = cbChecked Then
+    grdSelection.Cells[0, aRow] := 'Y'
+  Else
+    grdSelection.Cells[0, aRow] := 'N';
+
+  RefreshUI;
 End;
 
 Procedure TfmeGridSelection.btnClearSelectionClick(Sender: TObject);
@@ -114,6 +162,7 @@ Begin
     grdSelection.Cells[0, iRow] := 'N';
 
   grdSelection.Invalidate;
+  RefreshUI;
 End;
 
 Procedure TfmeGridSelection.grdSelectionMouseDown(Sender: TObject;
@@ -136,6 +185,7 @@ Begin
     grdSelection.Cells[0, iRow] := 'Y';
 
   grdSelection.Invalidate;
+  RefreshUI;
 End;
 
 Procedure TfmeGridSelection.SetDataset(Const AValue: TDataset);

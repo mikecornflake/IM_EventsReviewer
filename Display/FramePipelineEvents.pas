@@ -48,6 +48,7 @@ Begin
   fmePipelineView.Parent := self;
   fmePipelineView.Align := alClient;
   fmePipelineView.GraphMode := pdStartLength;
+  fmePipelineView.sbPipelineDisplay.Visible := False;
 
   fmePipelineView.OnRangeClick := @DoOnRangeClick;
 

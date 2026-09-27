@@ -19,7 +19,7 @@
       <UseVersionInfo Value="True"/>
       <AutoIncrementBuild Value="True"/>
       <MinorVersionNr Value="2"/>
-      <BuildNr Value="157"/>
+      <BuildNr Value="159"/>
       <Attributes pvaPreRelease="True"/>
       <StringTable Comments="Inspector Mike Events Reviewer" CompanyName="Inspector Mike 2.0 Pty Ltd" LegalCopyright="(c) 2026"/>
     </VersionInfo>
@@ -218,6 +218,7 @@
         <Filename Value="Display\FramePipelineEvents.pas"/>
         <IsPartOfProject Value="True"/>
         <ComponentName Value="fmePipelineEvents"/>
+        <HasResources Value="True"/>
         <ResourceBaseClass Value="Frame"/>
       </Unit>
       <Unit>

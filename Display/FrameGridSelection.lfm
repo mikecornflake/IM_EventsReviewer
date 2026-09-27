@@ -11,6 +11,7 @@ inherited fmeGridSelection: TfmeGridSelection
     Align = alClient
     Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRowSelect, goSmoothScroll]
     TabOrder = 0
+    OnCheckboxToggled = grdSelectionCheckboxToggled
     OnGetCellHint = grdSelectionGetCellHint
     OnMouseDown = grdSelectionMouseDown
     OnPrepareCanvas = grdSelectionPrepareCanvas
