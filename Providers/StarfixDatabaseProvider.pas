@@ -452,11 +452,20 @@ Begin
 End;
 
 Procedure TStarfixDatabaseProvider.ApplyFrames;
+var
+  sCurrent: String;
 Begin
   Inherited ApplyFrames;
 
+  // Detect if Database has changed
+  sCurrent := FDatabaseName;
+
   If Assigned(fmeSettingsMSSQL) Then
     ApplySettingsFrame(fmeSettingsMSSQL);
+
+  // if it has, then clear remembered session IDs
+  If Not SameText(FDatabaseName, sCurrent) Then
+    FSessionIDs.Clear;
 
   If Assigned(fmeCampaignRules) Then
     FCampaignEventRules.CopyFrom(fmeCampaignRules.CampaignEventRules);
