@@ -675,6 +675,9 @@ Begin
     Begin
       FStarfixDatabaseProvider.ApplyFrames;
 
+      // Force the Video List to reload
+      fmeVideoFiles.ForceReloadAll := True;
+
       // Set Provider includes the Open Call;
       SetDataProvider(FStarfixDatabaseProvider);
 

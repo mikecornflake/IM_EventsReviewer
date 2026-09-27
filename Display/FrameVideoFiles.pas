@@ -78,10 +78,10 @@ End;
 Procedure TfmeVideoFiles.Load(AVideoFiles: TVideoFiles);
 Var
   oVideo: TVideoFile;
-  dtDefaultMax, dtCurrentEnd: Extended;
-  dtCurrentStart: TDateTime;
+  dtDefaultMax, dtCurrentStart, dtCurrentEnd: TDateTime;
 Begin
-  If (AVideoFiles.Count = FLastCount) And (frmEventsReviewer.Settings.VideoFolder = FLastFolder) Then
+  If (AVideoFiles.Count = FLastCount) And (frmEventsReviewer.Settings.VideoFolder =
+    FLastFolder) Then
     If Not FForceReloadAll Then
       Exit;
 
@@ -106,8 +106,25 @@ Begin
 
     FDataset.CreateDataset;
 
+    If frmEventsReviewer.Settings.MaxVideoDuration > 0 Then
+      dtDefaultMax := frmEventsReviewer.Settings.MaxVideoDuration / MinsPerDay
+    Else
+      dtDefaultMax := 15 / MinsPerDay;
+
     For oVideo In AVideoFiles Do
     Begin
+      // Skip if this video is fully outside within DataProvider bounds
+
+      dtCurrentStart := oVideo.StartDateTime;
+      If oVideo.EndDateTime = 0 Then
+        dtCurrentEnd := dtCurrentStart + dtDefaultMax
+      Else
+        dtCurrentEnd := oVideo.EndDateTime;
+
+      If (dtCurrentStart=0) Or (dtCurrentEnd < frmEventsReviewer.DataProvider.MinDateTime) Or
+        (dtCurrentStart > frmEventsReviewer.DataProvider.MaxDateTime) Then
+        Continue;
+
       FDataset.Append;
       Try
         FDataset.FieldByName('Filename').AsString := oVideo.Filename;
@@ -119,24 +136,6 @@ Begin
           FDataset.FieldByName('End_Time').AsDateTime := oVideo.EndDateTime;
         FDataset.FieldByName('Confidence').AsInteger := oVideo.InferredConfidence;
         FDataset.FieldByName('Format').AsString := oVideo.InferredFormatName;
-
-        // Populate Colour_ID according to rules
-        If FDataset.FieldByName('Start_Time').IsNull Then
-          FDataset.FieldByName('Colour_ID').AsString := 'Red' // Invalid Start Time
-        Else
-        Begin
-          // Is this video within DataProvider bounds
-          If frmEventsReviewer.Settings.MaxVideoDuration > 0 Then
-            dtDefaultMax := frmEventsReviewer.Settings.MaxVideoDuration / MinsPerDay
-          Else
-            dtDefaultMax := 15 / MinsPerDay;
-          dtCurrentStart := FDataset.FieldByName('Start_Time').AsDateTime;
-          dtCurrentEnd := ValueAsFloat(FDataset, 'End_Time', dtCurrentStart + dtDefaultMax);
-
-          If (dtCurrentEnd < frmEventsReviewer.DataProvider.MinDateTime) Or
-            (dtCurrentStart > frmEventsReviewer.DataProvider.MaxDateTime) Then
-            FDataset.FieldByName('Colour_ID').AsString := 'clGray';
-        End;
 
         FDataset.Post;
       Except
@@ -157,7 +156,7 @@ Begin
     fmeGrid.DataSet := FDataset;
     fmeGrid.InitialiseDBGrid(True);
 
-    FForceReloadAll:=False;
+    FForceReloadAll := False;
     FLastCount := AVideoFiles.Count;
     FLastFolder := frmEventsReviewer.Settings.VideoFolder;
   Finally

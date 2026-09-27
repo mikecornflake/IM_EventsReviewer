@@ -217,6 +217,9 @@ Begin
       // Clear any set Filter
       Filter := '';
 
+      FMinDateTime := 0;
+      FMaxDateTime := 0;
+
       // Unload any filtered records
       FFilteredDataset.Clear;
 
