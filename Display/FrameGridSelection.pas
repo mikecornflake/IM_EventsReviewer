@@ -151,6 +151,7 @@ Begin
   Else
     grdSelection.Cells[0, aRow] := 'N';
 
+  grdSelection.Invalidate;
   RefreshUI;
 End;
 

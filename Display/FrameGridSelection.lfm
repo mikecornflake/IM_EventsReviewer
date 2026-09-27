@@ -9,7 +9,8 @@ inherited fmeGridSelection: TfmeGridSelection
     Top = 26
     Width = 612
     Align = alClient
-    Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRowSelect, goSmoothScroll]
+    FocusRectVisible = False
+    Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goSmoothScroll]
     TabOrder = 0
     OnCheckboxToggled = grdSelectionCheckboxToggled
     OnGetCellHint = grdSelectionGetCellHint
