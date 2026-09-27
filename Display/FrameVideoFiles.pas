@@ -62,6 +62,8 @@ End;
 
 Destructor TfmeVideoFiles.Destroy;
 Begin
+  frmEventsReviewer.MessageBus.Unsubscribe(Self);
+
   FreeAndNil(fmeGrid);
 
   If Assigned(FDataset) Then
@@ -121,7 +123,7 @@ Begin
       Else
         dtCurrentEnd := oVideo.EndDateTime;
 
-      If (dtCurrentStart=0) Or (dtCurrentEnd < frmEventsReviewer.DataProvider.MinDateTime) Or
+      If (dtCurrentStart = 0) Or (dtCurrentEnd < frmEventsReviewer.DataProvider.MinDateTime) Or
         (dtCurrentStart > frmEventsReviewer.DataProvider.MaxDateTime) Then
         Continue;
 

@@ -76,7 +76,7 @@ Const
 Implementation
 
 Uses
-  FormEventsReviewer, FormMain, VideoEngineFactory, FrameVideoLibmpv, LazLogger;
+  FormEventsReviewer, FormMain, VideoEngineFactory, FrameVideoLibmpv, LazLogger, StringSupport;
 
   {$R *.lfm}
 
@@ -85,9 +85,6 @@ Uses
 Constructor TfmeVideo.Create(TheOwner: TComponent);
 Begin
   Inherited Create(TheOwner);
-  {$IFNDEF RELEASE}
-  DebugLnEnter(['Start ', ClassName, '.', {$I %CURRENTROUTINE%}]);
-  {$ENDIF}
 
   fmeVideoPlayer := TFrameVideoPlayer.Create(Self);
   fmeVideoPlayer.Parent := Self;
@@ -109,19 +106,18 @@ Begin
   fmeVideoPlayer.Autoplay := False;
   fmeSyncedVideo.OnVideoLoaded := @DoVideoLoaded;
 
-  frmEventsReviewer.MessageBus.Subscribe(Self, TIMMessageTime, @DoReceiveTimeSeekMessage);
-
   FLastTimeSent := 0;
   FPendingSeek := False;
   FPendingSeekTime := 0;
   FLastBroadcastTick := 0;
-  {$IFNDEF RELEASE}
-  DebugLnExit(['End ', ClassName, '.', {$I %CURRENTROUTINE%}]);
-  {$ENDIF}
+
+  frmEventsReviewer.MessageBus.Subscribe(Self, TIMMessageTime, @DoReceiveTimeSeekMessage);
 End;
 
 Destructor TfmeVideo.Destroy;
 Begin
+  frmEventsReviewer.MessageBus.Unsubscribe(Self);
+
   FreeAndNil(fmeVideoPlayer);
 
   Inherited Destroy;
@@ -248,6 +244,7 @@ Procedure TfmeVideo.LoadVideos(AVideoFiles: TVideoFiles; ASeekDateTime: TDateTim
 Var
   oVideoFile: TVideoFile;
   sFolder: String;
+  bAnyLoaded: Boolean;
 Begin
   frmEventsReviewer.Busy := True;
   frmEventsReviewer.SetStatusAndLog(Format('Queuing %d videos', [AVideoFiles.Count]), INDENT_INC);
@@ -264,18 +261,26 @@ Begin
       Try
         fmeSyncedVideo.BeginLoadVideos;
         Try
+          bAnyLoaded := False;
           For oVideoFile In AVideoFiles Do
           Begin
             sFolder := IncludeTrailingBackslash(
               frmEventsReviewer.MediaProvider.LookupFolder(oVideoFile.Filename));
 
             If FileExists(sFolder + oVideoFile.Filename) Then
+            Begin
               fmeSyncedVideo.Load(sFolder + oVideoFile.Filename,
                 oVideoFile.Channel, oVideoFile.StartDateTime);
+              bAnyLoaded := True;
+            End;
           End;
         Finally
           fmeSyncedVideo.EndLoadVideos;
-          FSeekPending := True;
+
+          If bAnyLoaded Then
+            FSeekPending := True
+          Else
+            Clear;
         End;
 
         If fmeSyncedVideo.VideoFileCount > 0 Then
@@ -315,6 +320,8 @@ Begin
   FPendingSeek := False;
   FPendingSeekTime := 0;
   FPendingVideoTime := 0;
+
+  frmEventsReviewer.MessageBus.Broadcast(Self, TIMMessageVideosUnLoaded);
 End;
 
 Procedure TfmeVideo.PopulateSettingsFrame(AFrame: TFrameSettingsSyncedVideo);
@@ -358,13 +365,20 @@ Procedure TfmeVideo.tmrSeekAfterLoadVideoTimer(Sender: TObject);
 Begin
   tmrSeekAfterLoadVideo.Enabled := False;
 
+  If csDestroying In ComponentState Then
+    Exit;
+
   If FSeekPending Then
   Begin
     FSeekPending := False;
     fmeSyncedVideo.PositionAsTime := FPendingVideoTime;
 
-    frmEventsReviewer.SetStatusAndLog('Seeking video to ' + FormatDateTime('HH:nn:ss',
-      FPendingVideoTime));
+    frmEventsReviewer.SetStatusAndLog('Video loaded and seek complete.  start: ' +
+      fmeSyncedVideo.StartDateTime.AsTextTime + ' position: ' +
+      fmeSyncedVideo.PositionAsTime.AsTextTime + ' end: ' + fmeSyncedVideo.EndDateTime.AsTextTime);
+
+    frmEventsReviewer.MessageBus.BroadcastVideosLoaded(Sender, fmeSyncedVideo.StartDateTime,
+      fmeSyncedVideo.EndDateTime);
   End;
 End;
 

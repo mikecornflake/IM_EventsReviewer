@@ -16,7 +16,7 @@ Type
   Private
     fmePipelineView: TFramePipelineView;
 
-    Procedure DoReceiveSeekKPMessage(AMessage: TIMMessage);
+    Procedure DoReceiveSeekTimeMessage(AMessage: TIMMessage);
 
     Procedure DoOnRangeClick(Sender: TObject; ARange: TPipelineEventRange; ATitle: String);
     Function GetKP: Double;
@@ -34,7 +34,7 @@ Type
 Implementation
 
 Uses
-  FormEventsReviewer, LazLogger;
+  FormEventsReviewer, LazLogger, DataProvider;
 
   {$R *.lfm}
 
@@ -52,11 +52,13 @@ Begin
 
   fmePipelineView.OnRangeClick := @DoOnRangeClick;
 
-  frmEventsReviewer.MessageBus.Subscribe(self, TIMMessageKP, @DoReceiveSeekKPMessage);
+  frmEventsReviewer.MessageBus.Subscribe(self, TIMMessageTime, @DoReceiveSeekTimeMessage);
 End;
 
 Destructor TfmePipelineEvents.Destroy;
 Begin
+  frmEventsReviewer.MessageBus.Unsubscribe(self);
+
   FreeAndNil(fmePipelineView);
 
   Inherited Destroy;
@@ -72,10 +74,11 @@ Begin
   fmePipelineView.Clear;
 End;
 
-Procedure TfmePipelineEvents.DoReceiveSeekKPMessage(AMessage: TIMMessage);
+Procedure TfmePipelineEvents.DoReceiveSeekTimeMessage(AMessage: TIMMessage);
 Begin
-  If AMessage Is TIMMessageKP Then
-    fmePipelineView.KP := TIMMessageKP(AMessage).KP;
+  If AMessage Is TIMMessageTime Then
+    fmePipelineView.KP := frmEventsReviewer.DataProvider.GetKPForDateTime(
+      TIMMessageTime(AMessage).DateTime);
 End;
 
 Procedure TfmePipelineEvents.DoOnRangeClick(Sender: TObject; ARange: TPipelineEventRange;

@@ -54,6 +54,9 @@ Type
     Function Refresh: Boolean; Override;
     Function Close: Boolean; Override;
 
+    // This function is NOT expecting FMaster to scroll to find the answer
+    Function GetKPForDateTime(ADateTime: TDateTime): Double; Override;
+
     Function Title: String; Override;
 
     Procedure RegisterFrames(ADialog: TDialogFrameHost; ALoading: Boolean); Override;
@@ -103,6 +106,8 @@ Begin
 
   fmeCampaignRules := nil;
   fmeSettingsEventListing := nil;
+
+  FCapabilities := [dpcHasKP];
 End;
 
 
@@ -211,6 +216,15 @@ Begin
   FMaster.ClearAllRecords;
 
   Result := True;
+End;
+
+// This function is NOT expecting FMaster to scroll to find the answer
+Function TEventListingProvider.GetKPForDateTime(ADateTime: TDateTime): Double;
+Begin
+  If (FMaster.Table.Active) Then
+    Result := FMaster.Table.FieldByName(FFieldStartKP).AsFloat
+  Else
+    Result := Inherited GetKPForDateTime(ADateTime);
 End;
 
 Function TEventListingProvider.GetDataSet: TDataSet;

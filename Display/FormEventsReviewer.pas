@@ -196,8 +196,6 @@ Begin
   FLastImageFolder := '';
 
   FMessageBus := TAppMessageBus.Create;
-  FMessageBus.Subscribe(Self, TIMMessageTime, @DoReceiveTimeSeekMessage);
-  FMessageBus.Subscribe(Self, TIMMessageFilterChanged, @DoReceiveFilterChanged);
 
   // Settings Manager
   FSettings := TApplicationSettings.Create;
@@ -254,11 +252,15 @@ Begin
   FMediaProvider := TMediaProvider.Create;
 
   FActivated := False;
+
+  FMessageBus.Subscribe(Self, TIMMessageTime, @DoReceiveTimeSeekMessage);
+  FMessageBus.Subscribe(Self, TIMMessageFilterChanged, @DoReceiveFilterChanged);
 End;
 
 Procedure TfrmEventsReviewer.FormDestroy(Sender: TObject);
 Begin
-  FreeAndNil(FMessageBus);
+  FMessageBus.Unsubscribe(Self);
+  FMessageBus.Stop;
 
   // Fully aware these woudl be cleared up by their owner anyway
   // My philosophy is: I create, I clean up...
@@ -275,6 +277,9 @@ Begin
   FreeAndNil(FStarfixDatabaseProvider);
   FreeAndNil(FEventListingProvider);
   FreeAndNil(FMediaProvider);
+
+  // Free last, giving everything a proper chance to unsubscribe first
+  FreeAndNil(FMessageBus);
 End;
 
 Procedure TfrmEventsReviewer.FormShow(Sender: TObject);
@@ -785,9 +790,8 @@ Begin
       Begin
         oVideo := FMediaProvider.Find(ExtractFileName(sCurrent));
 
-        If Not Assigned(oVideo) Or
-          (Not SameFileName(sCurrent, IncludeTrailingPathDelimiter(oVideo.Folder) +
-          oVideo.Filename)) Then
+        If Not Assigned(oVideo) Or (Not SameFileName(sCurrent,
+          IncludeTrailingPathDelimiter(oVideo.Folder) + oVideo.Filename)) Then
           fmeVideo.Clear;
       End;
 

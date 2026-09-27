@@ -31,6 +31,7 @@ Type
     FConnection: TMSSQLConnection;
     FTransaction: TSQLTransaction;
     FMaster: TSQLQuery;
+    FSurveyPerVideo: TSQLQuery;
 
     // Dynamic SQLs
     FMasterSQLSelect, FMasterSQLFrom, FMasterSQLWhere, FMasterSQLOrder: String;
@@ -45,6 +46,9 @@ Type
     Function GetSessionSelectionFilter: String;
     Procedure ApplySettingsFrame(AFrame: TFrameMSSQLConnection);
     Procedure PopulateSettingsFrame(AFrame: TFrameMSSQLConnection);
+
+    Procedure DoReceiveVideoLoaded(AMessage: TIMMessage);
+    Procedure DoReceiveVideoUnloaded(AMessage: TIMMessage);
   Protected
     Function ProcessEventnameForReport(Var AType: String): Boolean; Override;
 
@@ -65,6 +69,7 @@ Type
     Procedure UnRegisterFrames(ADialog: TDialogFrameHost); Override;
 
     Function GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles; Override;
+    Function GetKPForDateTime(ADateTime: TDateTime): Double; Override;
 
     Procedure LoadSettings(AInifile: TIniFile); Override;
     Procedure SaveSettings(AInifile: TIniFile); Override;
@@ -133,6 +138,17 @@ Begin
 
   FMasterSQLOrder := 'ORDER BY [KP] ASC ';
 
+  FSurveyPerVideo := TSQLQuery.Create(nil);
+  FSurveyPerVideo.Database := FConnection;
+  FSurveyPerVideo.Transaction := FTransaction;
+  FSurveyPerVideo.SQL.Add('SELECT DATEADD(S, P.TIMEDATE, ''1970-01-01'') AS [Time], ');
+  FSurveyPerVideo.SQL.Add('       P.EDITED_KP AS [KP]                               ');
+  FSurveyPerVideo.SQL.Add('FROM DBO.POSITION_3 P                                    ');
+  FSurveyPerVideo.SQL.Add('WHERE DATEADD(S, P.TIMEDATE, ''1970-01-01'')>=:Start_Datetime ');
+  FSurveyPerVideo.SQL.Add('  AND DATEADD(S, P.TIMEDATE, ''1970-01-01'')<=:End_Datetime   ');
+  FSurveyPerVideo.SQL.Add('ORDER BY P.TIMEDATE ASC                                  ');
+
+  // Generic TSQLQuery used for one-shot SQLs
   FQuery := TSQLQuery.Create(nil);
   FQuery.Database := FConnection;
   FQuery.Transaction := FTransaction;
@@ -180,10 +196,19 @@ Begin
   fmeCampaignRules := nil;
 
   FSessionIDs := TStringList.Create;
+
+  FCapabilities := [dpcHasKP, dpcHasSurvey, dpcHasVideoMetadata];
+
+  frmEventsReviewer.MessageBus.Subscribe(Self, TIMMessageVideosLoaded, @DoReceiveVideoLoaded);
+  frmEventsReviewer.MessageBus.Subscribe(Self, TIMMessageVideosUnLoaded, @DoReceiveVideoUnloaded);
 End;
 
 Destructor TStarfixDatabaseProvider.Destroy;
 Begin
+  frmEventsReviewer.MessageBus.Unsubscribe(Self);
+
+  Close;
+
   FreeAndNil(FSessionIDs);
 
   // Shouldn't be needed
@@ -194,6 +219,7 @@ Begin
     FConnection.Connected := False;
 
   FreeAndNil(FCampaignEventRules);
+  FreeAndNil(FSurveyPerVideo);
   FreeAndNil(FQuery);
   FreeAndNil(FMaster);
   FreeAndNil(FTransaction);
@@ -368,6 +394,9 @@ Begin
   If FMaster.Active Then
     FMaster.Close;
 
+  If FSurveyPerVideo.Active Then
+    FSurveyPerVideo.Close;
+
   If FQuery.Active Then
     FQuery.Close;
 
@@ -541,6 +570,58 @@ Begin
 
     Raise;
   End;
+End;
+
+Procedure TStarfixDatabaseProvider.DoReceiveVideoLoaded(AMessage: TIMMessage);
+Var
+  oMessage: TIMMessageVideosLoaded;
+Begin
+  If Not Ready Then
+    Exit;
+
+  If Not (AMessage Is TIMMessageVideosLoaded) Then
+    Exit;
+
+  oMessage := TIMMessageVideosLoaded(AMessage);
+
+  If FSurveyPerVideo.Active Then
+    FSurveyPerVideo.Close;
+
+  FSurveyPerVideo.ParamByName('Start_Datetime').AsDateTime := oMessage.StartDateTime;
+  FSurveyPerVideo.ParamByName('End_Datetime').AsDateTime := oMessage.EndDateTime;
+
+  FSurveyPerVideo.Open;
+End;
+
+Procedure TStarfixDatabaseProvider.DoReceiveVideoUnloaded(AMessage: TIMMessage);
+Begin
+  If FSurveyPerVideo.Active Then
+    FSurveyPerVideo.Close;
+End;
+
+Function TStarfixDatabaseProvider.GetKPForDateTime(ADateTime: TDateTime): Double;
+Var
+  oField: TField;
+Begin
+  If Ready Then
+  Begin
+    If Not FSurveyPerVideo.Active Or FSurveyPerVideo.IsEmpty Then
+    Begin
+      Result := FMaster.FieldByName(FFieldStartKP).AsFloat;
+      Exit;
+    End;
+
+    DBSupport.GotoNearestValue(FSurveyPerVideo, 'Time', ADateTime, SEEK_FIRST_AFTER);
+
+    oField := FSurveyPerVideo.FieldByName('KP');
+
+    If (oField.IsNull) Or (oField.AsFloat = -999999) Then
+      Result := FMaster.FieldByName(FFieldStartKP).AsFloat
+    Else
+      Result := oField.AsFloat;
+  End
+  Else
+    Result := Inherited GetKPForDateTime(ADateTime);
 End;
 
 Function TStarfixDatabaseProvider.GetSessionSelectionFilter: String;

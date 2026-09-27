@@ -10,6 +10,9 @@ Uses
   IMMessaging, AppMessaging, FramePipelineView, DataFilters, DialogFrameHost;
 
 Type
+  TDataProviderCapability = (dpcHasKP, dpcHasSurvey, dpcHasVideoMetadata);
+  TDataProviderCapabilities = Set Of TDataProviderCapability;
+
   TDataChangedEvent = Procedure(Sender: TObject; Const AAnomalyReference: String;
     Const ADateTime: TDateTime) Of Object;
 
@@ -22,6 +25,8 @@ Type
   { TDataProvider }
   TDataProvider = Class(TObject, IIM_Persistent)
   Protected
+    FCapabilities: TDataProviderCapabilities;
+
     // Project Bounds
     FMaxDateTime: TDateTime;
     FMinDateTime: TDateTime;
@@ -87,44 +92,45 @@ Type
 
     Function Title: String; Virtual; Abstract;
 
-    Function GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles; Virtual; Abstract;
-
-    Function PopulatePipelineView(APipelineView: TFramePipelineView): Boolean; Virtual;
-
     Procedure GotoKP(AKP: Double);
     Procedure GotoDateTime(ADateTime: TDateTime);
+    Function GetKPForDateTime(ADateTime: TDateTime): Double; Virtual;
+    Function GetVideoFilesForTime(Const ADateTime: TDateTime): TVideoFiles; Virtual; Abstract;
 
-    // Filters are options presented to the user interface.
+    // DataFilters are options presented to the user interface.
     // If the user wants to apply a filter, it's up to the UI to pass the correct filter
     // back to the DataProvider
     // Naming them DataFilters during development to avoid confusion with existing
     // Filters
     Procedure ApplyDataFilter(ADataFilter: TDataFilter); Virtual;
 
+    // Current Event Helpers
     Function DateTime: TDateTime;
     Function AnomalyReference: String;
 
+    // Workers
     Procedure LoadSettings(AInifile: TIniFile); Virtual; Abstract;
     Procedure SaveSettings(AInifile: TIniFile); Virtual; Abstract;
 
     Procedure RegisterFrames(ADialog: TDialogFrameHost; ALoading: Boolean); Virtual;
     Procedure ApplyFrames; Virtual;
     Procedure UnRegisterFrames(ADialog: TDialogFrameHost); Virtual;
-
-    Property DataFilters: TDataFilters Read FDataFilters;
+    Function PopulatePipelineView(APipelineView: TFramePipelineView): Boolean; Virtual;
 
     // Properties
+    Property Capabilities: TDataProviderCapabilities Read FCapabilities;
     Property Ready: Boolean Read GetReady;
-
     Property DataSet: TDataSet Read GetDataSet;
 
+    // Filters
+    Property DataFilters: TDataFilters Read FDataFilters;
     Property FilteredDataSet: TBufDataset Read FFilteredDataset;
     Property Filtered: Boolean Read GetFiltered;
     Property Filter: String Read FFilter Write SetFilter;
 
+    // Bounds
     Property MinDateTime: TDateTime Read FMinDateTime;
     Property MaxDateTime: TDateTime Read FMaxDateTime;
-
 
     // Events
     Property OnProviderPreparing: TNotifyEvent Read GetOnProviderPreparing
@@ -156,17 +162,22 @@ Begin
   // Filters
   FDataFilters := TDataFilters.Create(True);
 
-  // Messages
-  frmEventsReviewer.MessageBus.Subscribe(Self, TIMMessageTime, @DoReceiveSeekTimeMessage);
-  frmEventsReviewer.MessageBus.Subscribe(Self, TIMMessageKP, @DoReceiveSeekKPMessage);
-
   // Date range default
   FMinDateTime := 0;
   FMaxDateTime := 0;
+
+  // Default capabilities - assume nothing
+  FCapabilities := [];
+
+  // Messages
+  frmEventsReviewer.MessageBus.Subscribe(Self, TIMMessageTime, @DoReceiveSeekTimeMessage);
+  frmEventsReviewer.MessageBus.Subscribe(Self, TIMMessageKP, @DoReceiveSeekKPMessage);
 End;
 
 Destructor TDataProvider.Destroy;
 Begin
+  frmEventsReviewer.MessageBus.Unsubscribe(Self);
+
   FreeAndNil(FDataFilters);
   FreeAndNil(FFilteredDataset);
 
@@ -235,6 +246,11 @@ End;
 Procedure TDataProvider.GotoDateTime(ADateTime: TDateTime);
 Begin
   GotoNearestValue(FFieldStartTime, ADateTime, -1);
+End;
+
+Function TDataProvider.GetKPForDateTime(ADateTime: TDateTime): Double;
+Begin
+  Result := 0;
 End;
 
 Procedure TDataProvider.ApplyDataFilter(ADataFilter: TDataFilter);

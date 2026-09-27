@@ -22,8 +22,16 @@ Type
     KP: Extended;
   End;
 
+  { TIMMessageVideosLoaded }
+
+  TIMMessageVideosLoaded = Class(TIMMessage)
+  Public
+    StartDateTime, EndDateTime: TDateTime
+  End;
+
   TIMMessageDataProviderReady = Class(TIMMessage);
   TIMMessageFilterChanged = Class(TIMMessage);
+  TIMMessageVideosUnLoaded = Class(TIMMessage);
 
   { TMessageController }
 
@@ -31,11 +39,29 @@ Type
 
   TAppMessageBus = Class(TMessageBus)
   Public
+    Procedure BroadcastVideosLoaded(ASender: TObject; AStartDateTime, AEndDateTime: TDateTime);
     Procedure BroadcastTime(ASender: TObject; ADateTime: TDateTime);
     Procedure BroadcastKP(ASender: TObject; AKP: Extended);
   End;
 
 Implementation
+
+Procedure TAppMessageBus.BroadcastVideosLoaded(ASender: TObject;
+  AStartDateTime, AEndDateTime: TDateTime);
+Var
+  oMessage: TIMMessageVideosLoaded;
+Begin
+  oMessage := TIMMessageVideosLoaded.Create;
+  Try
+    oMessage.Sender := ASender;
+    oMessage.StartDateTime := AStartDateTime;
+    oMessage.EndDateTime := AEndDateTime;
+
+    Broadcast(oMessage);
+  Finally
+    oMessage.Free;
+  End;
+End;
 
 Procedure TAppMessageBus.BroadcastTime(ASender: TObject; ADateTime: TDateTime);
 Var
