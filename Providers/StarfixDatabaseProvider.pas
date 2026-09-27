@@ -452,7 +452,7 @@ Begin
 End;
 
 Procedure TStarfixDatabaseProvider.ApplyFrames;
-var
+Var
   sCurrent: String;
 Begin
   Inherited ApplyFrames;
@@ -577,7 +577,7 @@ Begin
   Try
     oDlg.Caption := 'Choose working sessions';
     oDlg.RegisterFrame(fmeSelection, 'Sessions');
-    oDlg.ButtonPanel.ShowButtons:=[pbOK];
+    oDlg.ButtonPanel.ShowButtons := [pbOK];
     oDlg.ButtonPanel.OKButton.Caption := 'Load selected sessions';
     oDlg.ButtonPanel.OKButton.Enabled := (FSessionIDs.Count > 0);
 
