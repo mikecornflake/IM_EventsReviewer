@@ -24,20 +24,20 @@ Type
     FUsername, FPassword: String;
     FPort: Integer;
 
-    // Database
+    // Database Library
     FDriverFilename: String;
 
-    // Controls
+    // Database Controls
     FConnection: TMSSQLConnection;
     FTransaction: TSQLTransaction;
-    FMaster: TSQLQuery;
+    FMaster: TBufDataset;
     FSurveyPerVideo: TBufDataset;
     FSurveyStartDateTime: TDateTime;
     FSurveyEndDateTime: TDateTime;
 
     // Dynamic SQLs
     FMasterSQLSelect, FMasterSQLFrom, FMasterSQLWhere, FMasterSQLOrder: String;
-    FTimeSQLSelect: String; // Replacement Select for the Master SQL
+    FTimeSQLSelect: String; // Replacement Select that works with the rest of FMasterSQLXXX
     FVideosForTimeSQL: String;
     FSurveyPerVideoSQL: String;
     FQuery: TSQLQuery;
@@ -98,9 +98,7 @@ Begin
 
   FConnection.Transaction := FTransaction;
 
-  FMaster := TSQLQuery.Create(nil);
-  FMaster.Database := FConnection;
-  FMaster.Transaction := FTransaction;
+  FMaster := TBufDataset.Create(nil);
   FMaster.AfterScroll := @DoMasterAfterScroll;
   FMaster.AfterOpen := @DoDatasetAfterOpen;
   FUpdatingMasterDataset := False;
@@ -154,11 +152,6 @@ Begin
   FSurveyStartDateTime := 0;
   FSurveyEndDateTime := 0;
 
-  // Generic TSQLQuery used for one-shot SQLs
-  FQuery := TSQLQuery.Create(nil);
-  FQuery.Database := FConnection;
-  FQuery.Transaction := FTransaction;
-
   FVideosForTimeSQL := 'SELECT V.Filename As [Filename],      ';
   FVideosForTimeSQL += '    V.ChannelLocation As [Channel],   ';
   FVideosForTimeSQL += '    DATEADD(S, V.StartTime, ''1970-01-01'') AS [Start], ';
@@ -167,12 +160,16 @@ Begin
   FVideosForTimeSQL += 'WHERE DATEADD(S, V.StartTime, ''1970-01-01'') <= :TIMEDATE_ID';
   FVideosForTimeSQL += '  AND DATEADD(S, V.EndTime,   ''1970-01-01'') >= :TIMEDATE_ID';
 
+  // Generic TSQLQuery used for one-shot SQLs
+  FQuery := TSQLQuery.Create(nil);
+  FQuery.Database := FConnection;
+  FQuery.Transaction := FTransaction;
+
   // Fetch complete result set.
   // Required when other queries on the same connection may be opened
   // from dataset events such as AfterScroll.
   // Without this, FreeTDS may report
   //    "adaptive server operation with results pending".
-  FMaster.PacketRecords := -1;
   FQuery.PacketRecords := -1;
 
   // Register the database driver
@@ -196,8 +193,10 @@ Begin
   FDataFilters.Add(TDataFilter.Create(17, 'Exclude Fieldjoints',
     '(NOT (Type = ''*Joint*''))', @DoDataFilterExecute));
 
+  // How to tidy Event names for use in Pipeline Chart
   FCampaignEventRules := TCampaignEventRules.Create(True);
 
+  // Settings Frames
   fmeSettingsMSSQL := nil;
   fmeCampaignRules := nil;
 
@@ -205,6 +204,7 @@ Begin
 
   FCapabilities := [dpcHasKP, dpcHasSurvey];
 
+  // Messages we want to listen to
   frmEventsReviewer.MessageBus.Subscribe(Self, TIMMessageVideosLoaded, @DoReceiveVideoLoaded);
   frmEventsReviewer.MessageBus.Subscribe(Self, TIMMessageVideosUnLoaded, @DoReceiveVideoUnloaded);
 End;
@@ -296,21 +296,35 @@ Begin
         End;
 
         If FMaster.Active Then
+        Begin
           FMaster.Close;
-
-        // Retrieving results
-        FMaster.SQL.Text := FMasterSQLSelect + FMasterSQLFrom + FMasterSQLWhere +
-          sSessionFilter + FMasterSQLOrder;
-        FMaster.Open;
+          FMaster.Clear;
+        End;
 
         If FQuery.Active Then
           FQuery.Close;
 
+        // Retrieve Event List
+        FQuery.SQL.Text := FMasterSQLSelect + FMasterSQLFrom + FMasterSQLWhere +
+          sSessionFilter + FMasterSQLOrder;
+        FQuery.Open;
+
+        // Copy Event List into FMaster
+        DBSupport.BuildFilteredDataset(FQuery, FMaster, '');
+
+        FMaster.Open;
+
+        FQuery.Close;
+
+        // Retrieve time boundary for event list
         FQuery.SQL.Text := FTimeSQLSelect + FMasterSQLFrom + FMasterSQLWhere + sSessionFilter;
         FQuery.Open;
 
         FMinDateTime := ValueAsFloat(FQuery, 'Start_Time', 0);
         FMaxDateTime := ValueAsFloat(FQuery, 'End_Time', 0);
+
+        If FQuery.Active Then
+          FQuery.Close;
 
         Result := True;
         FLoaded := True;
@@ -331,7 +345,10 @@ Begin
           ShowMessage(E.Message);
 
           If FMaster.Active Then
+          Begin
             FMaster.Close;
+            FMaster.Clear;
+          End;
 
           If FConnection.Connected Then
             FConnection.Close;
@@ -349,6 +366,7 @@ End;
 Function TStarfixDatabaseProvider.Refresh: Boolean;
 Var
   dtCurrent: TDateTime;
+  sSessionFilter: String;
 Begin
   Result := False;
 
@@ -364,8 +382,41 @@ Begin
     FFilteredDataset.Clear;
 
     // Now refresh the Master records
-    FMaster.Close;
+    If FMaster.Active Then
+    Begin
+      FMaster.Close;
+      FMaster.Clear;
+    End;
+
+    If FQuery.Active Then
+      FQuery.Close;
+
+    If (FSessionIDs.Count > 0) Then
+      sSessionFilter := 'AND S.SESSION_ID IN (' + FSessionIDs.CommaText + ') '
+    Else
+      sSessionFilter := '';
+
+    // Retrieve Event List
+    FQuery.SQL.Text := FMasterSQLSelect + FMasterSQLFrom + FMasterSQLWhere +
+      sSessionFilter + FMasterSQLOrder;
+    FQuery.Open;
+
+    // Copy Event List into FMaster
+    DBSupport.BuildFilteredDataset(FQuery, FMaster, '');
+
     FMaster.Open;
+
+    FQuery.Close;
+
+    // Retrieve time boundary for event list
+    FQuery.SQL.Text := FTimeSQLSelect + FMasterSQLFrom + FMasterSQLWhere + sSessionFilter;
+    FQuery.Open;
+
+    FMinDateTime := ValueAsFloat(FQuery, 'Start_Time', 0);
+    FMaxDateTime := ValueAsFloat(FQuery, 'End_Time', 0);
+
+    If FQuery.Active Then
+      FQuery.Close;
 
     Result := True;
 
@@ -398,7 +449,11 @@ Begin
   FFilteredDataset.Clear;
 
   If FMaster.Active Then
+  Begin
     FMaster.Close;
+    FMaster.Clear;
+  End;
+
 
   If FSurveyPerVideo.Active Then
   Begin
@@ -708,7 +763,7 @@ End;
 
 Function TStarfixDatabaseProvider.GetSessionSelectionFilter: String;
 Var
-  sQuery, sIDs: String;
+  sQuery: String;
   oDlg: TDialogFrameHost;
   fmeSelection: TfmeGridSelection;
   iRecord: Integer;
@@ -775,7 +830,6 @@ Begin
 
     If oDlg.ShowModal = mrOk Then
     Begin
-      sIDs := '';
       iRecord := 0;
 
       FQuery.DisableControls;
@@ -789,13 +843,7 @@ Begin
         While Not FQuery.EOF Do
         Begin
           If fmeSelection.Selected[iRecord] Then
-          Begin
-            If sIDs <> '' Then
-              sIDs += ',';
-
-            sIDs += oField.AsString;
             FSessionIDs.Add(oField.AsString);
-          End;
 
           Inc(iRecord);
           FQuery.Next;
@@ -804,8 +852,8 @@ Begin
         FQuery.EnableControls;
       End;
 
-      If sIDs <> '' Then
-        Result := 'AND S.SESSION_ID IN (' + sIDs + ') ';
+      If (FSessionIDs.Count > 0) Then
+        Result := 'AND S.SESSION_ID IN (' + FSessionIDs.CommaText + ') ';
     End;
   Finally
     fmeSelection.Free;
