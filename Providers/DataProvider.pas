@@ -227,10 +227,10 @@ Begin
         DataSet.Next;
       End;
     Finally
+      APipelineView.EndUpdate;
       DataSet.GotoBookmark(bmOriginal);
       DataSet.FreeBookmark(bmOriginal);
       DataSet.EnableControls;
-      APipelineView.EndUpdate;
     End;
   Finally
     frmEventsReviewer.SetStatusAndLog('Finished loading chart', INDENT_DEC, True);

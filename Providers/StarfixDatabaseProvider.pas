@@ -31,12 +31,15 @@ Type
     FConnection: TMSSQLConnection;
     FTransaction: TSQLTransaction;
     FMaster: TSQLQuery;
-    FSurveyPerVideo: TSQLQuery;
+    FSurveyPerVideo: TBufDataset;
+    FSurveyStartDateTime: TDateTime;
+    FSurveyEndDateTime: TDateTime;
 
     // Dynamic SQLs
     FMasterSQLSelect, FMasterSQLFrom, FMasterSQLWhere, FMasterSQLOrder: String;
     FTimeSQLSelect: String; // Replacement Select for the Master SQL
     FVideosForTimeSQL: String;
+    FSurveyPerVideoSQL: String;
     FQuery: TSQLQuery;
 
     // Settings Frames
@@ -79,7 +82,8 @@ Implementation
 
 Uses
   FormMain, FormEventsReviewer, ThirdPartySupport,
-  Dialogs, Controls, Forms, LazLogger, DBSupport, DataFilters, FrameGridSelection, ButtonPanel;
+  Dialogs, Controls, Forms, LazLogger, DBSupport, StringSupport, DataFilters,
+  FrameGridSelection, ButtonPanel, Math;
 
   { TStarfixDatabaseProvider }
 
@@ -138,15 +142,17 @@ Begin
 
   FMasterSQLOrder := 'ORDER BY [KP] ASC ';
 
-  FSurveyPerVideo := TSQLQuery.Create(nil);
-  FSurveyPerVideo.Database := FConnection;
-  FSurveyPerVideo.Transaction := FTransaction;
-  FSurveyPerVideo.SQL.Add('SELECT DATEADD(S, P.TIMEDATE, ''1970-01-01'') AS [Time], ');
-  FSurveyPerVideo.SQL.Add('       P.EDITED_KP AS [KP]                               ');
-  FSurveyPerVideo.SQL.Add('FROM DBO.POSITION_3 P                                    ');
-  FSurveyPerVideo.SQL.Add('WHERE DATEADD(S, P.TIMEDATE, ''1970-01-01'')>=:Start_Datetime ');
-  FSurveyPerVideo.SQL.Add('  AND DATEADD(S, P.TIMEDATE, ''1970-01-01'')<=:End_Datetime   ');
-  FSurveyPerVideo.SQL.Add('ORDER BY P.TIMEDATE ASC                                  ');
+  // This is for the cache of survey/ROV position/track data within open video
+  FSurveyPerVideo := TBufDataset.Create(nil);
+
+  FSurveyPerVideoSQL := 'SELECT DATEADD(S, P.TIMEDATE, ''1970-01-01'') AS [Time], ';
+  FSurveyPerVideoSQL += '       P.EDITED_KP AS [KP]                               ';
+  FSurveyPerVideoSQL += 'FROM DBO.POSITION_3 P                                    ';
+  FSurveyPerVideoSQL += 'WHERE DATEADD(S, P.TIMEDATE, ''1970-01-01'')>=:Start_Datetime ';
+  FSurveyPerVideoSQL += '  AND DATEADD(S, P.TIMEDATE, ''1970-01-01'')<=:End_Datetime   ';
+  FSurveyPerVideoSQL += 'ORDER BY P.TIMEDATE ASC                                  ';
+  FSurveyStartDateTime := 0;
+  FSurveyEndDateTime := 0;
 
   // Generic TSQLQuery used for one-shot SQLs
   FQuery := TSQLQuery.Create(nil);
@@ -395,7 +401,13 @@ Begin
     FMaster.Close;
 
   If FSurveyPerVideo.Active Then
+  Begin
     FSurveyPerVideo.Close;
+    FSurveyPerVideo.Clear;
+  End;
+
+  FSurveyStartDateTime := 0;
+  FSurveyEndDateTime := 0;
 
   If FQuery.Active Then
     FQuery.Close;
@@ -584,44 +596,114 @@ Begin
 
   oMessage := TIMMessageVideosLoaded(AMessage);
 
-  If FSurveyPerVideo.Active Then
-    FSurveyPerVideo.Close;
+  // Has the boundary of our cache changed?
+  If Not SameValue(FSurveyStartDateTime, oMessage.StartDateTime) Or Not
+    SameValue(FSurveyEndDateTime, oMessage.EndDateTime) Then
+  Begin
+    If FSurveyPerVideo.Active Then
+    Begin
+      FSurveyPerVideo.Close;
+      FSurveyPerVideo.Clear;
+    End;
 
-  FSurveyPerVideo.ParamByName('Start_Datetime').AsDateTime := oMessage.StartDateTime;
-  FSurveyPerVideo.ParamByName('End_Datetime').AsDateTime := oMessage.EndDateTime;
+    If FQuery.Active Then
+      FQuery.Close;
 
-  FSurveyPerVideo.Open;
+    // Remember the new boundary.
+    FSurveyStartDateTime := oMessage.StartDateTime;
+    FSurveyEndDateTime := oMessage.EndDateTime;
+
+    FQuery.SQL.Text := FSurveyPerVideoSQL;
+    FQuery.ParamByName('Start_Datetime').AsDateTime := oMessage.StartDateTime;
+    FQuery.ParamByName('End_Datetime').AsDateTime := oMessage.EndDateTime;
+
+    FQuery.Open;
+    Try
+      DBSupport.BuildFilteredDataset(FQuery, FSurveyPerVideo, '');
+    Finally
+      If FQuery.Active Then
+        FQuery.Close;
+    End;
+
+    // Our cache has changed via an asychronous method (video loading),
+    //  let's re-broadcast the seek time message now we can properly answer GetKPForDateTime()
+    If oMessage.PendingSeekDateTime <> 0 Then
+      frmEventsReviewer.MessageBus.BroadcastTime(Self, oMessage.PendingSeekDateTime);
+  End;
 End;
 
 Procedure TStarfixDatabaseProvider.DoReceiveVideoUnloaded(AMessage: TIMMessage);
 Begin
   If FSurveyPerVideo.Active Then
+  Begin
     FSurveyPerVideo.Close;
+    FSurveyPerVideo.Clear;
+  End;
+
+  FSurveyStartDateTime := 0;
+  FSurveyEndDateTime := 0;
 End;
 
 Function TStarfixDatabaseProvider.GetKPForDateTime(ADateTime: TDateTime): Double;
 Var
   oField: TField;
+  sTime: String;
 Begin
+  sTime := ADateTime.AsTextTime;
+
   If Ready Then
   Begin
     If Not FSurveyPerVideo.Active Or FSurveyPerVideo.IsEmpty Then
     Begin
       Result := FMaster.FieldByName(FFieldStartKP).AsFloat;
+      {$IFNDEF RELEASE}
+      DebugLn([ClassName, '.', {$I %CURRENTROUTINE%}, ' Passed ', sTime,
+        ' returned ', Result, ' from last event as cache is empty']);
+      {$ENDIF}
       Exit;
     End;
 
-    DBSupport.GotoNearestValue(FSurveyPerVideo, 'Time', ADateTime, SEEK_FIRST_AFTER);
+    If (FSurveyStartDateTime <= ADateTime) And (ADateTime <= FSurveyEndDateTime) Then
+    Begin
+      DBSupport.GotoNearestValue(FSurveyPerVideo, 'Time', ADateTime, SEEK_FIRST_AFTER);
 
-    oField := FSurveyPerVideo.FieldByName('KP');
+      oField := FSurveyPerVideo.FieldByName('KP');
 
-    If (oField.IsNull) Or (oField.AsFloat = -999999) Then
-      Result := FMaster.FieldByName(FFieldStartKP).AsFloat
+      If (oField.IsNull) Or (oField.AsFloat = -999999) Then
+      Begin
+        Result := FMaster.FieldByName(FFieldStartKP).AsFloat;
+        {$IFNDEF RELEASE}
+        DebugLn([ClassName, '.', {$I %CURRENTROUTINE%}, ' Passed ', sTime,
+          ' returned ', Result,
+          ' from last event as cache does not have a valid KP for this time']);
+        {$ENDIF}
+      End
+      Else
+      Begin
+        Result := oField.AsFloat;
+        {$IFNDEF RELEASE}
+        DebugLn([ClassName, '.', {$I %CURRENTROUTINE%}, ' Passed ', sTime,
+          ' returned ', Result, ' from cache']);
+        {$ENDIF}
+      End;
+    End
     Else
-      Result := oField.AsFloat;
+    Begin
+      Result := FMaster.FieldByName(FFieldStartKP).AsFloat;
+      {$IFNDEF RELEASE}
+      DebugLn([ClassName, '.', {$I %CURRENTROUTINE%}, ' Passed ', sTime,
+        ' returned ', Result, ' from last event as our cache does not contain passed time']);
+      {$ENDIF}
+    End;
   End
   Else
+  Begin
     Result := Inherited GetKPForDateTime(ADateTime);
+    {$IFNDEF RELEASE}
+    DebugLn([ClassName, '.', {$I %CURRENTROUTINE%}, ' Passed ', sTime,
+      ' returned ', Result, ' from TDataProvider as we are not Ready()']);
+    {$ENDIF}
+  End;
 End;
 
 Function TStarfixDatabaseProvider.GetSessionSelectionFilter: String;

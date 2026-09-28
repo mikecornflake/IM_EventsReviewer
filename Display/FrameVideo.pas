@@ -248,6 +248,7 @@ Var
   bAnyLoaded: Boolean;
 Begin
   frmEventsReviewer.Busy := True;
+  //BeginUpdate;
   frmEventsReviewer.SetStatusAndLog(Format('Queuing %d videos', [AVideoFiles.Count]), INDENT_INC);
   Try
     If AVideoFiles.Count = 0 Then
@@ -302,6 +303,7 @@ Begin
     End;
   Finally
     frmEventsReviewer.SetStatusAndLog('Finished queuing videos', INDENT_DEC, True);
+    //EndUpdate;
     frmEventsReviewer.Busy := False;
   End;
 End;
@@ -379,7 +381,7 @@ Begin
       fmeSyncedVideo.PositionAsTime.AsTextTime + ' end: ' + fmeSyncedVideo.EndDateTime.AsTextTime);
 
     frmEventsReviewer.MessageBus.BroadcastVideosLoaded(Sender, fmeSyncedVideo.StartDateTime,
-      fmeSyncedVideo.EndDateTime);
+      fmeSyncedVideo.EndDateTime, FPendingVideoTime);
   End;
 End;
 

@@ -191,96 +191,107 @@ Procedure TfrmEventsReviewer.FormCreate(Sender: TObject);
 Var
   sPath: String;
 Begin
-  // This isn't going to be app that only an Admin can change settings...
-  FAlwaysSaveSettings := True;
-  FLastImageFolder := '';
+  BeginFormUpdate;
+  Try
+    // This isn't going to be app that only an Admin can change settings...
+    FAlwaysSaveSettings := True;
+    FLastImageFolder := '';
 
-  FMessageBus := TAppMessageBus.Create;
+    FMessageBus := TAppMessageBus.Create;
 
-  // Settings Manager
-  FSettings := TApplicationSettings.Create;
+    // Settings Manager
+    FSettings := TApplicationSettings.Create;
 
-  // UI
-  fmeImageViewer := TFrameImageViewer.Create(Self);
-  fmeImageViewer.Parent := tsImages;
-  fmeImageViewer.Name := 'fmeImageViewer';
-  fmeImageViewer.Align := alClient;
-  fmeImageViewer.OnRequestAddImage := @DoAddNewImage;
-  fmeImageViewer.OnRequestRefreshImages := @DoRefreshImages;
-  fmeImageViewer.Enabled := False;
+    // UI
+    fmeImageViewer := TFrameImageViewer.Create(Self);
+    fmeImageViewer.Parent := tsImages;
+    fmeImageViewer.Name := 'fmeImageViewer';
+    fmeImageViewer.Align := alClient;
+    fmeImageViewer.OnRequestAddImage := @DoAddNewImage;
+    fmeImageViewer.OnRequestRefreshImages := @DoRefreshImages;
+    fmeImageViewer.Enabled := False;
 
-  fmePipelineChart := TfmePipelineEvents.Create(Self);
-  fmePipelineChart.Parent := tsChart;
-  fmePipelineChart.Name := 'fmePipelineChart';
-  fmePipelineChart.Align := alClient;
+    fmePipelineChart := TfmePipelineEvents.Create(Self);
+    fmePipelineChart.Parent := tsChart;
+    fmePipelineChart.Name := 'fmePipelineChart';
+    fmePipelineChart.Align := alClient;
 
-  fmeVideoFiles := TfmeVideoFiles.Create(Self);
-  fmeVideoFiles.Parent := tsVideoFiles;
-  fmeVideoFiles.Name := 'fmeVideoFiles';
-  fmeVideoFiles.Align := alClient;
+    fmeVideoFiles := TfmeVideoFiles.Create(Self);
+    fmeVideoFiles.Parent := tsVideoFiles;
+    fmeVideoFiles.Name := 'fmeVideoFiles';
+    fmeVideoFiles.Align := alClient;
 
-  fmeDBGrid := TFrameGrid.Create(Self);
-  fmeDBGrid.Parent := pnlAnomalies;
-  fmeDBGrid.Name := 'fmeDBGrid';
-  fmeDBGrid.Align := alClient;
+    fmeDBGrid := TFrameGrid.Create(Self);
+    fmeDBGrid.Parent := pnlAnomalies;
+    fmeDBGrid.Name := 'fmeDBGrid';
+    fmeDBGrid.Align := alClient;
 
-  fmeVideo := TfmeVideo.Create(Self);
-  fmeVideo.Parent := pnlVideo;
-  fmeVideo.Name := 'fmeVideo';
-  fmeVideo.Align := alClient;
+    fmeVideo := TfmeVideo.Create(Self);
+    fmeVideo.Parent := pnlVideo;
+    fmeVideo.Name := 'fmeVideo';
+    fmeVideo.Align := alClient;
 
-  sPath := IncludeTrailingBackslash(GetAppConfigDir(False)) + 'Images' + PathDelim + '%TIMESTAMP%';
-  fmeVideo.ImageGrabFolder := sPath;
+    sPath := IncludeTrailingBackslash(GetAppConfigDir(False)) + 'Images' +
+      PathDelim + '%TIMESTAMP%';
+    fmeVideo.ImageGrabFolder := sPath;
 
-  fmeVerticalDBGrid := TFrameVerticalDBGrid.Create(Self);
-  fmeVerticalDBGrid.Parent := pnlDetailsGrid;
-  fmeVerticalDBGrid.Name := 'fmeVerticalDBGrid';
-  fmeVerticalDBGrid.Align := alClient;
+    fmeVerticalDBGrid := TFrameVerticalDBGrid.Create(Self);
+    fmeVerticalDBGrid.Parent := pnlDetailsGrid;
+    fmeVerticalDBGrid.Name := 'fmeVerticalDBGrid';
+    fmeVerticalDBGrid.Align := alClient;
 
-  // Now the UI is created, let's create the providers and bind/register
+    // Now the UI is created, let's create the providers and bind/register
 
-  // Data Provider
-  FStarfixDatabaseProvider := TStarfixDatabaseProvider.Create;
-  FEventListingProvider := TEventListingProvider.Create;
-  FDataProvider := nil;
+    // Data Provider
+    FStarfixDatabaseProvider := TStarfixDatabaseProvider.Create;
+    FEventListingProvider := TEventListingProvider.Create;
+    FDataProvider := nil;
 
-  dsNotification.Dataset := nil;
-  fmeDBGrid.Dataset := nil;
-  fmeVerticalDBGrid.Dataset := nil;
+    dsNotification.Dataset := nil;
+    fmeDBGrid.Dataset := nil;
+    fmeVerticalDBGrid.Dataset := nil;
 
-  // Media Provider
-  FMediaProvider := TMediaProvider.Create;
+    // Media Provider
+    FMediaProvider := TMediaProvider.Create;
 
-  FActivated := False;
+    FActivated := False;
 
-  FMessageBus.Subscribe(Self, TIMMessageTime, @DoReceiveTimeSeekMessage);
-  FMessageBus.Subscribe(Self, TIMMessageFilterChanged, @DoReceiveFilterChanged);
+    FMessageBus.Subscribe(Self, TIMMessageTime, @DoReceiveTimeSeekMessage);
+    FMessageBus.Subscribe(Self, TIMMessageFilterChanged, @DoReceiveFilterChanged);
+  Finally
+    EndFormUpdate;
+  End;
 End;
 
 Procedure TfrmEventsReviewer.FormDestroy(Sender: TObject);
 Begin
-  // Stop using the MessageBus and turn it off
-  FMessageBus.Unsubscribe(Self);
-  FMessageBus.Stop;
+  BeginFormUpdate;
+  Try
+    // Stop using the MessageBus and turn it off
+    FMessageBus.Unsubscribe(Self);
+    FMessageBus.Stop;
 
-  // Fully aware these would be cleared up by their Owner anyway
-  // My philosophy is: I create, I clean up...
-  FreeAndNil(fmeVideoFiles);
-  FreeAndNil(fmePipelineChart);
-  FreeAndNil(fmeImageViewer);
-  FreeAndNil(fmeDBGrid);
-  FreeAndNil(fmeVideo);
-  FreeAndNil(fmeVerticalDBGrid);
+    // Fully aware these would be cleared up by their Owner anyway
+    // My philosophy is: I create, I clean up...
+    FreeAndNil(fmeVideoFiles);
+    FreeAndNil(fmePipelineChart);
+    FreeAndNil(fmeImageViewer);
+    FreeAndNil(fmeDBGrid);
+    FreeAndNil(fmeVideo);
+    FreeAndNil(fmeVerticalDBGrid);
 
-  // And these definitely need freeing :-)
-  FreeAndNil(FSettings);
-  FDataProvider := nil;
-  FreeAndNil(FStarfixDatabaseProvider);
-  FreeAndNil(FEventListingProvider);
-  FreeAndNil(FMediaProvider);
+    // And these definitely need freeing :-)
+    FreeAndNil(FSettings);
+    FDataProvider := nil;
+    FreeAndNil(FStarfixDatabaseProvider);
+    FreeAndNil(FEventListingProvider);
+    FreeAndNil(FMediaProvider);
 
-  // Free last, giving everything a proper chance to unsubscribe first
-  FreeAndNil(FMessageBus);
+    // Free last, giving everything a proper chance to unsubscribe first
+    FreeAndNil(FMessageBus);
+  Finally
+    EndFormUpdate;
+  End;
 End;
 
 Procedure TfrmEventsReviewer.FormShow(Sender: TObject);
@@ -488,7 +499,6 @@ Begin
 
   tmrNotification.Enabled := False;
   FNotificationDragging := True;
-  //pnlNotification.MouseCapture := True;
 
   // Remember the mouse position in screen coordinates.
   FNotificationDragStart := pnlNotification.ClientToScreen(Types.Point(X, Y));
@@ -541,7 +551,6 @@ Begin
   Begin
     FNotificationDragging := False;
     tmrNotification.Enabled := True;
-    //pnlNotification.MouseCapture := False;
   End;
 End;
 
@@ -770,36 +779,42 @@ Var
 Begin
   If Assigned(FDataProvider) And FDataProvider.Ready Then
   Begin
+    BeginFormUpdate;
     Busy := True;
-    SetStatusAndLog('Reloading all media', INDENT_INC);
     Try
-      // Media folder contents are updated dynamically during operations
-      // Reload all media on eiter settings change or user request
+      SetStatusAndLog('Reloading all media', INDENT_INC);
+      Try
+        // Media folder contents are updated dynamically during operations
+        // Reload all media on eiter settings change or user request
 
-      // The loaded video may no longer be valid after recan
-      // This only checks one of the n filenames - really ALL loaded files should be checked
-      sCurrent := fmeVideo.MasterFilename;
+        // The loaded video may no longer be valid after recan
+        // This only checks one of the n filenames - really ALL loaded files should be checked
+        sCurrent := fmeVideo.MasterFilename;
 
-      // Refresh
-      FMediaProvider.ScanVideoFiles(FSettings.VideoFolder);
+        // Refresh
+        FMediaProvider.ScanVideoFiles(FSettings.VideoFolder);
 
-      fmePipelineChart.LoadData;
-      fmeVideoFiles.Load(FMediaProvider.Videos);
+        fmePipelineChart.LoadData;
+        fmeVideoFiles.Load(FMediaProvider.Videos);
 
-      // Does the refreshed MediaProvider still know about the current file
-      If sCurrent <> '' Then
-      Begin
-        oVideo := FMediaProvider.Find(ExtractFileName(sCurrent));
+        // Does the refreshed MediaProvider still know about the current file
+        If sCurrent <> '' Then
+        Begin
+          oVideo := FMediaProvider.Find(ExtractFileName(sCurrent));
 
-        If Not Assigned(oVideo) Or (Not SameFileName(sCurrent,
-          IncludeTrailingPathDelimiter(oVideo.Folder) + oVideo.Filename)) Then
-          fmeVideo.Clear;
+          If Not Assigned(oVideo) Or
+            (Not SameFileName(sCurrent, IncludeTrailingPathDelimiter(oVideo.Folder) +
+            oVideo.Filename)) Then
+            fmeVideo.Clear;
+        End;
+
+        fmeImageViewer.RefreshImages;
+      Finally
+        SetStatusAndLog('Finished reloading all media', INDENT_DEC, True);
+        Busy := False;
       End;
-
-      fmeImageViewer.RefreshImages;
     Finally
-      SetStatusAndLog('Finished reloading all media', INDENT_DEC, True);
-      Busy := False;
+      EndFormUpdate;
     End;
   End;
 End;
@@ -807,6 +822,7 @@ End;
 Procedure TfrmEventsReviewer.ClearAllMedia;
 Begin
   Busy := True;
+  BeginFormUpdate;
   SetStatusAndLog('Clearing all media', INDENT_INC);
   Try
     // These will reload when the ProviderReady message is broadcast
@@ -829,6 +845,7 @@ Begin
     pnlNotification.Visible := False;
   Finally
     SetStatusAndLog('Finished clearing all media', INDENT_DEC, True);
+    EndFormUpdate;
     Busy := False;
   End;
 End;

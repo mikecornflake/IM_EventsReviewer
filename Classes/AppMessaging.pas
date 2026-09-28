@@ -26,7 +26,7 @@ Type
 
   TIMMessageVideosLoaded = Class(TIMMessage)
   Public
-    StartDateTime, EndDateTime: TDateTime
+    StartDateTime, EndDateTime, PendingSeekDateTime: TDateTime
   End;
 
   TIMMessageDataProviderReady = Class(TIMMessage);
@@ -39,7 +39,8 @@ Type
 
   TAppMessageBus = Class(TMessageBus)
   Public
-    Procedure BroadcastVideosLoaded(ASender: TObject; AStartDateTime, AEndDateTime: TDateTime);
+    Procedure BroadcastVideosLoaded(ASender: TObject;
+      AStartDateTime, AEndDateTime, APendingSeekTime: TDateTime);
     Procedure BroadcastTime(ASender: TObject; ADateTime: TDateTime);
     Procedure BroadcastKP(ASender: TObject; AKP: Extended);
   End;
@@ -47,7 +48,7 @@ Type
 Implementation
 
 Procedure TAppMessageBus.BroadcastVideosLoaded(ASender: TObject;
-  AStartDateTime, AEndDateTime: TDateTime);
+  AStartDateTime, AEndDateTime, APendingSeekTime: TDateTime);
 Var
   oMessage: TIMMessageVideosLoaded;
 Begin
@@ -56,6 +57,7 @@ Begin
     oMessage.Sender := ASender;
     oMessage.StartDateTime := AStartDateTime;
     oMessage.EndDateTime := AEndDateTime;
+    oMessage.PendingSeekDateTime := APendingSeekTime;
 
     Broadcast(oMessage);
   Finally
