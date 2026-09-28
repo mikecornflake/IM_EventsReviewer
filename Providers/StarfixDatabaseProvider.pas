@@ -372,7 +372,7 @@ Begin
 
   If Ready Then
   Begin
-    // Remember State
+    // Remember selected record
     dtCurrent := DateTime;
 
     // Clear any set Filter on Refresh;
@@ -431,7 +431,7 @@ Begin
     // We suppressed the first event being loaded, so broadcast it now manually
     DoMasterAfterScroll(FMaster);
 
-    // Restore State;
+    // Restore selected record (or nearest alternative);
     GotoNearestValue(FFieldStartTime, dtCurrent, -1);
   End;
 End;
@@ -453,7 +453,6 @@ Begin
     FMaster.Close;
     FMaster.Clear;
   End;
-
 
   If FSurveyPerVideo.Active Then
   Begin
