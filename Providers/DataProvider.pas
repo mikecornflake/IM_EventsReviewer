@@ -241,11 +241,17 @@ End;
 Procedure TDataProvider.GotoKP(AKP: Double);
 Begin
   GotoNearestValue(FFieldStartKP, AKP, -1);
+
+  // Update the rest of the UI
+  DoMasterAfterScroll(DataSet);
 End;
 
 Procedure TDataProvider.GotoDateTime(ADateTime: TDateTime);
 Begin
   GotoNearestValue(FFieldStartTime, ADateTime, -1);
+
+  // Update the rest of the UI
+  DoMasterAfterScroll(DataSet);
 End;
 
 Function TDataProvider.GetKPForDateTime(ADateTime: TDateTime): Double;
@@ -342,14 +348,13 @@ Begin
   Begin
     FUpdatingMasterDataset := True;
     Try
-      bMoved := DBSupport.GotoNearestValue(DataSet, AFieldname, AValue, AThreshold);
+      // DoMasterAfterScroll has to be inside FUpdatingMasterDataset otherwise video jumps around
+      // during fast forward or stepping
+      If DBSupport.GotoNearestValue(DataSet, AFieldname, AValue, AThreshold) Then
+        DoMasterAfterScroll(DataSet);
     Finally
       FUpdatingMasterDataset := False;
     End;
-
-    // The above suppressed OnAfterScroll, so we need to manually raise
-    If bMoved Then
-      DoMasterAfterScroll(DataSet);
   End;
 End;
 

@@ -31,12 +31,14 @@ Type
     actMain: TActionList;
     DBEdit2: TDBEdit;
     DBEdit3: TDBEdit;
+    DBEdit4: TDBEdit;
     dsNotification: TDataSource;
     edtHeight1: TDBEdit;
     edtLength1: TDBEdit;
     edtWidth1: TDBEdit;
     lblDescription2: TLabel;
     lblDescription3: TLabel;
+    lblDescription4: TLabel;
     lblHeight1: TLabel;
     lblLength1: TLabel;
     lblWidth1: TLabel;
@@ -731,6 +733,8 @@ Begin
   End;
 
   FDataProvider.GotoKP(dKP);
+
+
 End;
 
 Procedure TfrmEventsReviewer.actGotoTimeExecute(Sender: TObject);
@@ -969,7 +973,7 @@ Begin
   End;
 End;
 
-// Data has just loaded or User has scrolled to the next anomaly in the list
+// Data has just loaded or User has scrolled to the next event in the list
 Procedure TfrmEventsReviewer.DoDataChanged(Sender: TObject; Const AAnomalyReference: String;
   Const ADateTime: TDateTime);
 Begin
