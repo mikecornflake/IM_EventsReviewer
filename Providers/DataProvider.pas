@@ -342,15 +342,14 @@ Begin
   Begin
     FUpdatingMasterDataset := True;
     Try
-      If DBSupport.GotoNearestValue(DataSet, AFieldname, AValue, AThreshold) Then
-      Begin
-        // The above suppressed OnAfterScroll, so we need to manually raise
-        // This time within the protection of FUpdatingMasterDataset
-        DoMasterAfterScroll(DataSet);
-      End;
+      bMoved := DBSupport.GotoNearestValue(DataSet, AFieldname, AValue, AThreshold);
     Finally
       FUpdatingMasterDataset := False;
     End;
+
+    // The above suppressed OnAfterScroll, so we need to manually raise
+    If bMoved Then
+      DoMasterAfterScroll(DataSet);
   End;
 End;
 
