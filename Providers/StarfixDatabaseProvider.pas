@@ -428,11 +428,11 @@ Begin
     // sees the provider as ready has now happened.
     frmEventsReviewer.MessageBus.Broadcast(Self, TIMMessageDataProviderReady);
 
-    // We suppressed the first event being loaded, so broadcast it now manually
-    DoMasterAfterScroll(FMaster);
-
     // Restore selected record (or nearest alternative);
     GotoNearestValue(FFieldStartTime, dtCurrent, -1);
+
+    // We suppressed the first event being loaded, so broadcast it now manually
+    DoMasterAfterScroll(FMaster);
   End;
 End;
 

@@ -193,6 +193,10 @@ Begin
 
   // Try to restore State
   Self.GotoNearestValue(FFieldStartTime, dtCurrent, -1);
+
+  // For some reason the rest of the app isn't updating to current pos
+  // Try to force a refresh
+  DoMasterAfterScroll(FMaster.Table);
 End;
 
 Function TEventListingProvider.Close: Boolean;
