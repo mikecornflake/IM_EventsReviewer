@@ -7,7 +7,8 @@ Interface
 Uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, Inifiles,
   FrameBase, FrameVideoPlayer, FrameSyncedVideo, MediaTypes,
-  FrameSettingsSyncedVideo, IMMessaging, AppMessaging;
+  FrameSettingsSyncedVideo, IMMessaging, AppMessaging,
+  AudioWaveform, WaveformCache;
 
 Type
 
@@ -30,6 +31,10 @@ Type
     fmeVideoPlayer: TFrameVideoPlayer;
     fmeSyncedVideo: TFrameSyncedVideo;
 
+    // Waveform cache and Renderer
+    FManager: TWaveformManager;
+    FDecorator: TAudioWaveformRenderer;
+
     // Tracking video playback status
     FPendingVideoTime: TDateTime;
     FSeekPending: Boolean;
@@ -45,6 +50,8 @@ Type
 
     Procedure DoVideoPositionChange(Sender: TObject; ADateTime: TDateTime);
     Procedure SetImageGrabHint(Const AValue: String);
+    Procedure DoOnWaveformReady(Sender: TObject; AVideofilename: String;
+      AWaveformBuckets: TWaveformBuckets);
   Public
     Constructor Create(TheOwner: TComponent); Override;
     Destructor Destroy; Override;
@@ -83,6 +90,8 @@ Uses
   { TfmeVideo }
 
 Constructor TfmeVideo.Create(TheOwner: TComponent);
+Var
+  sTempFolder: String;
 Begin
   Inherited Create(TheOwner);
 
@@ -106,6 +115,13 @@ Begin
   fmeVideoPlayer.Autoplay := False;
   fmeSyncedVideo.OnVideoLoaded := @DoVideoLoaded;
 
+  sTempFolder := IncludeTrailingPathDelimiter(GetAppConfigDir(False));
+  ForceDirectories(sTempFolder);
+
+  FManager := TWaveformManager.Create(sTempFolder);
+  FManager.OnWaveformReady := @DoOnWaveformReady;
+  FDecorator := nil;;
+
   FLastTimeSent := 0;
   FPendingSeek := False;
   FPendingSeekTime := 0;
@@ -118,6 +134,9 @@ Destructor TfmeVideo.Destroy;
 Begin
   tmrSeekAfterLoadVideo.Enabled := False;
   frmEventsReviewer.MessageBus.Unsubscribe(Self);
+
+  FreeAndNil(FDecorator);
+  FreeAndNil(FManager);
 
   FreeAndNil(fmeVideoPlayer);
 
@@ -342,7 +361,25 @@ Begin
   frmEventsReviewer.SetStatusAndLog(Format('Finished loading %d videos - starting delayed seek',
     [fmeSyncedVideo.VideoFileCount]));
   tmrSeekAfterLoadVideo.Enabled := True;
+
+  FManager.RequestWaveform(fmeSyncedVideo.Filename, ClientWidth);
 End;
+
+Procedure TfmeVideo.DoOnWaveformReady(Sender: TObject; AVideofilename: String;
+  AWaveformBuckets: TWaveformBuckets);
+Begin
+  If Not Assigned(FDecorator) Then
+  Begin
+    FDecorator := TAudioWaveformRenderer.Create;
+    FDecorator.Normalise := True;
+    FDecorator.PeakModifier := 0.8;
+    FDecorator.Color := clBlue;
+  End;
+
+  FDecorator.WaveBuckets := AWaveformBuckets;
+  fmeVideoPlayer.Decorator := FDecorator;
+End;
+
 
 Function TfmeVideo.GetGrabImageBtnEnabled: Boolean;
 Begin
